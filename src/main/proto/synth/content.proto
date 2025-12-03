@@ -1,0 +1,153 @@
+syntax = "proto3";
+
+package synth;
+
+option java_package = "io.synth.protocol";
+option java_multiple_files = true;
+
+import "synth/model.proto";
+
+// Content Generation for Cryo/Arctic Assets
+message ContentGenerationRequest {
+    string request_id = 1;
+    ContentType content_type = 2;
+    GenerationPrompt prompt = 3;
+    ContentGenerationConfig config = 4;
+}
+
+enum ContentType {
+    CONTENT_TYPE_UNSPECIFIED = 0;
+    CONTENT_TYPE_TEXTURE = 1;
+    CONTENT_TYPE_MATERIAL = 2;
+    CONTENT_TYPE_MESH = 3;
+    CONTENT_TYPE_ANIMATION = 4;
+    CONTENT_TYPE_AUDIO = 5;
+    CONTENT_TYPE_SKYBOX = 6;
+    CONTENT_TYPE_HEIGHTMAP = 7;
+}
+
+message GenerationPrompt {
+    string text_prompt = 1;
+    bytes reference_image = 2;
+    string style_reference = 3;
+    map<string, string> parameters = 4;
+}
+
+message ContentGenerationConfig {
+    int32 width = 1;
+    int32 height = 2;
+    int32 depth = 3;
+    string format = 4;
+    QualityLevel quality = 5;
+    int32 variations = 6;
+    int64 seed = 7;
+}
+
+enum QualityLevel {
+    QUALITY_LEVEL_UNSPECIFIED = 0;
+    QUALITY_LEVEL_DRAFT = 1;
+    QUALITY_LEVEL_STANDARD = 2;
+    QUALITY_LEVEL_HIGH = 3;
+    QUALITY_LEVEL_ULTRA = 4;
+}
+
+message ContentGenerationResponse {
+    string request_id = 1;
+    repeated GeneratedContent content = 2;
+    GenerationStatus status = 3;
+}
+
+message GeneratedContent {
+    string content_id = 1;
+    ContentType type = 2;
+    bytes data = 3;
+    string format = 4;
+    ContentMetadata metadata = 5;
+}
+
+message ContentMetadata {
+    int32 width = 1;
+    int32 height = 2;
+    int64 size_bytes = 3;
+    int64 seed = 4;
+    map<string, string> properties = 5;
+}
+
+enum GenerationStatus {
+    GENERATION_STATUS_UNSPECIFIED = 0;
+    GENERATION_STATUS_QUEUED = 1;
+    GENERATION_STATUS_PROCESSING = 2;
+    GENERATION_STATUS_COMPLETED = 3;
+    GENERATION_STATUS_FAILED = 4;
+}
+
+// Texture Generation
+message TextureGenerationRequest {
+    string prompt = 1;
+    TextureType texture_type = 2;
+    int32 resolution = 3;
+    bool seamless = 4;
+    bool generate_pbr_maps = 5;
+}
+
+enum TextureType {
+    TEXTURE_TYPE_UNSPECIFIED = 0;
+    TEXTURE_TYPE_DIFFUSE = 1;
+    TEXTURE_TYPE_NORMAL = 2;
+    TEXTURE_TYPE_ROUGHNESS = 3;
+    TEXTURE_TYPE_METALLIC = 4;
+    TEXTURE_TYPE_AO = 5;
+    TEXTURE_TYPE_HEIGHT = 6;
+    TEXTURE_TYPE_EMISSIVE = 7;
+}
+
+message TextureGenerationResponse {
+    bytes diffuse_map = 1;
+    bytes normal_map = 2;
+    bytes roughness_map = 3;
+    bytes metallic_map = 4;
+    bytes ao_map = 5;
+    bytes height_map = 6;
+}
+
+// Style Transfer
+message StyleTransferRequest {
+    bytes content_image = 1;
+    bytes style_image = 2;
+    float style_strength = 3;
+    bool preserve_colors = 4;
+}
+
+message StyleTransferResponse {
+    bytes result_image = 1;
+    float processing_time_ms = 2;
+}
+
+// Image Upscaling
+message UpscaleRequest {
+    bytes image = 1;
+    int32 scale_factor = 2;  // 2, 4, or 8
+    UpscaleModel model = 3;
+}
+
+enum UpscaleModel {
+    UPSCALE_MODEL_UNSPECIFIED = 0;
+    UPSCALE_MODEL_FAST = 1;
+    UPSCALE_MODEL_BALANCED = 2;
+    UPSCALE_MODEL_QUALITY = 3;
+}
+
+message UpscaleResponse {
+    bytes upscaled_image = 1;
+    int32 output_width = 2;
+    int32 output_height = 3;
+}
+
+// gRPC Service
+service ContentGenerationService {
+    rpc GenerateContent(ContentGenerationRequest) returns (ContentGenerationResponse);
+    rpc GenerateTexture(TextureGenerationRequest) returns (TextureGenerationResponse);
+    rpc StyleTransfer(StyleTransferRequest) returns (StyleTransferResponse);
+    rpc Upscale(UpscaleRequest) returns (UpscaleResponse);
+    rpc StreamGeneration(ContentGenerationRequest) returns (stream ContentGenerationResponse);
+}

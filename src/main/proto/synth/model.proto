@@ -1,0 +1,96 @@
+syntax = "proto3";
+
+package synth;
+
+option java_package = "io.synth.protocol";
+option java_multiple_files = true;
+
+// ML Model Definition
+message ModelDefinition {
+    string id = 1;
+    string name = 2;
+    string version = 3;
+    ModelType type = 4;
+    ModelArchitecture architecture = 5;
+    map<string, string> metadata = 6;
+    repeated ModelParameter parameters = 7;
+    ModelRequirements requirements = 8;
+}
+
+enum ModelType {
+    MODEL_TYPE_UNSPECIFIED = 0;
+    MODEL_TYPE_CLASSIFICATION = 1;
+    MODEL_TYPE_REGRESSION = 2;
+    MODEL_TYPE_GENERATION = 3;
+    MODEL_TYPE_EMBEDDING = 4;
+    MODEL_TYPE_DETECTION = 5;
+    MODEL_TYPE_SEGMENTATION = 6;
+    MODEL_TYPE_TRANSFORMER = 7;
+}
+
+message ModelArchitecture {
+    string framework = 1;  // pytorch, tensorflow, onnx
+    string architecture_type = 2;  // cnn, rnn, transformer, diffusion
+    repeated LayerDefinition layers = 3;
+}
+
+message LayerDefinition {
+    string name = 1;
+    string type = 2;
+    map<string, string> config = 3;
+}
+
+message ModelParameter {
+    string name = 1;
+    DataType dtype = 2;
+    repeated int64 shape = 3;
+    bool trainable = 4;
+}
+
+message ModelRequirements {
+    int64 min_memory_mb = 1;
+    bool requires_gpu = 2;
+    repeated string supported_devices = 3;
+}
+
+enum DataType {
+    DATA_TYPE_UNSPECIFIED = 0;
+    DATA_TYPE_FLOAT32 = 1;
+    DATA_TYPE_FLOAT16 = 2;
+    DATA_TYPE_INT32 = 3;
+    DATA_TYPE_INT64 = 4;
+    DATA_TYPE_UINT8 = 5;
+    DATA_TYPE_BOOL = 6;
+}
+
+// Inference Request/Response
+message InferenceRequest {
+    string model_id = 1;
+    repeated Tensor inputs = 2;
+    InferenceOptions options = 3;
+}
+
+message InferenceResponse {
+    string request_id = 1;
+    repeated Tensor outputs = 2;
+    InferenceMetrics metrics = 3;
+}
+
+message Tensor {
+    string name = 1;
+    DataType dtype = 2;
+    repeated int64 shape = 3;
+    bytes data = 4;
+}
+
+message InferenceOptions {
+    string device = 1;
+    int32 batch_size = 2;
+    float timeout_seconds = 3;
+}
+
+message InferenceMetrics {
+    float latency_ms = 1;
+    int64 memory_used_bytes = 2;
+    string device_used = 3;
+}

@@ -1,0 +1,124 @@
+syntax = "proto3";
+
+package synth;
+
+option java_package = "io.synth.protocol";
+option java_multiple_files = true;
+
+import "synth/model.proto";
+
+// Image Analysis
+message ImageAnalysisRequest {
+    string request_id = 1;
+    bytes image_data = 2;
+    string image_format = 3;  // png, jpg, webp
+    repeated AnalysisType analysis_types = 4;
+    AnalysisOptions options = 5;
+}
+
+enum AnalysisType {
+    ANALYSIS_TYPE_UNSPECIFIED = 0;
+    ANALYSIS_TYPE_CLASSIFICATION = 1;
+    ANALYSIS_TYPE_DETECTION = 2;
+    ANALYSIS_TYPE_SEGMENTATION = 3;
+    ANALYSIS_TYPE_OCR = 4;
+    ANALYSIS_TYPE_FACE = 5;
+    ANALYSIS_TYPE_POSE = 6;
+    ANALYSIS_TYPE_DEPTH = 7;
+}
+
+message AnalysisOptions {
+    float confidence_threshold = 1;
+    int32 max_detections = 2;
+    bool include_masks = 3;
+    bool include_embeddings = 4;
+}
+
+message ImageAnalysisResponse {
+    string request_id = 1;
+    repeated Classification classifications = 2;
+    repeated Detection detections = 3;
+    SegmentationResult segmentation = 4;
+    repeated OcrResult ocr_results = 5;
+    Tensor embedding = 6;
+}
+
+message Classification {
+    string label = 1;
+    float confidence = 2;
+    int32 class_id = 3;
+}
+
+message Detection {
+    string label = 1;
+    float confidence = 2;
+    BoundingBox bbox = 3;
+    bytes mask = 4;
+}
+
+message BoundingBox {
+    float x_min = 1;
+    float y_min = 2;
+    float x_max = 3;
+    float y_max = 4;
+}
+
+message SegmentationResult {
+    int32 width = 1;
+    int32 height = 2;
+    bytes mask_data = 3;
+    repeated string class_labels = 4;
+}
+
+message OcrResult {
+    string text = 1;
+    float confidence = 2;
+    BoundingBox bbox = 3;
+}
+
+// Asset Analysis for Cryo/Arctic integration
+message AssetAnalysisRequest {
+    string asset_id = 1;
+    string asset_uri = 2;
+    AssetType asset_type = 3;
+}
+
+enum AssetType {
+    ASSET_TYPE_UNSPECIFIED = 0;
+    ASSET_TYPE_TEXTURE = 1;
+    ASSET_TYPE_MODEL_3D = 2;
+    ASSET_TYPE_ANIMATION = 3;
+    ASSET_TYPE_AUDIO = 4;
+    ASSET_TYPE_VIDEO = 5;
+}
+
+message AssetAnalysisResponse {
+    string asset_id = 1;
+    AssetMetadata metadata = 2;
+    AssetQuality quality = 3;
+    repeated string tags = 4;
+    repeated string similar_assets = 5;
+}
+
+message AssetMetadata {
+    int32 width = 1;
+    int32 height = 2;
+    int32 depth = 3;
+    string format = 4;
+    int64 size_bytes = 5;
+    map<string, string> properties = 6;
+}
+
+message AssetQuality {
+    float overall_score = 1;
+    float resolution_score = 2;
+    float compression_score = 3;
+    repeated string issues = 4;
+}
+
+// gRPC Service
+service VisionService {
+    rpc AnalyzeImage(ImageAnalysisRequest) returns (ImageAnalysisResponse);
+    rpc AnalyzeAsset(AssetAnalysisRequest) returns (AssetAnalysisResponse);
+    rpc BatchAnalyze(stream ImageAnalysisRequest) returns (stream ImageAnalysisResponse);
+}
