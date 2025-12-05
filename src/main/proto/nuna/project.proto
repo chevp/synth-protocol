@@ -1,0 +1,236 @@
+syntax = "proto3";
+
+package nuna.project;
+
+option java_package = "io.nuna.protocol.project";
+option java_multiple_files = true;
+
+import "nuna/core.proto";
+
+// =============================================================================
+// NUNA PROJECT PROTOCOL
+// Project file format with embedded plugin/MCP configuration
+// Designed for SQLite3 storage (single .nuna file)
+// =============================================================================
+
+// =============================================================================
+// PROJECT ROOT
+// SQLite Table: project (singleton)
+// This is the root of the project file
+// =============================================================================
+
+message Project {
+    nuna.core.EntityId id = 1;
+    string name = 2;
+    string description = 3;
+    string schema_version = 4;          // e.g., "1.0.0"
+    ProjectSettings settings = 5;
+    int64 last_opened_at = 6;
+    string last_opened_by = 7;          // User identifier
+}
+
+message ProjectSettings {
+    string default_scene_id = 1;
+    string thumbnail_asset_id = 2;
+    bool auto_save_enabled = 3;
+    int32 auto_save_interval_seconds = 4;
+    map<string, string> custom_settings = 5;
+}
+
+// =============================================================================
+// MCP SERVER REQUIREMENTS
+// SQLite Table: mcp_servers
+// Each project file declares which MCP servers it needs
+// =============================================================================
+
+message McpServerRequirement {
+    nuna.core.EntityId id = 1;
+    string server_name = 2;             // e.g., "synth-vision"
+    string version = 3;                 // Semantic version constraint
+    bool required = 4;                  // true = file won't open without it
+    MarketplaceSource source = 5;
+    McpServerConfig config = 6;
+}
+
+enum MarketplaceSource {
+    MARKETPLACE_SOURCE_UNSPECIFIED = 0;
+    MARKETPLACE_SOURCE_PRODUCTION = 1;  // Verified, stable
+    MARKETPLACE_SOURCE_DEV = 2;         // Experimental, requires license
+    MARKETPLACE_SOURCE_LOCAL = 3;       // User's local development
+}
+
+message McpServerConfig {
+    map<string, string> parameters = 1;
+    bool auto_start = 2;
+    int32 startup_timeout_ms = 3;
+    int32 health_check_interval_ms = 4;
+}
+
+// =============================================================================
+// PLUGIN REQUIREMENTS
+// SQLite Table: plugins
+// Plugins (JARs) that extend functionality
+// =============================================================================
+
+message PluginRequirement {
+    nuna.core.EntityId id = 1;
+    string artifact = 2;                // e.g., "io.synth:image-processor:1.2.0"
+    PluginType type = 3;
+    MarketplaceSource source = 4;
+    string mcp_bridge_server_id = 5;    // Which MCP server this plugin connects to
+    bool provides_mcp_server = 6;       // Does this plugin start its own MCP server?
+    bytes config = 7;                   // Plugin-specific configuration
+}
+
+enum PluginType {
+    PLUGIN_TYPE_UNSPECIFIED = 0;
+    PLUGIN_TYPE_JAR = 1;                // Java plugin
+    PLUGIN_TYPE_NATIVE = 2;             // Native library (DLL/SO)
+    PLUGIN_TYPE_WASM = 3;               // WebAssembly module
+    PLUGIN_TYPE_SCRIPT = 4;             // Script-based (JS/Python)
+}
+
+// =============================================================================
+// TOOLING CONFIGURATION
+// SQLite Table: ribbon_config
+// Maps MCP tools to UI ribbon
+// =============================================================================
+
+message RibbonConfiguration {
+    nuna.core.EntityId id = 1;
+    repeated RibbonTab tabs = 2;
+}
+
+message RibbonTab {
+    string id = 1;
+    string label = 2;
+    string icon = 3;
+    int32 order = 4;                    // Lower = further left
+    string mcp_server_id = 5;           // Which server owns this tab
+    repeated RibbonGroup groups = 6;
+    string accent_color = 7;            // Hex color for tab highlight
+    bool is_dev_tab = 8;                // Show "DEV" badge
+}
+
+message RibbonGroup {
+    string id = 1;
+    string label = 2;
+    repeated RibbonTool tools = 3;
+}
+
+message RibbonTool {
+    string id = 1;
+    string mcp_tool_name = 2;           // e.g., "vision.analyze_image"
+    string icon = 3;
+    string label = 4;
+    ToolSize size = 5;
+    string shortcut = 6;                // e.g., "Ctrl+Shift+A"
+    ToolVisibility visibility = 7;
+}
+
+enum ToolSize {
+    TOOL_SIZE_UNSPECIFIED = 0;
+    TOOL_SIZE_SMALL = 1;
+    TOOL_SIZE_LARGE = 2;
+}
+
+message ToolVisibility {
+    repeated string show_when_selection_type = 1;   // ["image", "mesh"]
+    bool requires_selection = 2;
+    int32 min_selection_count = 3;
+    int32 max_selection_count = 4;
+    repeated string show_in_modes = 5;              // ["edit", "preview"]
+}
+
+// =============================================================================
+// CONTENT SECTIONS
+// SQLite Tables: scenes, assets
+// =============================================================================
+
+message Scene {
+    nuna.core.EntityId id = 1;
+    string name = 2;
+    string description = 3;
+    repeated string root_entity_ids = 4;    // Top-level entities in scene
+    SceneSettings settings = 5;
+    bytes thumbnail = 6;                    // PNG thumbnail data
+}
+
+message SceneSettings {
+    nuna.core.Vec3 gravity = 1;
+    string skybox_asset_id = 2;
+    AmbientLight ambient = 3;
+    repeated string active_system_ids = 4;  // Which systems run in this scene
+}
+
+message AmbientLight {
+    float r = 1;
+    float g = 2;
+    float b = 3;
+    float intensity = 4;
+}
+
+message Asset {
+    nuna.core.EntityId id = 1;
+    string name = 2;
+    AssetType type = 3;
+    string source_path = 4;             // Original import path
+    string uri = 5;                     // asset://project/assets/model.glb
+    bytes data = 6;                     // Embedded asset data (if small)
+    int64 size_bytes = 7;
+    string checksum = 8;                // SHA256 for integrity
+    map<string, string> metadata = 9;
+}
+
+enum AssetType {
+    ASSET_TYPE_UNSPECIFIED = 0;
+    ASSET_TYPE_TEXTURE = 1;
+    ASSET_TYPE_MODEL = 2;
+    ASSET_TYPE_AUDIO = 3;
+    ASSET_TYPE_SCRIPT = 4;
+    ASSET_TYPE_MATERIAL = 5;
+    ASSET_TYPE_SHADER = 6;
+    ASSET_TYPE_ANIMATION = 7;
+    ASSET_TYPE_FONT = 8;
+    ASSET_TYPE_DATA = 9;
+}
+
+// =============================================================================
+// PROJECT FILE STRUCTURE
+// Complete project file representation
+// =============================================================================
+
+message ProjectFile {
+    Project project = 1;
+    repeated McpServerRequirement mcp_servers = 2;
+    repeated PluginRequirement plugins = 3;
+    RibbonConfiguration ribbon = 4;
+    repeated Scene scenes = 5;
+    repeated Asset assets = 6;
+    repeated nuna.core.Entity entities = 7;
+    repeated nuna.core.Component components = 8;
+    repeated nuna.core.Tag tags = 9;
+}
+
+// =============================================================================
+// FILE OPERATIONS
+// For project file read/write
+// =============================================================================
+
+message ProjectFileHeader {
+    string magic = 1;                   // "NUNA" magic bytes
+    int32 format_version = 2;           // File format version
+    string schema_version = 3;          // Protocol schema version
+    int64 created_at = 4;
+    int64 modified_at = 5;
+    string checksum = 6;                // Full file checksum
+    bool compressed = 7;
+    CompressionType compression = 8;
+}
+
+enum CompressionType {
+    COMPRESSION_TYPE_UNSPECIFIED = 0;
+    COMPRESSION_TYPE_NONE = 1;
+    COMPRESSION_TYPE_ZSTD = 2;
+    COMPRESSION_TYPE_LZ4 = 3;
+}

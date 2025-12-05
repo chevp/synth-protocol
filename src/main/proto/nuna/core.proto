@@ -1,0 +1,174 @@
+syntax = "proto3";
+
+package nuna.core;
+
+option java_package = "io.nuna.protocol.core";
+option java_multiple_files = true;
+
+// =============================================================================
+// NUNA CORE PROTOCOL
+// Fundamental types for the Closed Monolith Plugin System
+// Designed for SQLite3 storage (each message = table row)
+// =============================================================================
+
+// =============================================================================
+// IDENTIFIERS
+// All entities use UUID-based identification
+// =============================================================================
+
+message EntityId {
+    string uuid = 1;                    // Primary key for SQLite
+    int64 version = 2;                  // Optimistic locking / row version
+    int64 created_at = 3;               // Unix timestamp ms
+    int64 updated_at = 4;               // Unix timestamp ms
+}
+
+// =============================================================================
+// ECS CORE: ENTITY
+// SQLite Table: entities
+// =============================================================================
+
+message Entity {
+    EntityId id = 1;
+    string name = 2;
+    string type = 3;                    // e.g., "scene", "asset", "node"
+    EntityState state = 4;
+    string parent_id = 5;               // Parent entity UUID (nullable)
+    repeated string tag_ids = 6;        // Foreign keys to tags table
+    bytes metadata = 7;                 // JSON blob for extensible data
+}
+
+enum EntityState {
+    ENTITY_STATE_UNSPECIFIED = 0;
+    ENTITY_STATE_ACTIVE = 1;
+    ENTITY_STATE_INACTIVE = 2;
+    ENTITY_STATE_DELETED = 3;           // Soft delete
+    ENTITY_STATE_ARCHIVED = 4;
+}
+
+// =============================================================================
+// ECS CORE: COMPONENT
+// SQLite Table: components
+// =============================================================================
+
+message Component {
+    EntityId id = 1;
+    string entity_id = 2;               // Foreign key to entities
+    string component_type = 3;          // e.g., "transform", "mesh", "script"
+    ComponentState state = 4;
+    bytes data = 5;                     // Serialized component data (protobuf)
+    string schema_version = 6;          // For migration support
+}
+
+enum ComponentState {
+    COMPONENT_STATE_UNSPECIFIED = 0;
+    COMPONENT_STATE_ENABLED = 1;
+    COMPONENT_STATE_DISABLED = 2;
+}
+
+// =============================================================================
+// ECS CORE: SYSTEM
+// SQLite Table: systems
+// Systems are provided by MCP servers (plugins)
+// =============================================================================
+
+message System {
+    EntityId id = 1;
+    string name = 2;
+    string mcp_server_id = 3;           // Which MCP server provides this
+    SystemState state = 4;
+    int32 priority = 5;                 // Execution order
+    repeated string required_components = 6;  // Component types this system processes
+    bytes config = 7;                   // System configuration
+}
+
+enum SystemState {
+    SYSTEM_STATE_UNSPECIFIED = 0;
+    SYSTEM_STATE_ACTIVE = 1;
+    SYSTEM_STATE_PAUSED = 2;
+    SYSTEM_STATE_ERROR = 3;
+}
+
+// =============================================================================
+// ECS CORE: TAG
+// SQLite Table: tags
+// =============================================================================
+
+message Tag {
+    EntityId id = 1;
+    string name = 2;
+    string color = 3;                   // Hex color for UI
+    string category = 4;                // Grouping for tags
+}
+
+// =============================================================================
+// COMMON COMPONENT TYPES
+// Reusable component data structures
+// =============================================================================
+
+message TransformComponent {
+    Vec3 position = 1;
+    Quat rotation = 2;
+    Vec3 scale = 3;
+}
+
+message Vec3 {
+    float x = 1;
+    float y = 2;
+    float z = 3;
+}
+
+message Quat {
+    float x = 1;
+    float y = 2;
+    float z = 3;
+    float w = 4;
+}
+
+message Mat4 {
+    repeated float values = 1;          // 16 floats, column-major
+}
+
+// =============================================================================
+// HIERARCHY & RELATIONSHIPS
+// SQLite Table: relationships
+// =============================================================================
+
+message Relationship {
+    EntityId id = 1;
+    string source_id = 2;               // Entity UUID
+    string target_id = 3;               // Entity UUID
+    RelationshipType type = 4;
+    bytes metadata = 5;
+}
+
+enum RelationshipType {
+    RELATIONSHIP_TYPE_UNSPECIFIED = 0;
+    RELATIONSHIP_TYPE_PARENT_CHILD = 1;
+    RELATIONSHIP_TYPE_REFERENCE = 2;
+    RELATIONSHIP_TYPE_DEPENDENCY = 3;
+    RELATIONSHIP_TYPE_LINK = 4;
+}
+
+// =============================================================================
+// QUERY SUPPORT
+// For querying entities in SQLite
+// =============================================================================
+
+message EntityQuery {
+    repeated string entity_types = 1;
+    repeated string component_types = 2;
+    repeated string tag_ids = 3;
+    EntityState state_filter = 4;
+    string parent_id = 5;
+    int32 limit = 6;
+    int32 offset = 7;
+    string order_by = 8;
+    bool ascending = 9;
+}
+
+message EntityQueryResult {
+    repeated Entity entities = 1;
+    int32 total_count = 2;
+    bool has_more = 3;
+}

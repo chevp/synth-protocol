@@ -1,0 +1,285 @@
+syntax = "proto3";
+
+package nuna.security;
+
+option java_package = "io.nuna.protocol.security";
+option java_multiple_files = true;
+
+import "nuna/core.proto";
+
+// =============================================================================
+// NUNA SECURITY PROTOCOL
+// Dynamic permission system based on active MCP server capabilities
+// Permissions are derived from what tools are available
+// =============================================================================
+
+// =============================================================================
+// PERMISSION DEFINITIONS
+// SQLite Table: permissions
+// =============================================================================
+
+message Permission {
+    nuna.core.EntityId id = 1;
+    string name = 2;                    // e.g., "file:read:images/*"
+    PermissionCategory category = 3;
+    PermissionScope scope = 4;
+    string description = 5;
+    PermissionRisk risk_level = 6;
+}
+
+enum PermissionCategory {
+    PERMISSION_CATEGORY_UNSPECIFIED = 0;
+    PERMISSION_CATEGORY_FILESYSTEM = 1;
+    PERMISSION_CATEGORY_NETWORK = 2;
+    PERMISSION_CATEGORY_GPU = 3;
+    PERMISSION_CATEGORY_UI = 4;
+    PERMISSION_CATEGORY_API = 5;
+    PERMISSION_CATEGORY_SYSTEM = 6;
+}
+
+message PermissionScope {
+    string resource_pattern = 1;        // e.g., "exports/*", "*.png"
+    repeated string allowed_operations = 2;  // ["read", "write", "delete"]
+    repeated string allowed_hosts = 3;  // For network: ["api.example.com"]
+}
+
+enum PermissionRisk {
+    PERMISSION_RISK_UNSPECIFIED = 0;
+    PERMISSION_RISK_LOW = 1;            // Plugin data only
+    PERMISSION_RISK_MEDIUM = 2;         // User data access
+    PERMISSION_RISK_HIGH = 3;           // System access, network
+    PERMISSION_RISK_CRITICAL = 4;       // Unrestricted access
+}
+
+// =============================================================================
+// PERMISSION CONTEXT
+// Runtime permission state derived from active MCP servers
+// =============================================================================
+
+message PermissionContext {
+    string project_id = 1;
+    repeated GrantedPermission granted = 2;
+    repeated DeniedPermission denied = 3;
+    repeated PendingPermission pending = 4;
+    int64 computed_at = 5;
+    repeated string active_server_ids = 6;
+}
+
+message GrantedPermission {
+    Permission permission = 1;
+    string granted_by = 2;              // Server or user
+    int64 granted_at = 3;
+    bool session_only = 4;              // Expires when project closes
+    bool remember = 5;                  // User chose to remember
+}
+
+message DeniedPermission {
+    Permission permission = 1;
+    string denied_by = 2;
+    string reason = 3;
+    int64 denied_at = 4;
+}
+
+message PendingPermission {
+    Permission permission = 1;
+    string requested_by = 2;            // Tool/server that needs it
+    string request_reason = 3;
+}
+
+// =============================================================================
+// PERMISSION REQUESTS
+// When a tool needs permissions not yet granted
+// =============================================================================
+
+message PermissionRequest {
+    string request_id = 1;
+    string tool_name = 2;
+    string server_id = 3;
+    repeated Permission required_permissions = 4;
+    repeated Permission optional_permissions = 5;
+    string action_description = 6;      // Human-readable what tool wants to do
+}
+
+message PermissionResponse {
+    string request_id = 1;
+    repeated PermissionDecision decisions = 2;
+    bool all_required_granted = 3;
+}
+
+message PermissionDecision {
+    string permission_name = 1;
+    bool granted = 2;
+    bool remember = 3;
+    bool session_only = 4;
+}
+
+// =============================================================================
+// SECURITY AUDIT LOG
+// SQLite Table: security_audit
+// =============================================================================
+
+message SecurityAuditEntry {
+    nuna.core.EntityId id = 1;
+    SecurityEventType event_type = 2;
+    string actor = 3;                   // User, tool, or server
+    string target = 4;                  // What was accessed
+    string permission_used = 5;
+    bool success = 6;
+    string details = 7;
+    int64 timestamp = 8;
+}
+
+enum SecurityEventType {
+    SECURITY_EVENT_TYPE_UNSPECIFIED = 0;
+    SECURITY_EVENT_TYPE_PERMISSION_REQUESTED = 1;
+    SECURITY_EVENT_TYPE_PERMISSION_GRANTED = 2;
+    SECURITY_EVENT_TYPE_PERMISSION_DENIED = 3;
+    SECURITY_EVENT_TYPE_ACCESS_ALLOWED = 4;
+    SECURITY_EVENT_TYPE_ACCESS_DENIED = 5;
+    SECURITY_EVENT_TYPE_SERVER_STARTED = 6;
+    SECURITY_EVENT_TYPE_SERVER_STOPPED = 7;
+    SECURITY_EVENT_TYPE_TOOL_INVOKED = 8;
+}
+
+// =============================================================================
+// MARKETPLACE TRUST
+// Trust levels for plugins from different sources
+// =============================================================================
+
+message PluginTrust {
+    nuna.core.EntityId id = 1;
+    string plugin_id = 2;
+    TrustLevel trust_level = 3;
+    string signature = 4;               // Cryptographic signature
+    string signed_by = 5;               // Who signed (marketplace, developer)
+    bool verified = 6;
+    int64 verified_at = 7;
+    repeated string trust_chain = 8;    // Certificate chain
+}
+
+enum TrustLevel {
+    TRUST_LEVEL_UNSPECIFIED = 0;
+    TRUST_LEVEL_UNTRUSTED = 1;          // Unknown source
+    TRUST_LEVEL_USER_TRUSTED = 2;       // User explicitly trusted
+    TRUST_LEVEL_DEV_VERIFIED = 3;       // Dev marketplace verified
+    TRUST_LEVEL_PRODUCTION_VERIFIED = 4; // Production marketplace verified
+    TRUST_LEVEL_SYSTEM = 5;             // Core system plugin
+}
+
+// =============================================================================
+// SANDBOX CONFIGURATION
+// Defines isolation for each MCP server
+// =============================================================================
+
+message SandboxConfig {
+    string server_id = 1;
+    FileSystemSandbox filesystem = 2;
+    NetworkSandbox network = 3;
+    ResourceLimits resources = 4;
+}
+
+message FileSystemSandbox {
+    repeated string allowed_read_paths = 1;
+    repeated string allowed_write_paths = 2;
+    repeated string blocked_paths = 3;
+    bool allow_temp_files = 4;
+    int64 max_file_size_bytes = 5;
+}
+
+message NetworkSandbox {
+    bool allow_network = 1;
+    repeated string allowed_hosts = 2;
+    repeated string allowed_protocols = 3;  // ["https", "wss"]
+    bool allow_localhost = 4;
+    int32 max_connections = 5;
+}
+
+message ResourceLimits {
+    int64 max_memory_bytes = 1;
+    int32 max_cpu_percent = 2;
+    int32 max_threads = 3;
+    int64 max_execution_time_ms = 4;
+    bool allow_gpu = 5;
+    int64 max_gpu_memory_bytes = 6;
+}
+
+// =============================================================================
+// SECURITY SERVICE
+// =============================================================================
+
+service SecurityService {
+    // Permission management
+    rpc GetPermissionContext(GetPermissionContextRequest) returns (PermissionContext);
+    rpc RequestPermissions(PermissionRequest) returns (PermissionResponse);
+    rpc RevokePermission(RevokePermissionRequest) returns (RevokePermissionResponse);
+
+    // Trust management
+    rpc GetPluginTrust(GetPluginTrustRequest) returns (PluginTrust);
+    rpc VerifyPlugin(VerifyPluginRequest) returns (VerifyPluginResponse);
+    rpc SetUserTrust(SetUserTrustRequest) returns (SetUserTrustResponse);
+
+    // Audit
+    rpc GetAuditLog(GetAuditLogRequest) returns (GetAuditLogResponse);
+
+    // Sandbox
+    rpc GetSandboxConfig(GetSandboxConfigRequest) returns (SandboxConfig);
+    rpc UpdateSandboxConfig(UpdateSandboxConfigRequest) returns (SandboxConfig);
+}
+
+message GetPermissionContextRequest {
+    string project_id = 1;
+}
+
+message RevokePermissionRequest {
+    string permission_name = 1;
+    string server_id = 2;
+}
+
+message RevokePermissionResponse {
+    bool success = 1;
+}
+
+message GetPluginTrustRequest {
+    string plugin_id = 1;
+}
+
+message VerifyPluginRequest {
+    string plugin_id = 1;
+    bytes signature = 2;
+}
+
+message VerifyPluginResponse {
+    bool verified = 1;
+    TrustLevel trust_level = 2;
+    string error = 3;
+}
+
+message SetUserTrustRequest {
+    string plugin_id = 1;
+    TrustLevel trust_level = 2;
+}
+
+message SetUserTrustResponse {
+    bool success = 1;
+}
+
+message GetAuditLogRequest {
+    int32 limit = 1;
+    int32 offset = 2;
+    SecurityEventType event_type_filter = 3;
+    string actor_filter = 4;
+    int64 since_timestamp = 5;
+}
+
+message GetAuditLogResponse {
+    repeated SecurityAuditEntry entries = 1;
+    int32 total_count = 2;
+}
+
+message GetSandboxConfigRequest {
+    string server_id = 1;
+}
+
+message UpdateSandboxConfigRequest {
+    SandboxConfig config = 1;
+}

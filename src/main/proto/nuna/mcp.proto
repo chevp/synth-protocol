@@ -1,0 +1,377 @@
+syntax = "proto3";
+
+package nuna.mcp;
+
+option java_package = "io.nuna.protocol.mcp";
+option java_multiple_files = true;
+
+import "nuna/core.proto";
+
+// =============================================================================
+// NUNA MCP PROTOCOL
+// MCP Server management and tool discovery
+// All access to the system goes through MCP tools (reduced degrees of freedom)
+// =============================================================================
+
+// =============================================================================
+// MCP SERVER REGISTRY
+// SQLite Table: mcp_server_registry
+// Runtime state of MCP servers
+// =============================================================================
+
+message McpServer {
+    nuna.core.EntityId id = 1;
+    string name = 2;                    // e.g., "synth-vision"
+    string version = 3;
+    McpServerState state = 4;
+    McpServerCapabilities capabilities = 5;
+    McpConnectionInfo connection = 6;
+    int64 started_at = 7;
+    int64 last_health_check = 8;
+}
+
+enum McpServerState {
+    MCP_SERVER_STATE_UNSPECIFIED = 0;
+    MCP_SERVER_STATE_STOPPED = 1;
+    MCP_SERVER_STATE_STARTING = 2;
+    MCP_SERVER_STATE_RUNNING = 3;
+    MCP_SERVER_STATE_STOPPING = 4;
+    MCP_SERVER_STATE_ERROR = 5;
+    MCP_SERVER_STATE_UNRESPONSIVE = 6;
+}
+
+message McpConnectionInfo {
+    string transport = 1;               // "stdio", "sse", "websocket"
+    string host = 2;
+    int32 port = 3;
+    string path = 4;
+}
+
+message McpServerCapabilities {
+    bool supports_tools = 1;
+    bool supports_resources = 2;
+    bool supports_prompts = 3;
+    bool supports_sampling = 4;
+    RibbonCapabilities ribbon = 5;
+    repeated string required_permissions = 6;
+    repeated string optional_permissions = 7;
+}
+
+message RibbonCapabilities {
+    string tab_name = 1;                // Display name for ribbon tab
+    string tab_icon = 2;
+    string tab_color = 3;               // Accent color
+    repeated string groups = 4;          // Available groups in tab
+}
+
+// =============================================================================
+// MCP TOOL REGISTRY
+// SQLite Table: mcp_tools
+// All tools provided by active MCP servers
+// =============================================================================
+
+message McpTool {
+    nuna.core.EntityId id = 1;
+    string name = 2;                    // e.g., "vision.analyze_image"
+    string server_id = 3;               // Which server provides this
+    string description = 4;
+    McpToolSchema input_schema = 5;
+    McpToolSchema output_schema = 6;
+    McpToolState state = 7;
+    RibbonToolBinding ribbon = 8;
+    repeated string required_permissions = 9;
+}
+
+enum McpToolState {
+    MCP_TOOL_STATE_UNSPECIFIED = 0;
+    MCP_TOOL_STATE_AVAILABLE = 1;       // Ready to use
+    MCP_TOOL_STATE_LIMITED = 2;         // Missing some permissions
+    MCP_TOOL_STATE_UNAVAILABLE = 3;     // Server not running
+    MCP_TOOL_STATE_ERROR = 4;           // Tool reported error
+}
+
+message McpToolSchema {
+    string type = 1;                    // "object", "array", etc.
+    bytes json_schema = 2;              // Full JSON Schema
+    repeated McpToolParameter parameters = 3;  // Parsed parameters
+}
+
+message McpToolParameter {
+    string name = 1;
+    string type = 2;                    // "string", "number", "boolean", "object"
+    string description = 3;
+    bool required = 4;
+    string default_value = 5;
+    repeated string enum_values = 6;    // For enum types
+}
+
+message RibbonToolBinding {
+    string group_id = 1;
+    string icon = 2;
+    string label = 3;
+    ToolDisplaySize size = 4;
+    int32 order = 5;
+    string shortcut = 6;
+    ContextCondition show_when = 7;
+    ContextCondition enable_when = 8;
+}
+
+enum ToolDisplaySize {
+    TOOL_DISPLAY_SIZE_UNSPECIFIED = 0;
+    TOOL_DISPLAY_SIZE_SMALL = 1;
+    TOOL_DISPLAY_SIZE_LARGE = 2;
+}
+
+message ContextCondition {
+    repeated string selection_types = 1;    // ["image", "mesh", "entity"]
+    bool has_selection = 2;
+    int32 min_selection_count = 3;
+    int32 max_selection_count = 4;
+    repeated string active_modes = 5;       // ["edit", "preview", "play"]
+    repeated string file_formats = 6;       // ["png", "jpg", "glb"]
+}
+
+// =============================================================================
+// TOOL INVOCATION
+// All system access goes through tool invocation
+// =============================================================================
+
+message ToolInvocation {
+    string invocation_id = 1;           // Unique request ID
+    string tool_name = 2;
+    string server_id = 3;
+    bytes parameters = 4;               // JSON parameters
+    InvocationContext context = 5;
+    int64 timestamp = 6;
+}
+
+message InvocationContext {
+    string project_id = 1;
+    string scene_id = 2;
+    repeated string selected_entity_ids = 3;
+    string active_mode = 4;
+    map<string, string> session_data = 5;
+}
+
+message ToolResult {
+    string invocation_id = 1;
+    bool success = 2;
+    bytes result = 3;                   // JSON result
+    ToolError error = 4;
+    int64 execution_time_ms = 5;
+    repeated ToolSideEffect side_effects = 6;
+}
+
+message ToolError {
+    string code = 1;
+    string message = 2;
+    string details = 3;
+    bool retryable = 4;
+}
+
+message ToolSideEffect {
+    SideEffectType type = 1;
+    string target_id = 2;               // Entity/Asset ID affected
+    string description = 3;
+}
+
+enum SideEffectType {
+    SIDE_EFFECT_TYPE_UNSPECIFIED = 0;
+    SIDE_EFFECT_TYPE_ENTITY_CREATED = 1;
+    SIDE_EFFECT_TYPE_ENTITY_MODIFIED = 2;
+    SIDE_EFFECT_TYPE_ENTITY_DELETED = 3;
+    SIDE_EFFECT_TYPE_ASSET_CREATED = 4;
+    SIDE_EFFECT_TYPE_ASSET_MODIFIED = 5;
+    SIDE_EFFECT_TYPE_SCENE_MODIFIED = 6;
+    SIDE_EFFECT_TYPE_FILE_WRITTEN = 7;
+    SIDE_EFFECT_TYPE_NETWORK_REQUEST = 8;
+}
+
+// =============================================================================
+// TOOL HISTORY / AUDIT LOG
+// SQLite Table: tool_history
+// Every tool invocation is logged for undo/redo and audit
+// =============================================================================
+
+message ToolHistoryEntry {
+    nuna.core.EntityId id = 1;
+    ToolInvocation invocation = 2;
+    ToolResult result = 3;
+    bytes undo_data = 4;                // Data needed to undo this action
+    bool undoable = 5;
+    bool was_undone = 6;
+    string user_id = 7;
+}
+
+// =============================================================================
+// MCP SERVER MANAGEMENT SERVICE
+// gRPC service for managing MCP servers at runtime
+// =============================================================================
+
+service McpServerManager {
+    // Server lifecycle
+    rpc StartServer(StartServerRequest) returns (ServerResponse);
+    rpc StopServer(StopServerRequest) returns (ServerResponse);
+    rpc RestartServer(RestartServerRequest) returns (ServerResponse);
+
+    // Discovery
+    rpc ListServers(ListServersRequest) returns (ListServersResponse);
+    rpc GetServerStatus(GetServerStatusRequest) returns (McpServer);
+    rpc DiscoverTools(DiscoverToolsRequest) returns (DiscoverToolsResponse);
+
+    // Health
+    rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+    rpc WatchServerEvents(WatchServerEventsRequest) returns (stream ServerEvent);
+}
+
+message StartServerRequest {
+    string server_name = 1;
+    map<string, string> config = 2;
+}
+
+message StopServerRequest {
+    string server_id = 1;
+    bool force = 2;
+}
+
+message RestartServerRequest {
+    string server_id = 1;
+}
+
+message ServerResponse {
+    bool success = 1;
+    McpServer server = 2;
+    string error = 3;
+}
+
+message ListServersRequest {
+    McpServerState state_filter = 1;
+}
+
+message ListServersResponse {
+    repeated McpServer servers = 1;
+}
+
+message GetServerStatusRequest {
+    string server_id = 1;
+}
+
+message DiscoverToolsRequest {
+    string server_id = 1;               // Empty = all servers
+}
+
+message DiscoverToolsResponse {
+    repeated McpTool tools = 1;
+}
+
+message HealthCheckRequest {
+    string server_id = 1;               // Empty = all servers
+}
+
+message HealthCheckResponse {
+    map<string, bool> server_health = 1;
+    repeated string unhealthy_servers = 2;
+}
+
+message WatchServerEventsRequest {
+    repeated string server_ids = 1;     // Empty = all servers
+}
+
+message ServerEvent {
+    string server_id = 1;
+    ServerEventType type = 2;
+    McpServerState previous_state = 3;
+    McpServerState new_state = 4;
+    int64 timestamp = 5;
+    string message = 6;
+}
+
+enum ServerEventType {
+    SERVER_EVENT_TYPE_UNSPECIFIED = 0;
+    SERVER_EVENT_TYPE_STATE_CHANGED = 1;
+    SERVER_EVENT_TYPE_TOOL_ADDED = 2;
+    SERVER_EVENT_TYPE_TOOL_REMOVED = 3;
+    SERVER_EVENT_TYPE_ERROR = 4;
+    SERVER_EVENT_TYPE_HEALTH_CHANGED = 5;
+}
+
+// =============================================================================
+// TOOL EXECUTOR SERVICE
+// All system access goes through this service
+// =============================================================================
+
+service ToolExecutor {
+    rpc InvokeTool(ToolInvocation) returns (ToolResult);
+    rpc InvokeToolAsync(ToolInvocation) returns (InvokeAsyncResponse);
+    rpc GetAsyncResult(GetAsyncResultRequest) returns (ToolResult);
+    rpc CancelInvocation(CancelInvocationRequest) returns (CancelInvocationResponse);
+
+    // Batch operations
+    rpc InvokeToolBatch(InvokeBatchRequest) returns (InvokeBatchResponse);
+
+    // History
+    rpc GetHistory(GetHistoryRequest) returns (GetHistoryResponse);
+    rpc Undo(UndoRequest) returns (UndoResponse);
+    rpc Redo(RedoRequest) returns (RedoResponse);
+}
+
+message InvokeAsyncResponse {
+    string invocation_id = 1;
+    bool accepted = 2;
+}
+
+message GetAsyncResultRequest {
+    string invocation_id = 1;
+    bool wait = 2;
+    int32 timeout_ms = 3;
+}
+
+message CancelInvocationRequest {
+    string invocation_id = 1;
+}
+
+message CancelInvocationResponse {
+    bool cancelled = 1;
+}
+
+message InvokeBatchRequest {
+    repeated ToolInvocation invocations = 1;
+    bool parallel = 2;
+    bool stop_on_error = 3;
+}
+
+message InvokeBatchResponse {
+    repeated ToolResult results = 1;
+    int32 succeeded = 2;
+    int32 failed = 3;
+}
+
+message GetHistoryRequest {
+    int32 limit = 1;
+    int32 offset = 2;
+    string tool_name_filter = 3;
+    bool undoable_only = 4;
+}
+
+message GetHistoryResponse {
+    repeated ToolHistoryEntry entries = 1;
+    int32 total_count = 2;
+}
+
+message UndoRequest {
+    string invocation_id = 1;           // Specific entry, or empty for last
+}
+
+message UndoResponse {
+    bool success = 1;
+    string error = 2;
+}
+
+message RedoRequest {
+    string invocation_id = 1;
+}
+
+message RedoResponse {
+    bool success = 1;
+    string error = 2;
+}

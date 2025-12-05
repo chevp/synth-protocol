@@ -1,0 +1,154 @@
+syntax = "proto3";
+
+package synth.plugin;
+
+option java_package = "io.synth.protocol.plugin";
+option java_multiple_files = true;
+
+import "synth/common.proto";
+
+// =============================================================================
+// PLUGIN LIFECYCLE PROTOCOL
+// Definiert die Kommunikation zwischen Plugin-Host und Plugins
+// =============================================================================
+
+// Plugin Lifecycle States
+// WICHTIG: Dies ist die OFFIZIELLE State-Machine für ALLE Plugins
+enum PluginLifecycleState {
+    PLUGIN_STATE_UNSPECIFIED = 0;
+    PLUGIN_STATE_CREATED = 1;       // Instanz erstellt
+    PLUGIN_STATE_INITIALIZING = 2;  // initialize() läuft
+    PLUGIN_STATE_INITIALIZED = 3;   // Bereit für Start
+    PLUGIN_STATE_STARTING = 4;      // start() läuft
+    PLUGIN_STATE_STARTED = 5;       // Operationell
+    PLUGIN_STATE_STOPPING = 6;      // stop() läuft
+    PLUGIN_STATE_STOPPED = 7;       // Gestoppt
+    PLUGIN_STATE_UNLOADED = 8;      // Aus Speicher entfernt
+    PLUGIN_STATE_ERROR = 9;         // Fehler aufgetreten
+}
+
+// Lifecycle Event für State-Änderungen
+message PluginLifecycleEvent {
+    string plugin_id = 1;
+    PluginLifecycleState previous_state = 2;
+    PluginLifecycleState new_state = 3;
+    int64 timestamp = 4;
+    string reason = 5;
+    synth.common.ErrorInfo error = 6;  // Nur bei ERROR state
+}
+
+// =============================================================================
+// PLUGIN REGISTRY SERVICE
+// Zentrale Verwaltung aller Plugins
+// =============================================================================
+
+service PluginRegistryService {
+    // Plugin Discovery
+    rpc listPlugins(ListPluginsRequest) returns (ListPluginsResponse);
+    rpc getPlugin(GetPluginRequest) returns (synth.common.PluginInfo);
+
+    // Lifecycle Control
+    rpc startPlugin(PluginControlRequest) returns (PluginControlResponse);
+    rpc stopPlugin(PluginControlRequest) returns (PluginControlResponse);
+    rpc restartPlugin(PluginControlRequest) returns (PluginControlResponse);
+
+    // Health & Status
+    rpc getPluginHealth(GetPluginRequest) returns (synth.common.HealthStatus);
+
+    // Event Stream
+    rpc watchLifecycleEvents(WatchEventsRequest) returns (stream PluginLifecycleEvent);
+}
+
+message ListPluginsRequest {
+    string category_filter = 1;     // Optional: "vision", "nlp", etc.
+    bool include_stopped = 2;
+}
+
+message ListPluginsResponse {
+    repeated PluginStatus plugins = 1;
+}
+
+message PluginStatus {
+    synth.common.PluginInfo info = 1;
+    PluginLifecycleState state = 2;
+    synth.common.HealthStatus health = 3;
+}
+
+message GetPluginRequest {
+    string plugin_id = 1;
+}
+
+message PluginControlRequest {
+    string plugin_id = 1;
+    map<string, string> options = 2;
+}
+
+message PluginControlResponse {
+    bool success = 1;
+    PluginLifecycleState new_state = 2;
+    synth.common.ErrorInfo error = 3;
+}
+
+message WatchEventsRequest {
+    repeated string plugin_ids = 1;  // Leer = alle Plugins
+}
+
+// =============================================================================
+// MCP TOOL REGISTRY
+// Zentrale Verwaltung aller MCP Tools
+// =============================================================================
+
+message McpToolDefinition {
+    string name = 1;                // z.B. "vision.analyze_image"
+    string plugin_id = 2;           // Owning plugin
+    string description = 3;
+    repeated McpToolParameter parameters = 4;
+    McpToolReturnType return_type = 5;
+}
+
+message McpToolParameter {
+    string name = 1;
+    string type = 2;                // "string", "number", "boolean", "object"
+    string description = 3;
+    bool required = 4;
+    string default_value = 5;
+}
+
+message McpToolReturnType {
+    string type = 1;
+    string description = 2;
+}
+
+service McpToolRegistryService {
+    rpc ListTools(ListToolsRequest) returns (ListToolsResponse);
+    rpc GetTool(GetToolRequest) returns (McpToolDefinition);
+    rpc InvokeTool(ToolInvocationRequest) returns (ToolInvocationResponse);
+}
+
+message ListToolsRequest {
+    string plugin_id_filter = 1;
+    string category_filter = 2;
+}
+
+message ListToolsResponse {
+    repeated McpToolDefinition tools = 1;
+}
+
+message GetToolRequest {
+    string tool_name = 1;
+}
+
+message ToolInvocationRequest {
+    string request_id = 1;
+    string tool_name = 2;
+    map<string, string> string_params = 3;
+    bytes json_params = 4;          // Für komplexe Parameter
+}
+
+message ToolInvocationResponse {
+    string request_id = 1;
+    bool success = 2;
+    bytes result = 3;               // JSON-encoded result
+    synth.common.ErrorInfo error = 4;
+    int64 execution_time_ms = 5;
+}

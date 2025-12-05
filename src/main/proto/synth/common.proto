@@ -1,0 +1,93 @@
+syntax = "proto3";
+
+package synth.common;
+
+option java_package = "io.synth.protocol.common";
+option java_multiple_files = true;
+
+// =============================================================================
+// GEMEINSAME DATENTYPEN
+// Verwendet von ALLEN Synth-Plugins
+// =============================================================================
+
+// Tensor für ML-Daten
+message Tensor {
+    string name = 1;
+    DataType dtype = 2;
+    repeated int64 shape = 3;
+    bytes data = 4;
+}
+
+enum DataType {
+    DATA_TYPE_UNSPECIFIED = 0;
+    DATA_TYPE_FLOAT32 = 1;
+    DATA_TYPE_FLOAT16 = 2;
+    DATA_TYPE_INT32 = 3;
+    DATA_TYPE_INT64 = 4;
+    DATA_TYPE_UINT8 = 5;
+    DATA_TYPE_BOOL = 6;
+}
+
+// =============================================================================
+// SERVICE HEALTH & DISCOVERY
+// =============================================================================
+
+message HealthStatus {
+    bool healthy = 1;
+    string message = 2;
+    int64 uptime_ms = 3;
+    map<string, string> metrics = 4;
+}
+
+message ServiceInfo {
+    string service_id = 1;
+    string name = 2;
+    string version = 3;
+    repeated string capabilities = 4;
+    map<string, string> metadata = 5;
+}
+
+// =============================================================================
+// PLUGIN METADATA (Proto-Version von PluginDescriptor)
+// =============================================================================
+
+message PluginInfo {
+    string id = 1;                      // z.B. "io.synth.vision.analyzer"
+    string name = 2;
+    string version = 3;
+    string description = 4;
+    string author = 5;
+    string category = 6;                // vision, nlp, agents, general
+    repeated string dependencies = 7;
+    repeated string mcp_tools = 8;
+    int32 api_version = 9;
+}
+
+// =============================================================================
+// ERROR HANDLING
+// =============================================================================
+
+message ErrorInfo {
+    string code = 1;
+    string message = 2;
+    string details = 3;
+    map<string, string> context = 4;
+}
+
+// =============================================================================
+// GENERIC REQUEST/RESPONSE WRAPPER
+// =============================================================================
+
+message GenericRequest {
+    string request_id = 1;
+    string operation = 2;
+    map<string, string> parameters = 3;
+    bytes payload = 4;
+}
+
+message GenericResponse {
+    string request_id = 1;
+    bool success = 2;
+    bytes payload = 3;
+    ErrorInfo error = 4;
+}
