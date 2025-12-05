@@ -1,0 +1,252 @@
+syntax = "proto3";
+
+package nuna.mcp;
+
+option java_package = "io.nuna.protocol.mcp";
+option java_multiple_files = true;
+
+import "nuna/core.proto";
+import "nuna/concurrency.proto";
+import "nuna/mcp.proto";
+
+// =============================================================================
+// NUNA MCP CONCURRENCY PROTOCOL
+// Extended tooling for AI agents to manage edit locks and versions
+// =============================================================================
+//
+// AI EDITING SUPPORT:
+// This protocol includes concurrency-aware tooling for AI agents editing
+// .nuna SQLite files via MCP servers. AI agents MUST:
+// 1. Acquire edit lock before any write operation
+// 2. Send heartbeats to maintain the lock
+// 3. Use version-checked saves to prevent conflicts
+// 4. Release lock when editing session ends
+//
+// =============================================================================
+
+// =============================================================================
+// EXTENDED INVOCATION CONTEXT
+// Additional concurrency fields for InvocationContext
+// =============================================================================
+
+message ConcurrencyContext {
+    string lock_token = 1;              // Edit lock token (if editing)
+    string session_id = 2;              // Unique session identifier
+    int64 base_version = 3;             // Version this edit is based on
+    nuna.concurrency.SessionMode session_mode = 4;  // VIEWER or EDITOR
+}
+
+// =============================================================================
+// EXTENDED TOOL RESULT
+// Version tracking for tool results
+// =============================================================================
+
+message VersionedToolResult {
+    ToolResult base_result = 1;
+    int64 new_version = 2;              // New version after changes (if any)
+}
+
+// =============================================================================
+// ERROR TYPES FOR AI HANDLING
+// =============================================================================
+
+enum ToolErrorType {
+    TOOL_ERROR_TYPE_UNSPECIFIED = 0;
+    TOOL_ERROR_TYPE_VALIDATION = 1;     // Invalid parameters
+    TOOL_ERROR_TYPE_NOT_FOUND = 2;      // Entity/resource not found
+    TOOL_ERROR_TYPE_PERMISSION = 3;     // Access denied
+    TOOL_ERROR_TYPE_LOCK_REQUIRED = 4;  // Need edit lock first
+    TOOL_ERROR_TYPE_LOCK_HELD = 5;      // Another user has lock
+    TOOL_ERROR_TYPE_LOCK_EXPIRED = 6;   // Lock expired, re-acquire
+    TOOL_ERROR_TYPE_VERSION_CONFLICT = 7; // Optimistic lock failed
+    TOOL_ERROR_TYPE_INTERNAL = 8;       // Server error
+    TOOL_ERROR_TYPE_TIMEOUT = 9;        // Operation timed out
+}
+
+message TypedToolError {
+    string code = 1;
+    string message = 2;
+    string details = 3;
+    bool retryable = 4;
+    ToolErrorType type = 5;             // Categorized error type
+}
+
+// =============================================================================
+// MCP CONCURRENCY TOOLS
+// Tools for AI agents to manage edit locks and versions
+// =============================================================================
+
+// Tool: mcp.acquire_edit_lock
+message AcquireEditLockToolParams {
+    string database_path = 1;
+    string user_display_name = 2;       // AI agent name
+    string application = 3;             // "Claude", "GPT-4", etc.
+    bool force = 4;                     // Force acquire stale lock
+    int32 lease_duration_ms = 5;        // Default: 60000
+}
+
+message AcquireEditLockToolResult {
+    bool success = 1;
+    string lock_token = 2;
+    int64 expires_at = 3;
+    nuna.concurrency.LockHolder current_holder = 4;  // If failed
+    string error = 5;
+}
+
+// Tool: mcp.release_edit_lock
+message ReleaseEditLockToolParams {
+    string database_path = 1;
+    string lock_token = 2;
+}
+
+message ReleaseEditLockToolResult {
+    bool success = 1;
+    string error = 2;
+}
+
+// Tool: mcp.send_heartbeat
+message SendHeartbeatToolParams {
+    string database_path = 1;
+    string lock_token = 2;
+}
+
+message SendHeartbeatToolResult {
+    bool valid = 1;
+    int64 new_expiration = 2;
+    repeated nuna.concurrency.ViewerInfo viewers = 3;
+}
+
+// Tool: mcp.get_lock_status
+message GetLockStatusToolParams {
+    string database_path = 1;
+}
+
+message GetLockStatusToolResult {
+    bool is_locked = 1;
+    bool is_stale = 2;
+    nuna.concurrency.LockHolder holder = 3;
+    int64 locked_since = 4;
+    repeated nuna.concurrency.ViewerInfo viewers = 5;
+}
+
+// Tool: mcp.create_checkpoint
+message CreateCheckpointToolParams {
+    string database_path = 1;
+    string lock_token = 2;
+    string name = 3;                    // "Before AI refactor"
+    string description = 4;
+}
+
+message CreateCheckpointToolResult {
+    bool success = 1;
+    string checkpoint_id = 2;
+    int64 version_number = 3;
+    string error = 4;
+}
+
+// Tool: mcp.list_checkpoints
+message ListCheckpointsToolParams {
+    string database_path = 1;
+    int32 limit = 2;
+}
+
+message ListCheckpointsToolResult {
+    repeated nuna.concurrency.ProjectVersion checkpoints = 1;
+}
+
+// Tool: mcp.restore_checkpoint
+message RestoreCheckpointToolParams {
+    string database_path = 1;
+    string lock_token = 2;
+    string checkpoint_id = 3;
+    bool create_backup_first = 4;
+}
+
+message RestoreCheckpointToolResult {
+    bool success = 1;
+    int64 new_version = 2;
+    string backup_checkpoint_id = 3;
+    string error = 4;
+}
+
+// Tool: mcp.undo
+message UndoToolParams {
+    string database_path = 1;
+    string lock_token = 2;
+    string session_id = 3;
+    int32 steps = 4;                    // Default: 1
+}
+
+message UndoToolResult {
+    bool success = 1;
+    int32 steps_undone = 2;
+    int64 new_version = 3;
+    string error = 4;
+}
+
+// Tool: mcp.redo
+message RedoToolParams {
+    string database_path = 1;
+    string lock_token = 2;
+    string session_id = 3;
+    int32 steps = 4;
+}
+
+message RedoToolResult {
+    bool success = 1;
+    int32 steps_redone = 2;
+    int64 new_version = 3;
+    string error = 4;
+}
+
+// Tool: mcp.get_version_history
+message GetVersionHistoryToolParams {
+    string database_path = 1;
+    string entity_id = 2;               // Empty = project-level
+    int32 limit = 3;
+    int32 offset = 4;
+}
+
+message GetVersionHistoryToolResult {
+    repeated nuna.concurrency.VersionInfo versions = 1;
+    int32 total_count = 2;
+}
+
+// Tool: mcp.get_entity_at_version
+message GetEntityAtVersionToolParams {
+    string database_path = 1;
+    string entity_id = 2;
+    int64 version_number = 3;           // 0 = current
+}
+
+message GetEntityAtVersionToolResult {
+    bool found = 1;
+    bytes entity_state = 2;
+    nuna.concurrency.VersionInfo version_info = 3;
+}
+
+// =============================================================================
+// MCP CONCURRENCY TOOL SERVICE
+// gRPC service for AI agents to manage concurrency
+// =============================================================================
+
+service McpConcurrencyTools {
+    // Lock management
+    rpc AcquireEditLock(AcquireEditLockToolParams) returns (AcquireEditLockToolResult);
+    rpc ReleaseEditLock(ReleaseEditLockToolParams) returns (ReleaseEditLockToolResult);
+    rpc SendHeartbeat(SendHeartbeatToolParams) returns (SendHeartbeatToolResult);
+    rpc GetLockStatus(GetLockStatusToolParams) returns (GetLockStatusToolResult);
+
+    // Checkpoints
+    rpc CreateCheckpoint(CreateCheckpointToolParams) returns (CreateCheckpointToolResult);
+    rpc ListCheckpoints(ListCheckpointsToolParams) returns (ListCheckpointsToolResult);
+    rpc RestoreCheckpoint(RestoreCheckpointToolParams) returns (RestoreCheckpointToolResult);
+
+    // Undo/Redo
+    rpc Undo(UndoToolParams) returns (UndoToolResult);
+    rpc Redo(RedoToolParams) returns (RedoToolResult);
+
+    // Version history
+    rpc GetVersionHistory(GetVersionHistoryToolParams) returns (GetVersionHistoryToolResult);
+    rpc GetEntityAtVersion(GetEntityAtVersionToolParams) returns (GetEntityAtVersionToolResult);
+}

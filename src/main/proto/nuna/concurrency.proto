@@ -1,0 +1,487 @@
+syntax = "proto3";
+
+package nuna.concurrency;
+
+option java_package = "io.nuna.protocol.concurrency";
+option java_multiple_files = true;
+
+import "nuna/core.proto";
+
+// =============================================================================
+// NUNA CONCURRENCY PROTOCOL (SIMPLIFIED)
+// Single-Editor Model: One user edits, others can view
+// =============================================================================
+//
+// DESIGN PRINCIPLE:
+// - SQLite handles multiple readers natively (no problem)
+// - Only ONE editor at a time (exclusive write lock)
+// - Lock file (.nuna.lock) prevents concurrent editing
+// - Viewers get read-only access, see live changes on refresh
+//
+// =============================================================================
+
+// =============================================================================
+// SESSION MODE
+// How a client connects to the .nuna file
+// =============================================================================
+
+enum SessionMode {
+    SESSION_MODE_UNSPECIFIED = 0;
+    SESSION_MODE_VIEWER = 1;            // Read-only access
+    SESSION_MODE_EDITOR = 2;            // Full read/write access (exclusive)
+}
+
+// =============================================================================
+// EDIT LOCK
+// Stored as .nuna.lock file next to the .nuna database
+// =============================================================================
+
+message EditLock {
+    string database_path = 1;           // Path to .nuna file
+    LockHolder holder = 2;              // Who holds the lock
+    int64 acquired_at = 3;              // Unix timestamp ms
+    int64 expires_at = 4;               // Lease expiration (heartbeat extends)
+    int64 last_heartbeat = 5;           // Last activity
+    string lock_token = 6;              // Unique token for this session
+}
+
+message LockHolder {
+    string user_id = 1;                 // User name or ID
+    string user_display_name = 2;       // Human-readable name
+    string machine_name = 3;            // Computer name
+    string application = 4;             // "Synth Studio", "Synth CLI", etc.
+    string session_id = 5;              // Unique session ID
+}
+
+// =============================================================================
+// LOCK FILE FORMAT
+// Content of .nuna.lock file (JSON or protobuf)
+// =============================================================================
+
+message LockFile {
+    string magic = 1;                   // "NUNA_LOCK"
+    int32 version = 2;
+    EditLock current_lock = 3;          // null if no editor
+    repeated ViewerInfo viewers = 4;    // Active viewers (optional tracking)
+    int64 last_modified = 5;
+}
+
+message ViewerInfo {
+    string user_id = 1;
+    string user_display_name = 2;
+    int64 connected_at = 3;
+    int64 last_seen = 4;
+}
+
+// =============================================================================
+// SQLITE CONFIGURATION FOR NETWORK
+// Critical settings for reliable operation
+// =============================================================================
+
+message SqliteNetworkConfig {
+    // CRITICAL: These pragmas MUST be set for network file access
+    int32 busy_timeout_ms = 1;          // PRAGMA busy_timeout = 30000
+    bool journal_mode_delete = 2;       // PRAGMA journal_mode = DELETE (safest)
+    bool synchronous_full = 3;          // PRAGMA synchronous = FULL
+    bool temp_store_memory = 4;         // PRAGMA temp_store = MEMORY
+    bool disable_mmap = 5;              // NEVER use mmap over network!
+
+    // Additional safety
+    int32 cache_size_kb = 6;            // PRAGMA cache_size (local cache)
+    bool foreign_keys = 7;              // PRAGMA foreign_keys = ON
+}
+
+// =============================================================================
+// LOCK ACQUISITION FLOW
+// =============================================================================
+//
+// 1. User wants to edit:
+//    - Check if .nuna.lock exists
+//    - If exists: check if lock is stale (no heartbeat for X seconds)
+//    - If stale: force release and acquire
+//    - If active: show "File is being edited by [user]"
+//
+// 2. User gets edit lock:
+//    - Create .nuna.lock file with EditLock content
+//    - Start heartbeat timer (every 5-10 seconds)
+//    - Open SQLite with PRAGMA busy_timeout = 30000
+//
+// 3. User finishes editing:
+//    - Delete .nuna.lock file
+//    - Close SQLite connection
+//
+// 4. User crashes/disconnects:
+//    - Lock file becomes stale (no heartbeat)
+//    - Next user can force-acquire after timeout
+//
+// =============================================================================
+
+// =============================================================================
+// SESSION INFO
+// Tracks who is connected and how
+// =============================================================================
+
+message SessionInfo {
+    nuna.core.EntityId id = 1;
+    string database_path = 2;
+    LockHolder holder = 3;
+    SessionMode mode = 4;
+    int64 connected_at = 5;
+    int64 last_activity = 6;
+    string lock_token = 7;              // Only for EDITOR mode
+}
+
+// =============================================================================
+// LOCK OPERATIONS
+// Messages for lock management
+// =============================================================================
+
+message AcquireEditLockRequest {
+    string database_path = 1;
+    LockHolder holder = 2;
+    bool force = 3;                     // Force acquire even if locked (with warning)
+    int32 lease_duration_ms = 4;        // How long the lock is valid (default 60s)
+}
+
+message AcquireEditLockResponse {
+    bool success = 1;
+    string lock_token = 2;              // Use this for heartbeat and release
+    int64 expires_at = 3;
+
+    // If failed:
+    string error = 4;
+    LockHolder current_holder = 5;      // Who has the lock
+    int64 locked_since = 6;             // How long they've had it
+}
+
+message ReleaseEditLockRequest {
+    string database_path = 1;
+    string lock_token = 2;
+}
+
+message ReleaseEditLockResponse {
+    bool success = 1;
+    string error = 2;
+}
+
+message HeartbeatRequest {
+    string database_path = 1;
+    string lock_token = 2;
+}
+
+message HeartbeatResponse {
+    bool valid = 1;                     // Lock still held
+    int64 new_expiration = 2;           // Extended lease time
+    repeated ViewerInfo viewers = 3;    // Who else is viewing
+}
+
+message GetLockStatusRequest {
+    string database_path = 1;
+}
+
+message GetLockStatusResponse {
+    bool is_locked = 1;
+    EditLock lock = 2;                  // Current lock info (if locked)
+    bool lock_is_stale = 3;             // No recent heartbeat
+    repeated ViewerInfo viewers = 4;
+}
+
+// =============================================================================
+// VIEWER REGISTRATION (Optional)
+// Allows editors to see who is viewing
+// =============================================================================
+
+message RegisterViewerRequest {
+    string database_path = 1;
+    LockHolder viewer = 2;
+}
+
+message RegisterViewerResponse {
+    bool success = 1;
+    bool is_being_edited = 2;
+    LockHolder editor = 3;              // Who is editing (if any)
+}
+
+message UnregisterViewerRequest {
+    string database_path = 1;
+    string session_id = 2;
+}
+
+// =============================================================================
+// CHANGE NOTIFICATION (Optional)
+// For live updates to viewers
+// =============================================================================
+
+message ChangeNotification {
+    string database_path = 1;
+    ChangeType type = 2;
+    string entity_id = 3;               // Which entity changed
+    string changed_by = 4;              // User who made change
+    int64 timestamp = 5;
+    int64 version = 6;                  // New version number after change
+}
+
+enum ChangeType {
+    CHANGE_TYPE_UNSPECIFIED = 0;
+    CHANGE_TYPE_ENTITY_CREATED = 1;
+    CHANGE_TYPE_ENTITY_UPDATED = 2;
+    CHANGE_TYPE_ENTITY_DELETED = 3;
+    CHANGE_TYPE_SCENE_CHANGED = 4;
+    CHANGE_TYPE_ASSET_ADDED = 5;
+    CHANGE_TYPE_SAVE = 6;               // Full save operation
+    CHANGE_TYPE_CHECKPOINT = 7;         // User checkpoint created
+    CHANGE_TYPE_RESTORE = 8;            // Version restored
+}
+
+// =============================================================================
+// VERSIONING SYSTEM
+// SQLite Table: _nuna_versions
+// Tracks all changes for undo/redo and history
+// =============================================================================
+
+message VersionInfo {
+    nuna.core.EntityId id = 1;
+    int64 version_number = 2;           // Auto-incrementing global version
+    string entity_id = 3;               // Which entity this version is for
+    VersionType type = 4;
+    string user_id = 5;                 // Who made this change
+    int64 timestamp = 6;
+    string description = 7;             // Human-readable: "Moved tree to (10,0,5)"
+    bytes previous_state = 8;           // Serialized previous entity state (for undo)
+    bytes new_state = 9;                // Serialized new state
+    string parent_version_id = 10;      // For branching/merging
+}
+
+enum VersionType {
+    VERSION_TYPE_UNSPECIFIED = 0;
+    VERSION_TYPE_CREATE = 1;            // Entity created
+    VERSION_TYPE_UPDATE = 2;            // Entity modified
+    VERSION_TYPE_DELETE = 3;            // Entity deleted (soft delete)
+    VERSION_TYPE_RESTORE = 4;           // Undo/restore operation
+    VERSION_TYPE_IMPORT = 5;            // External import
+}
+
+// =============================================================================
+// PROJECT VERSION HISTORY
+// SQLite Table: _nuna_project_versions
+// High-level snapshots for major saves / checkpoints
+// =============================================================================
+
+message ProjectVersion {
+    nuna.core.EntityId id = 1;
+    int64 version_number = 2;           // Project-wide version counter
+    string name = 3;                    // Optional: "Before lighting changes"
+    string user_id = 4;
+    int64 timestamp = 5;
+    ProjectVersionType type = 6;
+    string description = 7;
+    int64 entity_count = 8;             // Stats at this version
+    int64 component_count = 9;
+    repeated string changed_entity_ids = 10;  // What changed since last version
+    bool is_checkpoint = 11;            // User-created save point
+    bool is_auto_save = 12;
+}
+
+enum ProjectVersionType {
+    PROJECT_VERSION_TYPE_UNSPECIFIED = 0;
+    PROJECT_VERSION_TYPE_SAVE = 1;              // Normal save
+    PROJECT_VERSION_TYPE_AUTO_SAVE = 2;         // Automatic backup
+    PROJECT_VERSION_TYPE_CHECKPOINT = 3;        // User-created milestone
+    PROJECT_VERSION_TYPE_IMPORT = 4;            // External data imported
+}
+
+// =============================================================================
+// OPTIMISTIC LOCKING
+// EntityId.version field is used for conflict detection
+// =============================================================================
+
+message OptimisticLockCheck {
+    string entity_id = 1;
+    int64 expected_version = 2;         // Version when user started editing
+    int64 current_version = 3;          // Current version in database
+    bool has_conflict = 4;              // true if expected < current
+}
+
+message SaveWithVersionCheckRequest {
+    string database_path = 1;
+    string lock_token = 2;
+    repeated EntityUpdate updates = 3;
+    bool create_checkpoint = 4;         // Also create a named checkpoint
+    string checkpoint_name = 5;
+}
+
+message EntityUpdate {
+    string entity_id = 1;
+    int64 base_version = 2;             // Version this edit was based on
+    bytes new_state = 3;                // New entity state
+    string change_description = 4;      // "Changed transform"
+}
+
+message SaveWithVersionCheckResponse {
+    bool success = 1;
+    int64 new_project_version = 2;
+    repeated OptimisticLockCheck conflicts = 3;  // If any conflicts
+    string error = 4;
+}
+
+// =============================================================================
+// UNDO/REDO SUPPORT
+// Per-session undo stack
+// =============================================================================
+
+message UndoEntry {
+    string id = 1;
+    string description = 2;             // "Move entity Forest_Tree_01"
+    int64 timestamp = 3;
+    repeated EntityChange changes = 4;  // All changes in this operation
+    bool is_compound = 5;               // Multiple changes as one undo step
+}
+
+message EntityChange {
+    string entity_id = 1;
+    string component_type = 2;          // Which component changed
+    bytes before_state = 3;             // State before change
+    bytes after_state = 4;              // State after change
+    ChangeType change_type = 5;
+}
+
+message UndoRequest {
+    string database_path = 1;
+    string lock_token = 2;
+    string session_id = 3;
+    int32 steps = 4;                    // How many steps to undo (default 1)
+}
+
+message UndoResponse {
+    bool success = 1;
+    int32 steps_undone = 2;
+    int64 new_version = 3;
+    string error = 4;
+}
+
+message RedoRequest {
+    string database_path = 1;
+    string lock_token = 2;
+    string session_id = 3;
+    int32 steps = 4;
+}
+
+message RedoResponse {
+    bool success = 1;
+    int32 steps_redone = 2;
+    int64 new_version = 3;
+    string error = 4;
+}
+
+// =============================================================================
+// VERSION HISTORY QUERIES
+// =============================================================================
+
+message GetVersionHistoryRequest {
+    string database_path = 1;
+    string entity_id = 2;               // Empty = project-level history
+    int32 limit = 3;
+    int32 offset = 4;
+    int64 since_timestamp = 5;
+}
+
+message GetVersionHistoryResponse {
+    repeated VersionInfo entity_versions = 1;
+    repeated ProjectVersion project_versions = 2;
+    int32 total_count = 3;
+}
+
+message GetEntityAtVersionRequest {
+    string database_path = 1;
+    string entity_id = 2;
+    int64 version_number = 3;           // 0 = current version
+}
+
+message GetEntityAtVersionResponse {
+    bool found = 1;
+    bytes entity_state = 2;
+    VersionInfo version_info = 3;
+}
+
+// =============================================================================
+// CHECKPOINT MANAGEMENT
+// =============================================================================
+
+message CreateCheckpointRequest {
+    string database_path = 1;
+    string lock_token = 2;
+    string name = 3;                    // "Before refactor"
+    string description = 4;
+}
+
+message CreateCheckpointResponse {
+    bool success = 1;
+    ProjectVersion checkpoint = 2;
+    string error = 3;
+}
+
+message ListCheckpointsRequest {
+    string database_path = 1;
+    int32 limit = 2;
+}
+
+message ListCheckpointsResponse {
+    repeated ProjectVersion checkpoints = 1;
+}
+
+message RestoreCheckpointRequest {
+    string database_path = 1;
+    string lock_token = 2;
+    string checkpoint_id = 3;
+    bool create_backup_first = 4;       // Save current state before restoring
+}
+
+message RestoreCheckpointResponse {
+    bool success = 1;
+    int64 new_version = 2;
+    string backup_checkpoint_id = 3;    // If backup was created
+    string error = 4;
+}
+
+// =============================================================================
+// CONCURRENCY SERVICE
+// =============================================================================
+
+service ConcurrencyService {
+    // Lock management
+    rpc AcquireEditLock(AcquireEditLockRequest) returns (AcquireEditLockResponse);
+    rpc ReleaseEditLock(ReleaseEditLockRequest) returns (ReleaseEditLockResponse);
+    rpc SendHeartbeat(HeartbeatRequest) returns (HeartbeatResponse);
+    rpc GetLockStatus(GetLockStatusRequest) returns (GetLockStatusResponse);
+
+    // Viewer tracking
+    rpc RegisterViewer(RegisterViewerRequest) returns (RegisterViewerResponse);
+    rpc UnregisterViewer(UnregisterViewerRequest) returns (EmptyResponse);
+
+    // Change notifications
+    rpc WatchChanges(WatchChangesRequest) returns (stream ChangeNotification);
+
+    // Version-aware save
+    rpc SaveWithVersionCheck(SaveWithVersionCheckRequest) returns (SaveWithVersionCheckResponse);
+
+    // Undo/Redo
+    rpc Undo(UndoRequest) returns (UndoResponse);
+    rpc Redo(RedoRequest) returns (RedoResponse);
+
+    // Version history
+    rpc GetVersionHistory(GetVersionHistoryRequest) returns (GetVersionHistoryResponse);
+    rpc GetEntityAtVersion(GetEntityAtVersionRequest) returns (GetEntityAtVersionResponse);
+
+    // Checkpoints
+    rpc CreateCheckpoint(CreateCheckpointRequest) returns (CreateCheckpointResponse);
+    rpc ListCheckpoints(ListCheckpointsRequest) returns (ListCheckpointsResponse);
+    rpc RestoreCheckpoint(RestoreCheckpointRequest) returns (RestoreCheckpointResponse);
+}
+
+message WatchChangesRequest {
+    string database_path = 1;
+    string session_id = 2;
+    int64 since_version = 3;            // Only changes after this version
+}
+
+message EmptyResponse {}
