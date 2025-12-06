@@ -24,26 +24,44 @@ message EntityId {
 }
 
 // =============================================================================
-// ECS CORE: ENTITY
-// SQLite Table: entities
+// CLUSTER NODE
+// SQLite Table: cluster_nodes
+// Unified tree structure for project content (replaces Entity and Scene)
 // =============================================================================
 
-message Entity {
+message ClusterNode {
     EntityId id = 1;
     string name = 2;
-    string type = 3;                    // e.g., "scene", "asset", "node"
-    EntityState state = 4;
-    string parent_id = 5;               // Parent entity UUID (nullable)
-    repeated string tag_ids = 6;        // Foreign keys to tags table
-    bytes metadata = 7;                 // JSON blob for extensible data
+    ClusterNodeType node_type = 3;
+    ClusterNodeState state = 4;
+
+    // Hierarchy - bidirectional for fast UI navigation
+    string parent_id = 5;               // Parent node UUID (nullable for root)
+    repeated string child_ids = 6;      // Direct children for tree traversal
+    int32 sibling_order = 7;            // Position among siblings (0-based)
+
+    // Metadata
+    repeated string tag_ids = 8;        // Foreign keys to tags table
+    bytes metadata = 9;                 // JSON blob for extensible data
 }
 
-enum EntityState {
-    ENTITY_STATE_UNSPECIFIED = 0;
-    ENTITY_STATE_ACTIVE = 1;
-    ENTITY_STATE_INACTIVE = 2;
-    ENTITY_STATE_DELETED = 3;           // Soft delete
-    ENTITY_STATE_ARCHIVED = 4;
+enum ClusterNodeType {
+    CLUSTER_NODE_TYPE_UNSPECIFIED = 0;
+    CLUSTER_NODE_TYPE_PROJECT = 1;      // Root node - only one per file
+    CLUSTER_NODE_TYPE_SCENE = 2;        // Scene/Workspace container
+    CLUSTER_NODE_TYPE_FOLDER = 3;       // Folder/Directory
+    CLUSTER_NODE_TYPE_DOCUMENT = 4;     // Text document
+    CLUSTER_NODE_TYPE_ASSET = 5;        // Asset reference
+    CLUSTER_NODE_TYPE_GROUP = 6;        // Logical grouping
+}
+
+enum ClusterNodeState {
+    CLUSTER_NODE_STATE_UNSPECIFIED = 0;
+    CLUSTER_NODE_STATE_ACTIVE = 1;
+    CLUSTER_NODE_STATE_COLLAPSED = 2;   // UI state: collapsed in tree
+    CLUSTER_NODE_STATE_HIDDEN = 3;
+    CLUSTER_NODE_STATE_DELETED = 4;     // Soft delete
+    CLUSTER_NODE_STATE_ARCHIVED = 5;
 }
 
 // =============================================================================
@@ -53,8 +71,8 @@ enum EntityState {
 
 message Component {
     EntityId id = 1;
-    string entity_id = 2;               // Foreign key to entities
-    string component_type = 3;          // e.g., "transform", "mesh", "script"
+    string cluster_node_id = 2;         // Foreign key to cluster_nodes
+    string component_type = 3;          // e.g., "transform", "mesh", "script", "scene_settings"
     ComponentState state = 4;
     bytes data = 5;                     // Serialized component data (protobuf)
     string schema_version = 6;          // For migration support
@@ -136,8 +154,8 @@ message Mat4 {
 
 message Relationship {
     EntityId id = 1;
-    string source_id = 2;               // Entity UUID
-    string target_id = 3;               // Entity UUID
+    string source_id = 2;               // ClusterNode UUID
+    string target_id = 3;               // ClusterNode UUID
     RelationshipType type = 4;
     bytes metadata = 5;
 }
@@ -152,14 +170,14 @@ enum RelationshipType {
 
 // =============================================================================
 // QUERY SUPPORT
-// For querying entities in SQLite
+// For querying cluster nodes in SQLite
 // =============================================================================
 
-message EntityQuery {
-    repeated string entity_types = 1;
+message ClusterNodeQuery {
+    repeated ClusterNodeType node_types = 1;
     repeated string component_types = 2;
     repeated string tag_ids = 3;
-    EntityState state_filter = 4;
+    ClusterNodeState state_filter = 4;
     string parent_id = 5;
     int32 limit = 6;
     int32 offset = 7;
@@ -167,8 +185,8 @@ message EntityQuery {
     bool ascending = 9;
 }
 
-message EntityQueryResult {
-    repeated Entity entities = 1;
+message ClusterNodeQueryResult {
+    repeated ClusterNode nodes = 1;
     int32 total_count = 2;
     bool has_more = 3;
 }

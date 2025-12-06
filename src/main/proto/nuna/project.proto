@@ -143,24 +143,17 @@ message ToolVisibility {
 }
 
 // =============================================================================
-// CONTENT SECTIONS
-// SQLite Tables: scenes, assets
+// SCENE SETTINGS COMPONENT
+// Attached to ClusterNode with node_type = CLUSTER_NODE_TYPE_SCENE
 // =============================================================================
 
-message Scene {
-    nuna.core.EntityId id = 1;
-    string name = 2;
-    string description = 3;
-    repeated string root_entity_ids = 4;    // Top-level entities in scene
-    SceneSettings settings = 5;
-    bytes thumbnail = 6;                    // PNG thumbnail data
-}
-
-message SceneSettings {
+message SceneSettingsComponent {
     nuna.core.Vec3 gravity = 1;
     string skybox_asset_id = 2;
     AmbientLight ambient = 3;
     repeated string active_system_ids = 4;  // Which systems run in this scene
+    bytes thumbnail = 5;                    // PNG thumbnail data
+    string description = 6;
 }
 
 message AmbientLight {
@@ -169,6 +162,11 @@ message AmbientLight {
     float b = 3;
     float intensity = 4;
 }
+
+// =============================================================================
+// ASSETS
+// SQLite Table: assets
+// =============================================================================
 
 message Asset {
     nuna.core.EntityId id = 1;
@@ -205,11 +203,10 @@ message ProjectFile {
     repeated McpServerRequirement mcp_servers = 2;
     repeated PluginRequirement plugins = 3;
     RibbonConfiguration ribbon = 4;
-    repeated Scene scenes = 5;
+    repeated nuna.core.ClusterNode cluster_nodes = 5;  // Unified tree structure
     repeated Asset assets = 6;
-    repeated nuna.core.Entity entities = 7;
-    repeated nuna.core.Component components = 8;
-    repeated nuna.core.Tag tags = 9;
+    repeated nuna.core.Component components = 7;
+    repeated nuna.core.Tag tags = 8;
 }
 
 // =============================================================================
