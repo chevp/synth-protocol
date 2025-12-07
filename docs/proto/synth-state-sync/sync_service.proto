@@ -1,0 +1,267 @@
+// =============================================================================
+// SYNTH STATE SYNC - Synchronization Service
+// =============================================================================
+//
+// gRPC service definitions for scene state synchronization
+//
+// =============================================================================
+
+syntax = "proto3";
+
+package synth.state;
+
+option csharp_namespace = "Synth.State";
+option java_package = "io.synth.state";
+option go_package = "synth/state";
+
+import "scene_state.proto";
+
+// =============================================================================
+// STATE SYNC SERVICE
+// =============================================================================
+
+service StateSyncService {
+    // Get full scene snapshot
+    rpc GetSnapshot(SnapshotRequest) returns (SceneSnapshot);
+
+    // Subscribe to scene deltas (server-push)
+    rpc SubscribeDeltas(DeltaSubscription) returns (stream SceneDelta);
+
+    // Client input stream with server responses
+    rpc SyncInput(stream ClientInput) returns (stream ServerResponse);
+
+    // Bidirectional sync for editor (collaborative editing)
+    rpc CollaborativeSync(stream EditorOperation) returns (stream EditorBroadcast);
+}
+
+// =============================================================================
+// SNAPSHOT REQUESTS
+// =============================================================================
+
+message SnapshotRequest {
+    string scene_id = 1;
+
+    // Optional: Request specific nodes only
+    repeated string node_ids = 2;
+
+    // Optional: Include components
+    bool include_components = 3;
+
+    // Optional: Compression preference
+    CompressionType preferred_compression = 4;
+}
+
+// =============================================================================
+// DELTA SUBSCRIPTION
+// =============================================================================
+
+message DeltaSubscription {
+    string scene_id = 1;
+    string client_id = 2;
+
+    // Start from specific tick (for reconnection)
+    uint64 from_tick = 3;
+
+    // Filter options
+    DeltaFilter filter = 4;
+
+    // Update rate (0 = as fast as possible)
+    uint32 max_updates_per_second = 5;
+}
+
+message DeltaFilter {
+    // Only receive updates for specific nodes
+    repeated string node_ids = 1;
+
+    // Only receive updates within bounds
+    BoundingBox spatial_bounds = 2;
+
+    // Only receive specific component types
+    repeated ComponentType component_types = 3;
+
+    // Minimum change threshold for transforms
+    float position_threshold = 4;         // Units
+    float rotation_threshold = 5;         // Degrees
+}
+
+// =============================================================================
+// COLLABORATIVE EDITING (Editor Mode)
+// =============================================================================
+
+message EditorOperation {
+    string client_id = 1;
+    string user_id = 2;
+    uint64 operation_id = 3;              // For conflict resolution
+
+    oneof operation {
+        NodeCreateOp node_create = 10;
+        NodeUpdateOp node_update = 11;
+        NodeDeleteOp node_delete = 12;
+        NodeReparentOp node_reparent = 13;
+        ComponentAddOp component_add = 14;
+        ComponentUpdateOp component_update = 15;
+        ComponentRemoveOp component_remove = 16;
+        SelectionChangeOp selection_change = 17;
+        UndoOp undo = 18;
+        RedoOp redo = 19;
+    }
+}
+
+message NodeCreateOp {
+    string parent_id = 1;
+    string name = 2;
+    NodeType node_type = 3;
+    Transform transform = 4;
+
+    // Pre-assigned ID (for undo/redo consistency)
+    string assigned_node_id = 5;
+}
+
+message NodeUpdateOp {
+    string node_id = 1;
+
+    oneof update {
+        Transform transform = 2;
+        string name = 3;
+        uint32 flags = 4;
+    }
+}
+
+message NodeDeleteOp {
+    string node_id = 1;
+    bool recursive = 2;                   // Delete children too
+}
+
+message NodeReparentOp {
+    string node_id = 1;
+    string new_parent_id = 2;
+    int32 sibling_index = 3;              // -1 = append
+}
+
+message ComponentAddOp {
+    string node_id = 1;
+    ComponentType component_type = 2;
+    ActiveComponent initial_state = 3;
+}
+
+message ComponentUpdateOp {
+    string component_id = 1;
+    ActiveComponent new_state = 2;
+}
+
+message ComponentRemoveOp {
+    string component_id = 1;
+}
+
+message SelectionChangeOp {
+    repeated string selected_nodes = 1;
+    SelectionMode mode = 2;
+}
+
+enum SelectionMode {
+    SELECTION_SET = 0;                    // Replace selection
+    SELECTION_ADD = 1;                    // Add to selection
+    SELECTION_REMOVE = 2;                 // Remove from selection
+    SELECTION_TOGGLE = 3;                 // Toggle selection
+}
+
+message UndoOp {
+    // Server handles undo stack per user
+}
+
+message RedoOp {
+    // Server handles redo stack per user
+}
+
+// =============================================================================
+// EDITOR BROADCAST - Operations sent to all connected editors
+// =============================================================================
+
+message EditorBroadcast {
+    string origin_client_id = 1;          // Who made the change
+    string user_id = 2;
+    uint64 operation_id = 3;
+
+    oneof broadcast {
+        EditorOperation operation = 4;     // Forwarded operation
+        OperationResult result = 5;        // Result of an operation
+        UserPresence presence = 6;         // User joined/left/moved
+        ConflictNotification conflict = 7; // Conflict detected
+    }
+}
+
+message OperationResult {
+    uint64 operation_id = 1;
+    bool success = 2;
+    string error_message = 3;
+
+    // Assigned IDs for create operations
+    repeated IdMapping id_mappings = 4;
+}
+
+message IdMapping {
+    string requested_id = 1;
+    string assigned_id = 2;
+}
+
+message UserPresence {
+    string user_id = 1;
+    string display_name = 2;
+    Color user_color = 3;                 // For visual distinction
+
+    PresenceType presence_type = 4;
+    repeated string selected_nodes = 5;   // What they have selected
+    Transform camera_transform = 6;       // Where they're looking
+}
+
+enum PresenceType {
+    PRESENCE_JOINED = 0;
+    PRESENCE_LEFT = 1;
+    PRESENCE_UPDATED = 2;
+}
+
+message ConflictNotification {
+    uint64 your_operation_id = 1;
+    uint64 conflicting_operation_id = 2;
+    string conflicting_user_id = 3;
+
+    ConflictType conflict_type = 4;
+    string affected_node_id = 5;
+
+    // Resolution applied by server
+    ConflictResolution resolution = 6;
+}
+
+enum ConflictType {
+    CONFLICT_CONCURRENT_EDIT = 0;
+    CONFLICT_DELETE_EDITED = 1;
+    CONFLICT_PARENT_DELETED = 2;
+}
+
+enum ConflictResolution {
+    RESOLUTION_LAST_WRITE_WINS = 0;
+    RESOLUTION_FIRST_WRITE_WINS = 1;
+    RESOLUTION_MERGED = 2;
+    RESOLUTION_REJECTED = 3;
+}
+
+// =============================================================================
+// INTERPOLATION HINTS (for client-side smoothing)
+// =============================================================================
+
+message InterpolationConfig {
+    string node_id = 1;
+
+    InterpolationMode position_mode = 2;
+    InterpolationMode rotation_mode = 3;
+
+    float smoothing_factor = 4;           // 0.0 - 1.0
+    float max_extrapolation_ms = 5;       // How far to predict
+}
+
+enum InterpolationMode {
+    INTERPOLATION_NONE = 0;               // Snap to new values
+    INTERPOLATION_LINEAR = 1;
+    INTERPOLATION_SMOOTH = 2;             // Lerp with smoothing
+    INTERPOLATION_PREDICT = 3;            // Extrapolate velocity
+}

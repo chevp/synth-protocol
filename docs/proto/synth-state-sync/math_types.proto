@@ -1,0 +1,149 @@
+// =============================================================================
+// SYNTH STATE SYNC - Math Types
+// =============================================================================
+//
+// Shared math types for scene state synchronization
+//
+// =============================================================================
+
+syntax = "proto3";
+
+package synth.state;
+
+option csharp_namespace = "Synth.State";
+option java_package = "io.synth.state";
+option go_package = "synth/state";
+
+// =============================================================================
+// VECTORS
+// =============================================================================
+
+message Vec2 {
+    float x = 1;
+    float y = 2;
+}
+
+message Vec3 {
+    float x = 1;
+    float y = 2;
+    float z = 3;
+}
+
+message Vec4 {
+    float x = 1;
+    float y = 2;
+    float z = 3;
+    float w = 4;
+}
+
+message Vec2i {
+    int32 x = 1;
+    int32 y = 2;
+}
+
+message Vec3i {
+    int32 x = 1;
+    int32 y = 2;
+    int32 z = 3;
+}
+
+// =============================================================================
+// QUATERNION
+// =============================================================================
+
+message Quat {
+    float x = 1;
+    float y = 2;
+    float z = 3;
+    float w = 4;
+}
+
+// =============================================================================
+// TRANSFORM
+// =============================================================================
+
+message Transform {
+    Vec3 position = 1;
+    Quat rotation = 2;
+    Vec3 scale = 3;
+}
+
+// Compact transform using Euler angles (less precise but smaller)
+message TransformCompact {
+    Vec3 position = 1;
+    Vec3 euler_angles = 2;                // Degrees
+    Vec3 scale = 3;
+}
+
+// =============================================================================
+// MATRICES
+// =============================================================================
+
+message Mat3 {
+    repeated float values = 1;            // 9 floats, row-major
+}
+
+message Mat4 {
+    repeated float values = 1;            // 16 floats, row-major
+}
+
+// =============================================================================
+// COLOR
+// =============================================================================
+
+message Color {
+    float r = 1;                          // 0.0 - 1.0
+    float g = 2;
+    float b = 3;
+    float a = 4;
+}
+
+message Color32 {
+    uint32 rgba = 1;                      // Packed RGBA (8 bits each)
+}
+
+// =============================================================================
+// BOUNDS
+// =============================================================================
+
+message BoundingBox {
+    Vec3 min = 1;
+    Vec3 max = 2;
+}
+
+message BoundingSphere {
+    Vec3 center = 1;
+    float radius = 2;
+}
+
+// =============================================================================
+// RAY / PLANE
+// =============================================================================
+
+message Ray {
+    Vec3 origin = 1;
+    Vec3 direction = 2;
+}
+
+message Plane {
+    Vec3 normal = 1;
+    float distance = 2;
+}
+
+// =============================================================================
+// RECT (2D)
+// =============================================================================
+
+message Rect {
+    float x = 1;
+    float y = 2;
+    float width = 3;
+    float height = 4;
+}
+
+message RectInt {
+    int32 x = 1;
+    int32 y = 2;
+    int32 width = 3;
+    int32 height = 4;
+}

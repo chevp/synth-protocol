@@ -1,0 +1,76 @@
+# =============================================================================
+# SYNTH EVENTS DSL - URI Format
+# =============================================================================
+#
+# Format:
+#   scheme://path/action#subject?key=value&key2=value2
+#
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# SCENE EVENTS
+# -----------------------------------------------------------------------------
+
+synth://scene/create#scene_outdoor?project=proj_01HXYZ123&name=Outdoor%20Scene&state=active&source=mcp_playground
+synth://cluster/node/create#node_tree_01?parent=scene_outdoor&type=asset&name=Oak%20Tree&state=active&source=mcp_playground
+synth://cluster/node/move#node_tree_01?old_parent=scene_outdoor&new_parent=folder_vegetation&source=mcp_playground
+synth://cluster/node/rename#node_tree_01?old_name=Oak%20Tree&new_name=Ancient%20Oak&source=tool_rename
+synth://cluster/node/update#node_tree_01?state=hidden&source=ui_tree_view&user=user_developer
+synth://cluster/node/delete#node_tree_01?soft=true&source=tool_delete
+synth://scene/update#scene_outdoor?setting=gravity&source=mcp_physics
+synth://cluster/node/select#selection_001?nodes=node_tree_01,node_tree_02,node_rock_01&source=ui_viewport
+
+# -----------------------------------------------------------------------------
+# COMPONENT EVENTS
+# -----------------------------------------------------------------------------
+
+synth://component/create#comp_transform_tree?node=node_tree_01&type=transform&source=mcp_playground
+synth://component/update#comp_transform_tree?node=node_tree_01&field=position&source=tool_move&correlation=drag_001
+synth://component/create#comp_material_tree?node=node_tree_01&type=material&name=bark_pbr&source=mcp_materials
+synth://component/disable#comp_material_tree?node=node_tree_01&source=ui_inspector&user=user_developer
+synth://component/enable#comp_material_tree?node=node_tree_01&source=ui_inspector
+synth://component/delete#comp_material_tree?node=node_tree_01&source=tool_remove_component
+synth://component/error#comp_script_tree?node=node_tree_01&type=script&error=compilation&line=42&source=mcp_scripting
+
+# -----------------------------------------------------------------------------
+# MCP SERVER EVENTS
+# -----------------------------------------------------------------------------
+
+nuna://mcp/server/start#mcp_vision?transport=stdio&version=1.0.0&source=mcp_manager
+nuna://mcp/server/health#mcp_vision?healthy=true&latency=45&source=health_checker
+nuna://mcp/tool/invoke#vision_analyze?server=mcp_vision&invocation=inv_001&source=tool_executor&user=user_developer
+nuna://mcp/tool/complete#vision_analyze?invocation=inv_001&duration=1234&source=tool_executor
+nuna://mcp/tool/fail#vision_segment?invocation=inv_002&error=timeout&duration=30000&source=tool_executor
+nuna://mcp/server/disconnect#mcp_vision?reason=crash&exit_code=1&source=mcp_manager
+nuna://mcp/server/reconnect#mcp_vision?attempt=1&max_attempts=3&source=mcp_manager
+nuna://mcp/tool/register#vision_upscale?server=mcp_vision&version=2.0.0&source=mcp_vision
+nuna://mcp/server/stop#mcp_vision?reason=user_request&source=mcp_manager&user=user_developer
+nuna://mcp/tool/unregister#vision_analyze?server=mcp_vision&source=mcp_manager
+
+# -----------------------------------------------------------------------------
+# AGENT & TASK EVENTS
+# -----------------------------------------------------------------------------
+
+synth://agent/create#agent_vision_01?type=reactive&name=Vision%20Analyzer&source=agent_manager
+synth://agent/start#agent_vision_01?source=agent_manager
+synth://agent/task/create#task_001?agent=agent_vision_01&type=analyze&priority=normal&source=task_scheduler
+synth://agent/task/start#task_001?agent=agent_vision_01&source=agent_vision_01
+synth://agent/task/progress#task_001?agent=agent_vision_01&progress=50&msg=Analyzing&source=agent_vision_01
+synth://agent/task/complete#task_001?agent=agent_vision_01&duration=2000&source=agent_vision_01
+synth://agent/task/fail#task_002?agent=agent_vision_01&error=out_of_memory&source=agent_vision_01
+synth://agent/task/cancel#task_003?agent=agent_vision_01&reason=user_request&source=task_scheduler
+synth://agent/error#agent_vision_01?error=gpu_failure&source=agent_vision_01
+
+# =============================================================================
+# URI STRUCTURE
+# =============================================================================
+#
+#   scheme://path/action#subject?query
+#
+#   scheme   = synth | nuna | mcp | plugin
+#   path     = resource path (e.g. cluster/node, mcp/server, agent/task)
+#   action   = create | update | delete | start | stop | invoke | complete | fail | ...
+#   subject  = instance ID (fragment)
+#   query    = key=value pairs (URL encoded)
+#
+# =============================================================================

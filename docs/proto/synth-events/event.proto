@@ -1,0 +1,420 @@
+syntax = "proto3";
+
+package synth.events;
+
+option java_package = "io.synth.protocol.events";
+option java_multiple_files = true;
+
+// =============================================================================
+// SYNTH EVENTS PROTOCOL
+// Event-based message passing with URI syntax for routing and filtering
+// =============================================================================
+
+// =============================================================================
+// EVENT URI
+// Structured URI for event routing: scheme://path/action#subject?query
+// Example: synth://cluster/node/created#node-uuid-123?parent=scene-main
+// =============================================================================
+
+message EventUri {
+    // URI scheme - identifies the event domain
+    // Examples: "synth", "nuna", "mcp", "plugin"
+    string scheme = 1;
+
+    // Hierarchical path - identifies resource type
+    // Examples: "cluster/node", "mcp/server", "agent/task"
+    string path = 2;
+
+    // Action/event type - what happened
+    // Examples: "created", "updated", "deleted", "started", "completed"
+    string action = 3;
+
+    // Subject identifier - specific instance (optional)
+    // Maps to URI fragment (#)
+    // Example: "node-uuid-123", "task-456"
+    string subject = 4;
+
+    // Query parameters - additional metadata for filtering
+    // Maps to URI query string (?)
+    map<string, string> query = 5;
+}
+
+// =============================================================================
+// EVENT ENVELOPE
+// Complete event message with metadata and payload
+// =============================================================================
+
+message Event {
+    // Unique event identifier
+    string event_id = 1;
+
+    // Event URI for routing
+    EventUri uri = 2;
+
+    // Event metadata
+    EventMetadata metadata = 3;
+
+    // Event payload - type depends on uri.path + uri.action
+    oneof payload {
+        // Generic payload as bytes (protobuf-encoded)
+        bytes data = 10;
+
+        // Typed payloads for common events
+        ClusterNodeEvent cluster_node = 11;
+        ComponentEvent component = 12;
+        McpServerEvent mcp_server = 13;
+        McpToolEvent mcp_tool = 14;
+        AgentEvent agent = 15;
+        TaskEvent task = 16;
+    }
+}
+
+message EventMetadata {
+    // When the event occurred (Unix timestamp ms)
+    int64 timestamp = 1;
+
+    // Event source identifier
+    string source_id = 2;
+
+    // Source type (e.g., "mcp-server", "plugin", "system", "user")
+    string source_type = 3;
+
+    // Correlation ID for tracing related events
+    string correlation_id = 4;
+
+    // Causation ID - which event caused this one
+    string causation_id = 5;
+
+    // Event version for schema evolution
+    int32 version = 6;
+
+    // Priority level
+    EventPriority priority = 7;
+
+    // User/session that triggered the event (if applicable)
+    string user_id = 8;
+    string session_id = 9;
+
+    // Additional headers
+    map<string, string> headers = 10;
+}
+
+enum EventPriority {
+    EVENT_PRIORITY_UNSPECIFIED = 0;
+    EVENT_PRIORITY_LOW = 1;
+    EVENT_PRIORITY_NORMAL = 2;
+    EVENT_PRIORITY_HIGH = 3;
+    EVENT_PRIORITY_CRITICAL = 4;
+}
+
+// =============================================================================
+// EVENT BATCH
+// For efficient transmission of multiple events
+// =============================================================================
+
+message EventBatch {
+    repeated Event events = 1;
+    string batch_id = 2;
+    int64 timestamp = 3;
+}
+
+// =============================================================================
+// SUBSCRIPTION
+// Define event subscriptions with URI patterns
+// =============================================================================
+
+message Subscription {
+    // Unique subscription identifier
+    string subscription_id = 1;
+
+    // URI pattern to match (supports wildcards)
+    // Examples:
+    //   "synth://cluster/node/*"      - all node events
+    //   "synth://*/created"           - all created events
+    //   "nuna://mcp/server/*"         - all MCP server events
+    //   "*://*/*#specific-id"         - all events for specific subject
+    SubscriptionPattern pattern = 2;
+
+    // Filter conditions on query parameters
+    map<string, string> query_filter = 3;
+
+    // Subscriber metadata
+    string subscriber_id = 4;
+    string subscriber_type = 5;
+
+    // Delivery options
+    DeliveryOptions delivery = 6;
+}
+
+message SubscriptionPattern {
+    // Scheme pattern (* for any)
+    string scheme = 1;
+
+    // Path pattern (supports * and ** wildcards)
+    // * matches single segment, ** matches multiple
+    string path = 2;
+
+    // Action pattern (* for any)
+    string action = 3;
+
+    // Subject pattern (optional, * for any)
+    string subject = 4;
+}
+
+message DeliveryOptions {
+    // Delivery mode
+    DeliveryMode mode = 1;
+
+    // For batched delivery: max batch size
+    int32 batch_size = 2;
+
+    // For batched delivery: max wait time (ms)
+    int32 batch_timeout_ms = 3;
+
+    // Retry configuration
+    int32 max_retries = 4;
+    int32 retry_delay_ms = 5;
+
+    // Filter by priority (only deliver >= this priority)
+    EventPriority min_priority = 6;
+}
+
+enum DeliveryMode {
+    DELIVERY_MODE_UNSPECIFIED = 0;
+    DELIVERY_MODE_IMMEDIATE = 1;     // Deliver each event immediately
+    DELIVERY_MODE_BATCHED = 2;       // Batch events for efficiency
+    DELIVERY_MODE_POLL = 3;          // Client polls for events
+}
+
+// =============================================================================
+// TYPED EVENT PAYLOADS
+// Specific payloads for common event types
+// =============================================================================
+
+// --- Cluster Node Events ---
+// URI: synth://cluster/node/{created|updated|deleted|moved|renamed}
+
+message ClusterNodeEvent {
+    string node_id = 1;
+    string node_type = 2;           // CLUSTER_NODE_TYPE_*
+    string name = 3;
+
+    // For moved events
+    string old_parent_id = 4;
+    string new_parent_id = 5;
+    int32 old_sibling_order = 6;
+    int32 new_sibling_order = 7;
+
+    // For renamed events
+    string old_name = 8;
+
+    // Current state
+    string state = 9;               // CLUSTER_NODE_STATE_*
+
+    // Changed fields (for update events)
+    repeated string changed_fields = 10;
+
+    // Snapshot of node data (optional, for created/updated)
+    bytes node_data = 11;
+}
+
+// --- Component Events ---
+// URI: synth://component/{created|updated|deleted|enabled|disabled}
+
+message ComponentEvent {
+    string component_id = 1;
+    string cluster_node_id = 2;
+    string component_type = 3;
+    string state = 4;               // COMPONENT_STATE_*
+
+    // Changed fields (for update events)
+    repeated string changed_fields = 5;
+
+    // Component data diff (optional)
+    bytes old_data = 6;
+    bytes new_data = 7;
+}
+
+// --- MCP Server Events ---
+// URI: nuna://mcp/server/{connected|disconnected|started|stopped|error|health}
+
+message McpServerEvent {
+    string server_id = 1;
+    string server_name = 2;
+    string state = 3;               // MCP_SERVER_STATE_*
+
+    // Connection info
+    string transport_type = 4;
+    string endpoint = 5;
+
+    // For error events
+    string error_code = 6;
+    string error_message = 7;
+
+    // For health events
+    bool healthy = 8;
+    int64 latency_ms = 9;
+
+    // Available tools (for connected events)
+    repeated string tool_names = 10;
+}
+
+// --- MCP Tool Events ---
+// URI: nuna://mcp/tool/{invoked|completed|failed|registered|unregistered}
+
+message McpToolEvent {
+    string tool_name = 1;
+    string server_id = 2;
+    string invocation_id = 3;
+
+    // Execution details
+    int64 started_at = 4;
+    int64 completed_at = 5;
+    int64 duration_ms = 6;
+
+    // For failed events
+    string error_code = 7;
+    string error_message = 8;
+
+    // Input/output (optional, may be redacted)
+    bytes input_params = 9;
+    bytes output_result = 10;
+
+    // Audit info
+    string user_id = 11;
+    bool undoable = 12;
+}
+
+// --- Agent Events ---
+// URI: synth://agent/{created|started|stopped|idle|busy|error}
+
+message AgentEvent {
+    string agent_id = 1;
+    string agent_type = 2;          // AGENT_TYPE_*
+    string name = 3;
+    string state = 4;               // AGENT_STATE_*
+
+    // Capabilities
+    repeated string capabilities = 5;
+
+    // For error events
+    string error_code = 6;
+    string error_message = 7;
+
+    // Current workload
+    int32 active_tasks = 8;
+    int32 queued_tasks = 9;
+}
+
+// --- Task Events ---
+// URI: synth://agent/task/{created|started|completed|failed|cancelled|progress}
+
+message TaskEvent {
+    string task_id = 1;
+    string agent_id = 2;
+    string task_type = 3;           // TASK_TYPE_*
+    string status = 4;              // TASK_STATUS_*
+    string priority = 5;            // TASK_PRIORITY_*
+
+    // Timing
+    int64 created_at = 6;
+    int64 started_at = 7;
+    int64 completed_at = 8;
+
+    // Progress (0-100)
+    int32 progress_percent = 9;
+    string progress_message = 10;
+
+    // Result (for completed events)
+    bytes result_data = 11;
+
+    // Error (for failed events)
+    string error_code = 12;
+    string error_message = 13;
+}
+
+// =============================================================================
+// EVENT SERVICE
+// gRPC service for event pub/sub
+// =============================================================================
+
+service EventService {
+    // Publish a single event
+    rpc Publish(PublishRequest) returns (PublishResponse);
+
+    // Publish multiple events
+    rpc PublishBatch(EventBatch) returns (PublishResponse);
+
+    // Subscribe to events (server streaming)
+    rpc Subscribe(Subscription) returns (stream Event);
+
+    // Create a durable subscription
+    rpc CreateSubscription(Subscription) returns (SubscriptionResponse);
+
+    // Delete a subscription
+    rpc DeleteSubscription(DeleteSubscriptionRequest) returns (DeleteSubscriptionResponse);
+
+    // List active subscriptions
+    rpc ListSubscriptions(ListSubscriptionsRequest) returns (ListSubscriptionsResponse);
+
+    // Poll for events (for POLL delivery mode)
+    rpc Poll(PollRequest) returns (PollResponse);
+
+    // Acknowledge event receipt
+    rpc Acknowledge(AcknowledgeRequest) returns (AcknowledgeResponse);
+}
+
+// --- Service Messages ---
+
+message PublishRequest {
+    Event event = 1;
+}
+
+message PublishResponse {
+    bool success = 1;
+    string event_id = 2;
+    string error_message = 3;
+}
+
+message SubscriptionResponse {
+    bool success = 1;
+    string subscription_id = 2;
+    string error_message = 3;
+}
+
+message DeleteSubscriptionRequest {
+    string subscription_id = 1;
+}
+
+message DeleteSubscriptionResponse {
+    bool success = 1;
+}
+
+message ListSubscriptionsRequest {
+    string subscriber_id = 1;
+}
+
+message ListSubscriptionsResponse {
+    repeated Subscription subscriptions = 1;
+}
+
+message PollRequest {
+    string subscription_id = 1;
+    int32 max_events = 2;
+    int32 timeout_ms = 3;
+}
+
+message PollResponse {
+    repeated Event events = 1;
+    bool has_more = 2;
+}
+
+message AcknowledgeRequest {
+    string subscription_id = 1;
+    repeated string event_ids = 2;
+}
+
+message AcknowledgeResponse {
+    bool success = 1;
+    int32 acknowledged_count = 2;
+}

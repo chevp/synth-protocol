@@ -1,0 +1,274 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    SYNTH EVENTS - MCP Server and Tool Examples
+    URI Format: scheme://path/action#subject?query
+
+    These examples demonstrate events for MCP server and tool operations.
+-->
+<eventStream xmlns="https://chevp.github.io/synth-protocol/schema/synth/events/1.0"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:schemaLocation="https://chevp.github.io/synth-protocol/schema/synth/events/1.0 ../../schema/synth/events/1.0/events.xsd"
+             name="MCP Events"
+             description="Example events for MCP server and tool operations">
+
+    <!-- =================================================================== -->
+    <!-- MCP Server Started -->
+    <!-- URI: nuna://mcp/server/started#mcp_vision?transport=stdio -->
+    <!-- =================================================================== -->
+    <event eventId="evt_201">
+        <uri scheme="nuna" path="mcp/server" action="started" subject="mcp_vision">
+            <query>
+                <param key="transport">stdio</param>
+                <param key="version">1.0.0</param>
+            </query>
+        </uri>
+        <metadata timestamp="1733400200000"
+                  sourceId="mcp_manager"
+                  sourceType="system"
+                  version="1"
+                  priority="high"/>
+        <payload>
+            <mcpServer serverId="mcp_vision"
+                       serverName="synth-vision"
+                       state="running"
+                       transportType="stdio">
+                <toolNames>
+                    <tool>vision/analyze</tool>
+                    <tool>vision/classify</tool>
+                    <tool>vision/detect</tool>
+                    <tool>vision/segment</tool>
+                </toolNames>
+            </mcpServer>
+        </payload>
+    </event>
+
+    <!-- =================================================================== -->
+    <!-- MCP Server Health Check -->
+    <!-- URI: nuna://mcp/server/health#mcp_vision?healthy=true -->
+    <!-- =================================================================== -->
+    <event eventId="evt_202">
+        <uri scheme="nuna" path="mcp/server" action="health" subject="mcp_vision">
+            <query>
+                <param key="healthy">true</param>
+                <param key="latency">45</param>
+            </query>
+        </uri>
+        <metadata timestamp="1733400230000"
+                  sourceId="health_checker"
+                  sourceType="system"
+                  version="1"
+                  priority="low"/>
+        <payload>
+            <mcpServer serverId="mcp_vision"
+                       serverName="synth-vision"
+                       state="running"
+                       healthy="true"
+                       latencyMs="45"/>
+        </payload>
+    </event>
+
+    <!-- =================================================================== -->
+    <!-- MCP Tool Invoked -->
+    <!-- URI: nuna://mcp/tool/invoked#vision/analyze?server=mcp_vision -->
+    <!-- =================================================================== -->
+    <event eventId="evt_203">
+        <uri scheme="nuna" path="mcp/tool" action="invoked" subject="vision/analyze">
+            <query>
+                <param key="server">mcp_vision</param>
+                <param key="invocation">inv_001</param>
+                <param key="node">node_tree_01</param>
+            </query>
+        </uri>
+        <metadata timestamp="1733400300000"
+                  sourceId="tool_executor"
+                  sourceType="system"
+                  correlationId="user_action_001"
+                  version="1"
+                  priority="normal"
+                  userId="user_developer"/>
+        <payload>
+            <mcpTool toolName="vision/analyze"
+                     serverId="mcp_vision"
+                     invocationId="inv_001"
+                     startedAt="1733400300000"
+                     userId="user_developer"
+                     undoable="false"/>
+        </payload>
+    </event>
+
+    <!-- =================================================================== -->
+    <!-- MCP Tool Completed -->
+    <!-- URI: nuna://mcp/tool/completed#vision/analyze?invocation=inv_001 -->
+    <!-- =================================================================== -->
+    <event eventId="evt_204">
+        <uri scheme="nuna" path="mcp/tool" action="completed" subject="vision/analyze">
+            <query>
+                <param key="invocation">inv_001</param>
+                <param key="duration">1234</param>
+                <param key="server">mcp_vision</param>
+            </query>
+        </uri>
+        <metadata timestamp="1733400301234"
+                  sourceId="tool_executor"
+                  sourceType="system"
+                  correlationId="user_action_001"
+                  causationId="evt_203"
+                  version="1"
+                  priority="normal"/>
+        <payload>
+            <mcpTool toolName="vision/analyze"
+                     serverId="mcp_vision"
+                     invocationId="inv_001"
+                     startedAt="1733400300000"
+                     completedAt="1733400301234"
+                     durationMs="1234"/>
+        </payload>
+    </event>
+
+    <!-- =================================================================== -->
+    <!-- MCP Tool Failed -->
+    <!-- URI: nuna://mcp/tool/failed#vision/segment?error=timeout -->
+    <!-- =================================================================== -->
+    <event eventId="evt_205">
+        <uri scheme="nuna" path="mcp/tool" action="failed" subject="vision/segment">
+            <query>
+                <param key="invocation">inv_002</param>
+                <param key="error">timeout</param>
+                <param key="server">mcp_vision</param>
+            </query>
+        </uri>
+        <metadata timestamp="1733400400000"
+                  sourceId="tool_executor"
+                  sourceType="system"
+                  version="1"
+                  priority="high"/>
+        <payload>
+            <mcpTool toolName="vision/segment"
+                     serverId="mcp_vision"
+                     invocationId="inv_002"
+                     startedAt="1733400370000"
+                     completedAt="1733400400000"
+                     durationMs="30000"
+                     errorCode="TIMEOUT"
+                     errorMessage="Tool execution exceeded 30s timeout"/>
+        </payload>
+    </event>
+
+    <!-- =================================================================== -->
+    <!-- MCP Server Disconnected Unexpectedly -->
+    <!-- URI: nuna://mcp/server/disconnected#mcp_vision?reason=crash -->
+    <!-- =================================================================== -->
+    <event eventId="evt_206">
+        <uri scheme="nuna" path="mcp/server" action="disconnected" subject="mcp_vision">
+            <query>
+                <param key="reason">crash</param>
+                <param key="exit_code">1</param>
+            </query>
+        </uri>
+        <metadata timestamp="1733400500000"
+                  sourceId="mcp_manager"
+                  sourceType="system"
+                  version="1"
+                  priority="critical"/>
+        <payload>
+            <mcpServer serverId="mcp_vision"
+                       serverName="synth-vision"
+                       state="error"
+                       errorCode="PROCESS_CRASHED"
+                       errorMessage="Server process exited with code 1"/>
+        </payload>
+    </event>
+
+    <!-- =================================================================== -->
+    <!-- MCP Server Reconnecting -->
+    <!-- URI: nuna://mcp/server/reconnecting#mcp_vision?attempt=1 -->
+    <!-- =================================================================== -->
+    <event eventId="evt_207">
+        <uri scheme="nuna" path="mcp/server" action="reconnecting" subject="mcp_vision">
+            <query>
+                <param key="attempt">1</param>
+                <param key="max_attempts">3</param>
+            </query>
+        </uri>
+        <metadata timestamp="1733400505000"
+                  sourceId="mcp_manager"
+                  sourceType="system"
+                  causationId="evt_206"
+                  version="1"
+                  priority="high"/>
+        <payload>
+            <mcpServer serverId="mcp_vision"
+                       serverName="synth-vision"
+                       state="starting"/>
+        </payload>
+    </event>
+
+    <!-- =================================================================== -->
+    <!-- MCP Tool Registered -->
+    <!-- URI: nuna://mcp/tool/registered#vision/upscale?server=mcp_vision -->
+    <!-- =================================================================== -->
+    <event eventId="evt_208">
+        <uri scheme="nuna" path="mcp/tool" action="registered" subject="vision/upscale">
+            <query>
+                <param key="server">mcp_vision</param>
+                <param key="version">2.0.0</param>
+            </query>
+        </uri>
+        <metadata timestamp="1733400600000"
+                  sourceId="mcp_vision"
+                  sourceType="mcp-server"
+                  version="1"
+                  priority="normal"/>
+        <payload>
+            <mcpTool toolName="vision/upscale"
+                     serverId="mcp_vision"/>
+        </payload>
+    </event>
+
+    <!-- =================================================================== -->
+    <!-- MCP Server Stopped (graceful) -->
+    <!-- URI: nuna://mcp/server/stopped#mcp_vision -->
+    <!-- =================================================================== -->
+    <event eventId="evt_209">
+        <uri scheme="nuna" path="mcp/server" action="stopped" subject="mcp_vision">
+            <query>
+                <param key="reason">user_request</param>
+            </query>
+        </uri>
+        <metadata timestamp="1733400700000"
+                  sourceId="mcp_manager"
+                  sourceType="system"
+                  version="1"
+                  priority="normal"
+                  userId="user_developer"/>
+        <payload>
+            <mcpServer serverId="mcp_vision"
+                       serverName="synth-vision"
+                       state="stopped"/>
+        </payload>
+    </event>
+
+    <!-- =================================================================== -->
+    <!-- MCP Tool Unregistered -->
+    <!-- URI: nuna://mcp/tool/unregistered#vision/analyze?server=mcp_vision -->
+    <!-- =================================================================== -->
+    <event eventId="evt_210">
+        <uri scheme="nuna" path="mcp/tool" action="unregistered" subject="vision/analyze">
+            <query>
+                <param key="server">mcp_vision</param>
+                <param key="reason">server_stopped</param>
+            </query>
+        </uri>
+        <metadata timestamp="1733400700100"
+                  sourceId="mcp_manager"
+                  sourceType="system"
+                  causationId="evt_209"
+                  version="1"
+                  priority="normal"/>
+        <payload>
+            <mcpTool toolName="vision/analyze"
+                     serverId="mcp_vision"/>
+        </payload>
+    </event>
+
+</eventStream>

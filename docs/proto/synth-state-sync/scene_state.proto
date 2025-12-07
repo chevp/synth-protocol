@@ -1,0 +1,420 @@
+// =============================================================================
+// SYNTH STATE SYNC - Scene State Protocol
+// =============================================================================
+//
+// Purpose: Real-time game scene synchronization
+// Use Case: Multiplayer, Editor preview, Runtime state
+//
+// Difference to synth-events:
+//   - synth-events: Notifications, loose coupling, eventual consistency
+//   - synth-state-sync: Authoritative state, strong consistency, interpolation
+//
+// =============================================================================
+
+syntax = "proto3";
+
+package synth.state;
+
+option csharp_namespace = "Synth.State";
+option java_package = "io.synth.state";
+option go_package = "synth/state";
+
+import "math_types.proto";
+
+// =============================================================================
+// SCENE SNAPSHOT - Full scene state at a point in time
+// =============================================================================
+
+message SceneSnapshot {
+    string scene_id = 1;
+    uint64 tick = 2;                      // Server authoritative tick
+    uint64 timestamp_ms = 3;              // Unix timestamp
+    uint32 version = 4;                   // Schema version for compatibility
+
+    repeated NodeState nodes = 5;
+    repeated ActiveComponent components = 6;  // Flattened for efficient iteration
+
+    SceneSettings settings = 7;
+
+    // Optional compression for large scenes
+    CompressionType compression = 10;
+    bytes compressed_payload = 11;        // If set, nodes/components are empty
+}
+
+enum CompressionType {
+    COMPRESSION_NONE = 0;
+    COMPRESSION_ZSTD = 1;
+    COMPRESSION_LZ4 = 2;
+}
+
+// =============================================================================
+// NODE STATE - Individual node in the scene graph
+// =============================================================================
+
+message NodeState {
+    string node_id = 1;
+    string parent_id = 2;                 // Empty for root nodes
+    string name = 3;
+    NodeType node_type = 4;
+
+    Transform transform = 5;              // Local transform
+    Transform world_transform = 6;        // Cached world transform
+
+    uint32 flags = 7;                     // Bitfield: see NodeFlags
+    uint32 layer_mask = 8;
+
+    repeated string child_ids = 9;        // Ordered children
+    repeated string component_ids = 10;   // Attached components
+
+    // Type-specific data
+    oneof type_data {
+        AssetNodeData asset = 20;
+        LightNodeData light = 21;
+        CameraNodeData camera = 22;
+        EmptyNodeData empty = 23;
+    }
+}
+
+enum NodeType {
+    NODE_TYPE_UNKNOWN = 0;
+    NODE_TYPE_EMPTY = 1;
+    NODE_TYPE_ASSET = 2;
+    NODE_TYPE_LIGHT = 3;
+    NODE_TYPE_CAMERA = 4;
+    NODE_TYPE_AUDIO = 5;
+    NODE_TYPE_PARTICLE = 6;
+    NODE_TYPE_TRIGGER = 7;
+}
+
+// Bitfield values for NodeState.flags
+// NODE_FLAG_ACTIVE = 0x01
+// NODE_FLAG_VISIBLE = 0x02
+// NODE_FLAG_STATIC = 0x04
+// NODE_FLAG_SELECTED = 0x08 (editor only)
+// NODE_FLAG_LOCKED = 0x10 (editor only)
+
+message AssetNodeData {
+    string asset_uri = 1;                 // Reference to asset
+    string material_override = 2;
+    BoundingBox bounds = 3;
+}
+
+message LightNodeData {
+    LightType light_type = 1;
+    Color color = 2;
+    float intensity = 3;
+    float range = 4;
+    float spot_angle = 5;                 // For spot lights
+    bool cast_shadows = 6;
+}
+
+enum LightType {
+    LIGHT_TYPE_DIRECTIONAL = 0;
+    LIGHT_TYPE_POINT = 1;
+    LIGHT_TYPE_SPOT = 2;
+    LIGHT_TYPE_AREA = 3;
+}
+
+message CameraNodeData {
+    CameraProjection projection = 1;
+    float fov = 2;                        // Degrees, for perspective
+    float ortho_size = 3;                 // For orthographic
+    float near_clip = 4;
+    float far_clip = 5;
+}
+
+enum CameraProjection {
+    CAMERA_PERSPECTIVE = 0;
+    CAMERA_ORTHOGRAPHIC = 1;
+}
+
+message EmptyNodeData {
+    // Placeholder for grouping nodes
+}
+
+// =============================================================================
+// COMPONENT STATE - Active component instance
+// =============================================================================
+
+message ActiveComponent {
+    string component_id = 1;
+    string node_id = 2;                   // Owner node
+    ComponentType component_type = 3;
+    bool enabled = 4;
+
+    oneof data {
+        TransformComponentData transform = 10;
+        MeshRendererData mesh_renderer = 11;
+        ColliderData collider = 12;
+        RigidbodyData rigidbody = 13;
+        ScriptData script = 14;
+        AnimatorData animator = 15;
+        AudioSourceData audio_source = 16;
+    }
+}
+
+enum ComponentType {
+    COMPONENT_TYPE_UNKNOWN = 0;
+    COMPONENT_TYPE_TRANSFORM = 1;
+    COMPONENT_TYPE_MESH_RENDERER = 2;
+    COMPONENT_TYPE_COLLIDER = 3;
+    COMPONENT_TYPE_RIGIDBODY = 4;
+    COMPONENT_TYPE_SCRIPT = 5;
+    COMPONENT_TYPE_ANIMATOR = 6;
+    COMPONENT_TYPE_AUDIO_SOURCE = 7;
+    COMPONENT_TYPE_PARTICLE_SYSTEM = 8;
+    COMPONENT_TYPE_LIGHT = 9;
+    COMPONENT_TYPE_CAMERA = 10;
+}
+
+message TransformComponentData {
+    Vec3 position = 1;
+    Quat rotation = 2;
+    Vec3 scale = 3;
+}
+
+message MeshRendererData {
+    string mesh_uri = 1;
+    repeated string material_uris = 2;
+    bool cast_shadows = 3;
+    bool receive_shadows = 4;
+}
+
+message ColliderData {
+    ColliderShape shape = 1;
+    bool is_trigger = 2;
+    string physics_material = 3;
+
+    oneof shape_data {
+        BoxColliderData box = 10;
+        SphereColliderData sphere = 11;
+        CapsuleColliderData capsule = 12;
+        MeshColliderData mesh = 13;
+    }
+}
+
+enum ColliderShape {
+    COLLIDER_BOX = 0;
+    COLLIDER_SPHERE = 1;
+    COLLIDER_CAPSULE = 2;
+    COLLIDER_MESH = 3;
+}
+
+message BoxColliderData {
+    Vec3 center = 1;
+    Vec3 size = 2;
+}
+
+message SphereColliderData {
+    Vec3 center = 1;
+    float radius = 2;
+}
+
+message CapsuleColliderData {
+    Vec3 center = 1;
+    float radius = 2;
+    float height = 3;
+    int32 direction = 4;                  // 0=X, 1=Y, 2=Z
+}
+
+message MeshColliderData {
+    string mesh_uri = 1;
+    bool convex = 2;
+}
+
+message RigidbodyData {
+    float mass = 1;
+    float drag = 2;
+    float angular_drag = 3;
+    bool use_gravity = 4;
+    bool is_kinematic = 5;
+
+    // Runtime state (not persisted)
+    Vec3 velocity = 10;
+    Vec3 angular_velocity = 11;
+}
+
+message ScriptData {
+    string script_uri = 1;
+    repeated ScriptProperty properties = 2;
+}
+
+message ScriptProperty {
+    string name = 1;
+    oneof value {
+        bool bool_value = 2;
+        int64 int_value = 3;
+        double float_value = 4;
+        string string_value = 5;
+        Vec3 vec3_value = 6;
+        Color color_value = 7;
+        string object_ref = 8;            // Reference to another object
+    }
+}
+
+message AnimatorData {
+    string controller_uri = 1;
+    string current_state = 2;
+    float normalized_time = 3;
+    repeated AnimatorParameter parameters = 4;
+}
+
+message AnimatorParameter {
+    string name = 1;
+    oneof value {
+        bool bool_value = 2;
+        int32 int_value = 3;
+        float float_value = 4;
+        int32 trigger = 5;                // Trigger ID if set
+    }
+}
+
+message AudioSourceData {
+    string clip_uri = 1;
+    float volume = 2;
+    float pitch = 3;
+    bool loop = 4;
+    bool is_playing = 5;
+    float playback_position = 6;
+}
+
+// =============================================================================
+// SCENE SETTINGS
+// =============================================================================
+
+message SceneSettings {
+    Vec3 gravity = 1;
+    Color ambient_color = 2;
+    string skybox_uri = 3;
+    FogSettings fog = 4;
+}
+
+message FogSettings {
+    bool enabled = 1;
+    FogMode mode = 2;
+    Color color = 3;
+    float density = 4;
+    float start_distance = 5;
+    float end_distance = 6;
+}
+
+enum FogMode {
+    FOG_LINEAR = 0;
+    FOG_EXPONENTIAL = 1;
+    FOG_EXPONENTIAL_SQUARED = 2;
+}
+
+// =============================================================================
+// SCENE DELTA - Incremental state update
+// =============================================================================
+
+message SceneDelta {
+    string scene_id = 1;
+    uint64 base_tick = 2;                 // Client's last known tick
+    uint64 tick = 3;                      // New tick
+    uint64 timestamp_ms = 4;
+
+    repeated NodeDelta node_changes = 5;
+    repeated ComponentDelta component_changes = 6;
+
+    // Scene-level changes
+    optional SceneSettings settings = 7;
+}
+
+message NodeDelta {
+    string node_id = 1;
+    DeltaOperation operation = 2;
+
+    oneof change {
+        NodeState full_state = 3;         // For CREATE or full update
+        TransformDelta transform = 4;     // Transform-only update
+        uint32 flags = 5;                 // Flags-only update
+        string new_parent = 6;            // Reparent operation
+    }
+}
+
+message ComponentDelta {
+    string component_id = 1;
+    string node_id = 2;
+    DeltaOperation operation = 3;
+
+    oneof change {
+        ActiveComponent full_state = 4;   // For CREATE or full update
+        bytes partial_update = 5;         // Field mask + values
+    }
+}
+
+enum DeltaOperation {
+    DELTA_UPDATE = 0;
+    DELTA_CREATE = 1;
+    DELTA_DELETE = 2;
+}
+
+message TransformDelta {
+    optional Vec3 position = 1;
+    optional Quat rotation = 2;
+    optional Vec3 scale = 3;
+}
+
+// =============================================================================
+// CLIENT INPUT - For client-side prediction
+// =============================================================================
+
+message ClientInput {
+    string client_id = 1;
+    uint64 client_tick = 2;               // Client's local tick
+    uint64 server_tick = 3;               // Last received server tick
+
+    repeated InputCommand commands = 4;
+}
+
+message InputCommand {
+    uint32 sequence = 1;                  // For reconciliation
+
+    oneof command {
+        MoveCommand move = 2;
+        InteractCommand interact = 3;
+        SpawnCommand spawn = 4;
+    }
+}
+
+message MoveCommand {
+    string node_id = 1;
+    Vec3 direction = 2;
+    float speed = 3;
+}
+
+message InteractCommand {
+    string source_node = 1;
+    string target_node = 2;
+    string interaction_type = 3;
+}
+
+message SpawnCommand {
+    string prefab_uri = 1;
+    Transform spawn_transform = 2;
+}
+
+// =============================================================================
+// SERVER RESPONSE - Authoritative state correction
+// =============================================================================
+
+message ServerResponse {
+    uint64 server_tick = 1;
+    uint64 timestamp_ms = 2;
+
+    // Acknowledged client inputs
+    repeated uint32 acked_sequences = 3;
+
+    // State corrections (if client predicted wrong)
+    repeated NodeCorrection corrections = 4;
+
+    // Full delta for this tick
+    SceneDelta delta = 5;
+}
+
+message NodeCorrection {
+    string node_id = 1;
+    uint32 input_sequence = 2;            // Which input was wrong
+    NodeState corrected_state = 3;
+}

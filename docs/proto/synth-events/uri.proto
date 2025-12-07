@@ -1,0 +1,264 @@
+syntax = "proto3";
+
+package synth.events;
+
+option java_package = "io.synth.protocol.events";
+option java_multiple_files = true;
+
+// =============================================================================
+// EVENT URI UTILITIES
+// Helper types and constants for URI construction and parsing
+// =============================================================================
+
+// =============================================================================
+// URI SCHEMES
+// Defines the event domain namespaces
+// =============================================================================
+
+// Well-known URI schemes
+enum UriScheme {
+    URI_SCHEME_UNSPECIFIED = 0;
+
+    // Synth ecosystem events
+    URI_SCHEME_SYNTH = 1;           // synth://  - Core synth events
+    URI_SCHEME_NUNA = 2;            // nuna://   - Nuna platform events
+    URI_SCHEME_MCP = 3;             // mcp://    - MCP protocol events
+    URI_SCHEME_PLUGIN = 4;          // plugin:// - Plugin-specific events
+
+    // Custom scheme (use scheme_custom field)
+    URI_SCHEME_CUSTOM = 99;
+}
+
+// =============================================================================
+// WELL-KNOWN PATHS
+// Standardized resource paths for common event types
+// =============================================================================
+
+// Path segments for synth:// scheme
+enum SynthPath {
+    SYNTH_PATH_UNSPECIFIED = 0;
+
+    // Cluster nodes: synth://cluster/node/*
+    SYNTH_PATH_CLUSTER_NODE = 1;
+
+    // Components: synth://component/*
+    SYNTH_PATH_COMPONENT = 2;
+
+    // Tags: synth://tag/*
+    SYNTH_PATH_TAG = 3;
+
+    // Relationships: synth://relationship/*
+    SYNTH_PATH_RELATIONSHIP = 4;
+
+    // Agents: synth://agent/*
+    SYNTH_PATH_AGENT = 5;
+
+    // Agent tasks: synth://agent/task/*
+    SYNTH_PATH_AGENT_TASK = 6;
+
+    // Models: synth://model/*
+    SYNTH_PATH_MODEL = 7;
+
+    // Inference: synth://model/inference/*
+    SYNTH_PATH_MODEL_INFERENCE = 8;
+
+    // Content generation: synth://content/*
+    SYNTH_PATH_CONTENT = 9;
+
+    // Project: synth://project/*
+    SYNTH_PATH_PROJECT = 10;
+
+    // Scene: synth://scene/*
+    SYNTH_PATH_SCENE = 11;
+}
+
+// Path segments for nuna:// scheme
+enum NunaPath {
+    NUNA_PATH_UNSPECIFIED = 0;
+
+    // MCP servers: nuna://mcp/server/*
+    NUNA_PATH_MCP_SERVER = 1;
+
+    // MCP tools: nuna://mcp/tool/*
+    NUNA_PATH_MCP_TOOL = 2;
+
+    // Permissions: nuna://security/permission/*
+    NUNA_PATH_SECURITY_PERMISSION = 3;
+
+    // Audit: nuna://security/audit/*
+    NUNA_PATH_SECURITY_AUDIT = 4;
+
+    // Ribbon: nuna://ui/ribbon/*
+    NUNA_PATH_UI_RIBBON = 5;
+
+    // Selection: nuna://ui/selection/*
+    NUNA_PATH_UI_SELECTION = 6;
+}
+
+// =============================================================================
+// WELL-KNOWN ACTIONS
+// Standardized event action types
+// =============================================================================
+
+enum EventAction {
+    EVENT_ACTION_UNSPECIFIED = 0;
+
+    // Lifecycle actions
+    EVENT_ACTION_CREATED = 1;
+    EVENT_ACTION_UPDATED = 2;
+    EVENT_ACTION_DELETED = 3;
+
+    // State transitions
+    EVENT_ACTION_STARTED = 10;
+    EVENT_ACTION_STOPPED = 11;
+    EVENT_ACTION_PAUSED = 12;
+    EVENT_ACTION_RESUMED = 13;
+
+    // Connection actions
+    EVENT_ACTION_CONNECTED = 20;
+    EVENT_ACTION_DISCONNECTED = 21;
+    EVENT_ACTION_RECONNECTING = 22;
+
+    // Execution actions
+    EVENT_ACTION_INVOKED = 30;
+    EVENT_ACTION_COMPLETED = 31;
+    EVENT_ACTION_FAILED = 32;
+    EVENT_ACTION_CANCELLED = 33;
+    EVENT_ACTION_TIMEOUT = 34;
+
+    // Progress actions
+    EVENT_ACTION_PROGRESS = 40;
+    EVENT_ACTION_QUEUED = 41;
+
+    // Data actions
+    EVENT_ACTION_MOVED = 50;
+    EVENT_ACTION_RENAMED = 51;
+    EVENT_ACTION_COPIED = 52;
+
+    // State actions
+    EVENT_ACTION_ENABLED = 60;
+    EVENT_ACTION_DISABLED = 61;
+
+    // Health actions
+    EVENT_ACTION_HEALTH = 70;
+    EVENT_ACTION_ERROR = 71;
+    EVENT_ACTION_WARNING = 72;
+
+    // Registration actions
+    EVENT_ACTION_REGISTERED = 80;
+    EVENT_ACTION_UNREGISTERED = 81;
+
+    // Selection actions (UI)
+    EVENT_ACTION_SELECTED = 90;
+    EVENT_ACTION_DESELECTED = 91;
+
+    // Custom action (use action_custom field)
+    EVENT_ACTION_CUSTOM = 99;
+}
+
+// =============================================================================
+// URI BUILDER
+// Helper message for constructing URIs programmatically
+// =============================================================================
+
+message UriBuilder {
+    // Use enum or custom string
+    oneof scheme_value {
+        UriScheme scheme = 1;
+        string scheme_custom = 2;
+    }
+
+    // Path segments
+    repeated string path_segments = 3;
+
+    // Use enum or custom string
+    oneof action_value {
+        EventAction action = 4;
+        string action_custom = 5;
+    }
+
+    // Subject (fragment)
+    string subject = 6;
+
+    // Query parameters
+    map<string, string> query = 7;
+}
+
+// =============================================================================
+// URI TEMPLATES
+// Predefined URI patterns for common events
+// =============================================================================
+
+// URI template with placeholders
+// Placeholders: {id}, {type}, {name}, {parent}, etc.
+message UriTemplate {
+    string template = 1;
+    repeated string placeholders = 2;
+    string description = 3;
+}
+
+// Collection of well-known URI templates
+message UriTemplateRegistry {
+    map<string, UriTemplate> templates = 1;
+}
+
+// =============================================================================
+// URI VALIDATION
+// Messages for URI validation results
+// =============================================================================
+
+message UriValidationResult {
+    bool valid = 1;
+    repeated string errors = 2;
+    repeated string warnings = 3;
+
+    // Parsed components (if valid)
+    string scheme = 4;
+    string path = 5;
+    string action = 6;
+    string subject = 7;
+    map<string, string> query = 8;
+}
+
+// =============================================================================
+// COMMON QUERY PARAMETERS
+// Well-known query parameter keys
+// =============================================================================
+
+// Reserved query parameter keys with special meaning
+// Use these constants when constructing query maps
+//
+// Hierarchy:
+//   parent      - Parent node/entity ID
+//   children    - Comma-separated child IDs
+//   ancestors   - Comma-separated ancestor IDs (root first)
+//   depth       - Hierarchy depth (0 = root)
+//
+// Context:
+//   scene       - Scene ID context
+//   project     - Project ID context
+//   session     - Session ID
+//   user        - User ID
+//
+// Filtering:
+//   type        - Entity/node type filter
+//   state       - State filter
+//   tag         - Tag filter (comma-separated)
+//
+// Paging:
+//   limit       - Max results
+//   offset      - Skip count
+//   cursor      - Pagination cursor
+//
+// Ordering:
+//   order_by    - Field to order by
+//   order_dir   - asc or desc
+//
+// Versioning:
+//   version     - Entity version
+//   schema      - Schema version
+//
+// Timing:
+//   since       - Events since timestamp (Unix ms)
+//   until       - Events until timestamp (Unix ms)
+//   ttl         - Time-to-live (ms)

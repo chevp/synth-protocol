@@ -1,0 +1,95 @@
+# =============================================================================
+# SYNTH EVENTS - CLI Argument Format
+# =============================================================================
+#
+# Format:
+#   synth <domain> <resource> <action> <id> [--options]
+#
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# SCENE EVENTS
+# -----------------------------------------------------------------------------
+
+synth scene create scene_outdoor --project=proj_01HXYZ123 --name="Outdoor Scene" --state=active
+synth cluster node create node_tree_01 --parent=scene_outdoor --type=asset --name="Oak Tree"
+synth cluster node move node_tree_01 --to=folder_vegetation
+synth cluster node rename node_tree_01 --name="Ancient Oak"
+synth cluster node update node_tree_01 --state=hidden
+synth cluster node delete node_tree_01 --soft
+synth scene update scene_outdoor --setting=gravity
+synth cluster node select selection_001 --nodes=node_tree_01,node_tree_02,node_rock_01
+
+# -----------------------------------------------------------------------------
+# COMPONENT EVENTS
+# -----------------------------------------------------------------------------
+
+synth component create comp_transform_tree --node=node_tree_01 --type=transform
+synth component update comp_transform_tree --node=node_tree_01 --field=position
+synth component create comp_material_tree --node=node_tree_01 --type=material --name=bark_pbr
+synth component disable comp_material_tree --node=node_tree_01
+synth component enable comp_material_tree --node=node_tree_01
+synth component delete comp_material_tree --node=node_tree_01
+synth component error comp_script_tree --node=node_tree_01 --type=script --error=compilation --line=42
+
+# -----------------------------------------------------------------------------
+# MCP SERVER EVENTS
+# -----------------------------------------------------------------------------
+
+synth mcp server start mcp_vision --transport=stdio --version=1.0.0
+synth mcp server health mcp_vision --healthy --latency=45
+synth mcp tool invoke vision/analyze --server=mcp_vision --invocation=inv_001
+synth mcp tool complete vision/analyze --invocation=inv_001 --duration=1234
+synth mcp tool fail vision/segment --invocation=inv_002 --error=timeout --duration=30000
+synth mcp server disconnect mcp_vision --reason=crash --exit-code=1
+synth mcp server reconnect mcp_vision --attempt=1 --max-attempts=3
+synth mcp tool register vision/upscale --server=mcp_vision --version=2.0.0
+synth mcp server stop mcp_vision --reason=user_request
+synth mcp tool unregister vision/analyze --server=mcp_vision
+
+# -----------------------------------------------------------------------------
+# AGENT & TASK EVENTS
+# -----------------------------------------------------------------------------
+
+synth agent create agent_vision_01 --type=reactive --name="Vision Analyzer"
+synth agent start agent_vision_01
+synth agent task create task_001 --agent=agent_vision_01 --type=analyze --priority=normal
+synth agent task start task_001 --agent=agent_vision_01
+synth agent task progress task_001 --agent=agent_vision_01 --progress=50 --msg="Analyzing"
+synth agent task complete task_001 --agent=agent_vision_01 --duration=2000
+synth agent task fail task_002 --agent=agent_vision_01 --error=out_of_memory
+synth agent task cancel task_003 --agent=agent_vision_01 --reason=user_request
+synth agent error agent_vision_01 --error=gpu_failure
+
+# -----------------------------------------------------------------------------
+# PROJECT EVENTS
+# -----------------------------------------------------------------------------
+
+synth project init demo.synth
+synth project open /path/to/project.synth
+synth project save --path=/path/to/project.synth
+synth project close
+
+# =============================================================================
+# CLI STRUCTURE
+# =============================================================================
+#
+#   synth <domain> <resource> <action> <id> [--options]
+#
+#   domain    = scene | cluster | component | mcp | agent | project
+#   resource  = node | server | tool | task | (empty for domain-level)
+#   action    = create | update | delete | start | stop | ...
+#   id        = target identifier
+#   options   = --key=value pairs
+#
+# =============================================================================
+# MAPPING TO URL
+# =============================================================================
+#
+#   CLI:  synth cluster node create node_01 --parent=scene
+#   URL:  synth://cluster/node/create#node_01?parent=scene
+#
+#   CLI:  synth mcp tool invoke vision/analyze --server=mcp_vision
+#   URL:  nuna://mcp/tool/invoke#vision_analyze?server=mcp_vision
+#
+# =============================================================================
