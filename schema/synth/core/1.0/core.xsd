@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
-           xmlns:core="https://github.com/chevp/synth-protocol/schema/synth/core/1.0"
-           targetNamespace="https://github.com/chevp/synth-protocol/schema/synth/core/1.0"
+           xmlns:core="https://chevp.github.io/synth-protocol/schema/synth/core/1.0"
+           targetNamespace="https://chevp.github.io/synth-protocol/schema/synth/core/1.0"
            elementFormDefault="qualified">
 
     <!-- =========================================================================

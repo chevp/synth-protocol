@@ -12,10 +12,10 @@
   - Bidirectional parent/child links for fast UI navigation
   - Components attach to ClusterNodes for data (ECS pattern)
 -->
-<synthProject xmlns="https://github.com/chevp/synth-protocol/schema/synth/project/1.0"
-              xmlns:core="https://github.com/chevp/synth-protocol/schema/synth/core/1.0"
-              xmlns:mcp="https://github.com/chevp/synth-protocol/schema/synth/mcp/1.0"
-              xmlns:security="https://github.com/chevp/synth-protocol/schema/synth/security/1.0">
+<synthProject xmlns="https://chevp.github.io/synth-protocol/schema/synth/project/1.0"
+              xmlns:core="https://chevp.github.io/synth-protocol/schema/synth/core/1.0"
+              xmlns:mcp="https://chevp.github.io/synth-protocol/schema/synth/mcp/1.0"
+              xmlns:security="https://chevp.github.io/synth-protocol/schema/synth/security/1.0">
 
     <!-- =================================================================== -->
     <!-- FILE HEADER -->
