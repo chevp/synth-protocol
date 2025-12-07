@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:project="https://github.com/chevp/synth-protocol/schema/synth/project/1.0"
+           xmlns:core="https://github.com/chevp/synth-protocol/schema/synth/core/1.0"
+           xmlns:mcp="https://github.com/chevp/synth-protocol/schema/synth/mcp/1.0"
+           xmlns:security="https://github.com/chevp/synth-protocol/schema/synth/security/1.0"
+           targetNamespace="https://github.com/chevp/synth-protocol/schema/synth/project/1.0"
+           elementFormDefault="qualified">
+
+    <!-- Imports -->
+    <xs:import namespace="https://github.com/chevp/synth-protocol/schema/synth/core/1.0" schemaLocation="../core/1.0/core.xsd"/>
+    <xs:import namespace="https://github.com/chevp/synth-protocol/schema/synth/mcp/1.0" schemaLocation="../mcp/1.0/mcp.xsd"/>
+    <xs:import namespace="https://github.com/chevp/synth-protocol/schema/synth/security/1.0" schemaLocation="../security/1.0/security.xsd"/>
+
+    <!-- =========================================================================
+         SYNTH PROJECT SCHEMA
+         Root element for Synth project configuration files (.synth)
+         ========================================================================= -->
+
+    <!-- Root Element -->
+    <xs:element name="synthProject" type="project:SynthProjectType"/>
+
+    <!-- Project Type Definition -->
+    <xs:complexType name="SynthProjectType">
+        <xs:sequence>
+            <!-- Project Metadata -->
+            <xs:element name="metadata" type="project:ProjectMetadataType"/>
+
+            <!-- Core Configuration -->
+            <xs:element ref="core:configuration" minOccurs="0"/>
+
+            <!-- MCP Server Configuration -->
+            <xs:element ref="mcp:servers" minOccurs="0"/>
+
+            <!-- Security Configuration -->
+            <xs:element ref="security:security" minOccurs="0"/>
+
+            <!-- Plugin Configuration -->
+            <xs:element name="plugins" type="project:PluginsType" minOccurs="0"/>
+
+            <!-- Pipeline Definitions -->
+            <xs:element name="pipelines" type="project:PipelinesType" minOccurs="0"/>
+
+            <!-- Resource References -->
+            <xs:element name="resources" type="project:ResourcesType" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="version" type="xs:string" default="1.0"/>
+        <xs:attribute name="schemaVersion" type="xs:string" default="1.0"/>
+    </xs:complexType>
+
+    <!-- Project Metadata -->
+    <xs:complexType name="ProjectMetadataType">
+        <xs:sequence>
+            <xs:element name="name" type="xs:string"/>
+            <xs:element name="description" type="xs:string" minOccurs="0"/>
+            <xs:element name="version" type="xs:string"/>
+            <xs:element name="author" type="xs:string" minOccurs="0"/>
+            <xs:element name="created" type="xs:dateTime" minOccurs="0"/>
+            <xs:element name="modified" type="xs:dateTime" minOccurs="0"/>
+            <xs:element name="tags" type="project:TagsType" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="TagsType">
+        <xs:sequence>
+            <xs:element name="tag" type="xs:string" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Plugins Configuration -->
+    <xs:complexType name="PluginsType">
+        <xs:sequence>
+            <xs:element name="plugin" type="project:PluginRefType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="PluginRefType">
+        <xs:sequence>
+            <xs:element name="config" type="project:ConfigMapType" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="version" type="xs:string"/>
+        <xs:attribute name="enabled" type="xs:boolean" default="true"/>
+    </xs:complexType>
+
+    <!-- Pipelines Configuration -->
+    <xs:complexType name="PipelinesType">
+        <xs:sequence>
+            <xs:element name="pipeline" type="project:PipelineType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="PipelineType">
+        <xs:sequence>
+            <xs:element name="description" type="xs:string" minOccurs="0"/>
+            <xs:element name="steps" type="project:StepsType"/>
+            <xs:element name="triggers" type="project:TriggersType" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="name" type="xs:string"/>
+    </xs:complexType>
+
+    <xs:complexType name="StepsType">
+        <xs:sequence>
+            <xs:element name="step" type="project:StepType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="StepType">
+        <xs:sequence>
+            <xs:element name="input" type="project:IOType" minOccurs="0"/>
+            <xs:element name="output" type="project:IOType" minOccurs="0"/>
+            <xs:element name="config" type="project:ConfigMapType" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="tool" type="xs:string" use="required"/>
+        <xs:attribute name="dependsOn" type="xs:string"/>
+    </xs:complexType>
+
+    <xs:complexType name="IOType">
+        <xs:sequence>
+            <xs:element name="param" type="project:ParamType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="ParamType">
+        <xs:simpleContent>
+            <xs:extension base="xs:string">
+                <xs:attribute name="name" type="xs:string" use="required"/>
+                <xs:attribute name="type" type="xs:string"/>
+                <xs:attribute name="ref" type="xs:string"/>
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+
+    <xs:complexType name="TriggersType">
+        <xs:sequence>
+            <xs:element name="trigger" type="project:TriggerType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="TriggerType">
+        <xs:attribute name="type" type="project:TriggerTypeEnum" use="required"/>
+        <xs:attribute name="value" type="xs:string"/>
+    </xs:complexType>
+
+    <xs:simpleType name="TriggerTypeEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="manual"/>
+            <xs:enumeration value="schedule"/>
+            <xs:enumeration value="file-watch"/>
+            <xs:enumeration value="event"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Resources Configuration -->
+    <xs:complexType name="ResourcesType">
+        <xs:sequence>
+            <xs:element name="resource" type="project:ResourceType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="ResourceType">
+        <xs:sequence>
+            <xs:element name="metadata" type="project:ConfigMapType" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="type" type="project:ResourceTypeEnum" use="required"/>
+        <xs:attribute name="uri" type="xs:anyURI" use="required"/>
+    </xs:complexType>
+
+    <xs:simpleType name="ResourceTypeEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="model"/>
+            <xs:enumeration value="dataset"/>
+            <xs:enumeration value="config"/>
+            <xs:enumeration value="asset"/>
+            <xs:enumeration value="script"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Generic Config Map -->
+    <xs:complexType name="ConfigMapType">
+        <xs:sequence>
+            <xs:element name="entry" type="project:ConfigEntryType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="ConfigEntryType">
+        <xs:simpleContent>
+            <xs:extension base="xs:string">
+                <xs:attribute name="key" type="xs:string" use="required"/>
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+
+</xs:schema>

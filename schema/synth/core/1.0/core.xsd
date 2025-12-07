@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:core="https://github.com/chevp/synth-protocol/schema/synth/core/1.0"
+           targetNamespace="https://github.com/chevp/synth-protocol/schema/synth/core/1.0"
+           elementFormDefault="qualified">
+
+    <!-- =========================================================================
+         SYNTH CORE SCHEMA
+         Common types and configuration elements used across all Synth schemas
+         ========================================================================= -->
+
+    <!-- Configuration Root Element -->
+    <xs:element name="configuration" type="core:ConfigurationType"/>
+
+    <!-- Configuration Type -->
+    <xs:complexType name="ConfigurationType">
+        <xs:sequence>
+            <!-- Runtime Settings -->
+            <xs:element name="runtime" type="core:RuntimeType" minOccurs="0"/>
+
+            <!-- Logging Configuration -->
+            <xs:element name="logging" type="core:LoggingType" minOccurs="0"/>
+
+            <!-- Metrics Configuration -->
+            <xs:element name="metrics" type="core:MetricsType" minOccurs="0"/>
+
+            <!-- Environment Variables -->
+            <xs:element name="environment" type="core:EnvironmentType" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Runtime Configuration -->
+    <xs:complexType name="RuntimeType">
+        <xs:sequence>
+            <xs:element name="workDir" type="xs:string" minOccurs="0"/>
+            <xs:element name="tempDir" type="xs:string" minOccurs="0"/>
+            <xs:element name="cacheDir" type="xs:string" minOccurs="0"/>
+            <xs:element name="maxMemoryMb" type="xs:int" minOccurs="0"/>
+            <xs:element name="maxThreads" type="xs:int" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="mode" type="core:RuntimeModeEnum" default="production"/>
+    </xs:complexType>
+
+    <xs:simpleType name="RuntimeModeEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="development"/>
+            <xs:enumeration value="staging"/>
+            <xs:enumeration value="production"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Logging Configuration -->
+    <xs:complexType name="LoggingType">
+        <xs:sequence>
+            <xs:element name="appender" type="core:AppenderType" maxOccurs="unbounded" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="level" type="core:LogLevelEnum" default="INFO"/>
+        <xs:attribute name="format" type="xs:string"/>
+    </xs:complexType>
+
+    <xs:simpleType name="LogLevelEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="TRACE"/>
+            <xs:enumeration value="DEBUG"/>
+            <xs:enumeration value="INFO"/>
+            <xs:enumeration value="WARN"/>
+            <xs:enumeration value="ERROR"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:complexType name="AppenderType">
+        <xs:sequence>
+            <xs:element name="config" type="core:ConfigMapType" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="type" type="core:AppenderTypeEnum" use="required"/>
+        <xs:attribute name="name" type="xs:string"/>
+    </xs:complexType>
+
+    <xs:simpleType name="AppenderTypeEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="console"/>
+            <xs:enumeration value="file"/>
+            <xs:enumeration value="rolling-file"/>
+            <xs:enumeration value="syslog"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Metrics Configuration -->
+    <xs:complexType name="MetricsType">
+        <xs:sequence>
+            <xs:element name="exporter" type="core:ExporterType" maxOccurs="unbounded" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="enabled" type="xs:boolean" default="true"/>
+        <xs:attribute name="intervalSeconds" type="xs:int" default="60"/>
+    </xs:complexType>
+
+    <xs:complexType name="ExporterType">
+        <xs:sequence>
+            <xs:element name="endpoint" type="xs:anyURI" minOccurs="0"/>
+            <xs:element name="config" type="core:ConfigMapType" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="type" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <!-- Environment Variables -->
+    <xs:complexType name="EnvironmentType">
+        <xs:sequence>
+            <xs:element name="var" type="core:EnvVarType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="EnvVarType">
+        <xs:simpleContent>
+            <xs:extension base="xs:string">
+                <xs:attribute name="name" type="xs:string" use="required"/>
+                <xs:attribute name="secret" type="xs:boolean" default="false"/>
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+
+    <!-- =========================================================================
+         COMMON TYPES
+         ========================================================================= -->
+
+    <!-- Data Types (mirrors proto DataType) -->
+    <xs:simpleType name="DataTypeEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="FLOAT32"/>
+            <xs:enumeration value="FLOAT16"/>
+            <xs:enumeration value="INT32"/>
+            <xs:enumeration value="INT64"/>
+            <xs:enumeration value="UINT8"/>
+            <xs:enumeration value="BOOL"/>
+            <xs:enumeration value="STRING"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Tensor Definition -->
+    <xs:complexType name="TensorType">
+        <xs:sequence>
+            <xs:element name="shape" type="core:ShapeType"/>
+            <xs:element name="data" type="xs:base64Binary" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="name" type="xs:string"/>
+        <xs:attribute name="dtype" type="core:DataTypeEnum" default="FLOAT32"/>
+    </xs:complexType>
+
+    <xs:complexType name="ShapeType">
+        <xs:sequence>
+            <xs:element name="dim" type="xs:long" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Health Status -->
+    <xs:complexType name="HealthStatusType">
+        <xs:sequence>
+            <xs:element name="message" type="xs:string" minOccurs="0"/>
+            <xs:element name="metrics" type="core:ConfigMapType" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="healthy" type="xs:boolean" use="required"/>
+        <xs:attribute name="uptimeMs" type="xs:long"/>
+    </xs:complexType>
+
+    <!-- Error Info -->
+    <xs:complexType name="ErrorInfoType">
+        <xs:sequence>
+            <xs:element name="message" type="xs:string"/>
+            <xs:element name="details" type="xs:string" minOccurs="0"/>
+            <xs:element name="context" type="core:ConfigMapType" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="code" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <!-- Generic Config Map -->
+    <xs:complexType name="ConfigMapType">
+        <xs:sequence>
+            <xs:element name="entry" type="core:ConfigEntryType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="ConfigEntryType">
+        <xs:simpleContent>
+            <xs:extension base="xs:string">
+                <xs:attribute name="key" type="xs:string" use="required"/>
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+
+</xs:schema>

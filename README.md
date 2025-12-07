@@ -22,24 +22,6 @@ This module defines the gRPC service interfaces and message types for:
 | `nlp.proto` | Natural language processing services |
 | `content.proto` | Generative AI for game assets |
 
-## Build
-
-```bash
-mvn clean compile
-```
-
-## Usage
-
-Add as dependency in other Synth modules:
-
-```xml
-<dependency>
-    <groupId>io.synth</groupId>
-    <artifactId>synth-protocol</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
-</dependency>
-```
-
 ## Integration
 
 These protocols are designed to integrate with:

@@ -1,11 +1,16 @@
 syntax = "proto3";
 
-package synth;
+package synth.vision;
 
-option java_package = "io.synth.protocol";
+option java_package = "io.synth.protocol.vision";
 option java_multiple_files = true;
 
-import "synth/model.proto";
+import "synth-core/common.proto";
+
+// =============================================================================
+// VISION-SPEZIFISCHE DEFINITIONEN
+// Diese Typen gehören NICHT in synth-core, da sie plugin-spezifisch sind
+// =============================================================================
 
 // Image Analysis
 message ImageAnalysisRequest {
@@ -40,7 +45,7 @@ message ImageAnalysisResponse {
     repeated Detection detections = 3;
     SegmentationResult segmentation = 4;
     repeated OcrResult ocr_results = 5;
-    Tensor embedding = 6;
+    synth.common.Tensor embedding = 6;
 }
 
 message Classification {
@@ -76,7 +81,10 @@ message OcrResult {
     BoundingBox bbox = 3;
 }
 
-// Asset Analysis for Cryo/Arctic integration
+// =============================================================================
+// ASSET ANALYSIS (für Cryo/Arctic Integration)
+// =============================================================================
+
 message AssetAnalysisRequest {
     string asset_id = 1;
     string asset_uri = 2;
@@ -116,7 +124,10 @@ message AssetQuality {
     repeated string issues = 4;
 }
 
-// gRPC Service
+// =============================================================================
+// VISION SERVICE
+// =============================================================================
+
 service VisionService {
     rpc AnalyzeImage(ImageAnalysisRequest) returns (ImageAnalysisResponse);
     rpc AnalyzeAsset(AssetAnalysisRequest) returns (AssetAnalysisResponse);

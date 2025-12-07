@@ -23,7 +23,7 @@ Protocol Buffer definitions for the Nuna Closed Monolith Plugin System.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                     .nuna PROJECT FILE (SQLite3)                 │
+│                     .nuna PROJECT FILE (SQLite3)                │
 ├─────────────────────────────────────────────────────────────────┤
 │ TABLE project           ← nuna.project.Project                  │
 │ TABLE mcp_servers       ← nuna.project.McpServerRequirement     │
@@ -36,7 +36,7 @@ Protocol Buffer definitions for the Nuna Closed Monolith Plugin System.
 │ TABLE tags              ← nuna.core.Tag                         │
 │ TABLE relationships     ← nuna.core.Relationship                │
 ├─────────────────────────────────────────────────────────────────┤
-│                     RUNTIME TABLES (in-memory)                   │
+│                     RUNTIME TABLES (in-memory)                  │
 ├─────────────────────────────────────────────────────────────────┤
 │ TABLE mcp_server_registry ← nuna.mcp.McpServer                  │
 │ TABLE mcp_tools           ← nuna.mcp.McpTool                    │
@@ -50,30 +50,30 @@ Protocol Buffer definitions for the Nuna Closed Monolith Plugin System.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                           CLOSED MONOLITH CORE                               │
+│                           CLOSED MONOLITH CORE                              │
 │  ┌───────────────────────────────────────────────────────────────────────┐  │
-│  │                        MCP Server Manager                              │  │
+│  │                        MCP Server Manager                             │  │
 │  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐   │  │
 │  │  │   Start/    │  │  Discover   │  │   Health    │  │  Permission │   │  │
 │  │  │   Stop      │  │   Tools     │  │   Check     │  │   Gateway   │   │  │
 │  │  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘   │  │
 │  └───────────────────────────────────────────────────────────────────────┘  │
-│                                      │                                       │
+│                                      │                                      │
 │                    ┌─────────────────┼─────────────────┐                    │
 │                    ▼                 ▼                 ▼                    │
-│            ┌──────────────┐  ┌──────────────┐  ┌──────────────┐            │
-│            │ MCP Server A │  │ MCP Server B │  │ MCP Server C │            │
-│            │  (vision)    │  │   (nlp)      │  │  (custom)    │            │
-│            ├──────────────┤  ├──────────────┤  ├──────────────┤            │
-│            │ Tools:       │  │ Tools:       │  │ Tools:       │            │
-│            │ • analyze    │  │ • summarize  │  │ • my_tool    │            │
-│            │ • detect     │  │ • translate  │  │ • other_tool │            │
-│            └──────────────┘  └──────────────┘  └──────────────┘            │
+│            ┌──────────────┐  ┌──────────────┐  ┌──────────────┐             │
+│            │ MCP Server A │  │ MCP Server B │  │ MCP Server C │             │
+│            │  (vision)    │  │   (nlp)      │  │  (custom)    │             │
+│            ├──────────────┤  ├──────────────┤  ├──────────────┤             │
+│            │ Tools:       │  │ Tools:       │  │ Tools:       │             │
+│            │ • analyze    │  │ • summarize  │  │ • my_tool    │             │
+│            │ • detect     │  │ • translate  │  │ • other_tool │             │
+│            └──────────────┘  └──────────────┘  └──────────────┘             │
 │                    │                 │                 │                    │
 │                    └─────────────────┼─────────────────┘                    │
 │                                      ▼                                      │
 │  ┌───────────────────────────────────────────────────────────────────────┐  │
-│  │                         Tool Executor                                  │  │
+│  │                         Tool Executor                                 │  │
 │  │  • All system access goes through tool invocation                     │  │
 │  │  • Audit log for every action                                         │  │
 │  │  • Undo/Redo support                                                  │  │
@@ -81,7 +81,7 @@ Protocol Buffer definitions for the Nuna Closed Monolith Plugin System.
 │                                      │                                      │
 │                                      ▼                                      │
 │  ┌───────────────────────────────────────────────────────────────────────┐  │
-│  │                        ECS Data Model                                  │  │
+│  │                        ECS Data Model                                 │  │
 │  │  ┌─────────┐  ┌────────────┐  ┌──────────┐  ┌────────────────┐        │  │
 │  │  │ Entity  │──│ Component  │  │  System  │  │  Relationship  │        │  │
 │  │  └─────────┘  └────────────┘  └──────────┘  └────────────────┘        │  │
@@ -89,7 +89,7 @@ Protocol Buffer definitions for the Nuna Closed Monolith Plugin System.
 │                                      │                                      │
 │                                      ▼                                      │
 │  ┌───────────────────────────────────────────────────────────────────────┐  │
-│  │                      SQLite3 Storage (.nuna file)                      │  │
+│  │                      SQLite3 Storage (.nuna file)                     │  │
 │  └───────────────────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```

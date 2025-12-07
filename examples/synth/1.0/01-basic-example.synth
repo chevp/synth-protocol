@@ -1,0 +1,537 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SYNTH PROJECT FILE FORMAT (.synth)
+  Based on synth-protocol (nuna/core.proto, nuna/project.proto)
+  XML representation for human-readable project configuration
+
+  Protocol Version: 1.1.0
+  Schema: synth-protocol/nuna/*.proto
+
+  Architecture: ClusterNode-based tree structure
+  - All content organized as ClusterNodes
+  - Bidirectional parent/child links for fast UI navigation
+  - Components attach to ClusterNodes for data (ECS pattern)
+-->
+<synthProject xmlns="https://github.com/chevp/synth-protocol/schema/synth/project/1.0"
+              xmlns:core="https://github.com/chevp/synth-protocol/schema/synth/core/1.0"
+              xmlns:mcp="https://github.com/chevp/synth-protocol/schema/synth/mcp/1.0"
+              xmlns:security="https://github.com/chevp/synth-protocol/schema/synth/security/1.0">
+
+    <!-- =================================================================== -->
+    <!-- FILE HEADER -->
+    <!-- Based on nuna.project.ProjectFileHeader -->
+    <!-- =================================================================== -->
+    <header>
+        <magic>SYNTH</magic>
+        <formatVersion>1</formatVersion>
+        <schemaVersion>1.0.0</schemaVersion>
+        <createdAt>1733400000000</createdAt>
+        <modifiedAt>1733400000000</modifiedAt>
+        <compressed>false</compressed>
+        <compressionType>NONE</compressionType>
+    </header>
+
+    <!-- =================================================================== -->
+    <!-- PROJECT ROOT -->
+    <!-- Based on nuna.project.Project -->
+    <!-- =================================================================== -->
+    <project>
+        <core:entityId>
+            <uuid>proj_01HXYZ123456789ABCDEF</uuid>
+            <version>1</version>
+            <createdAt>1733400000000</createdAt>
+            <updatedAt>1733400000000</updatedAt>
+        </core:entityId>
+        <name>Example Synth Project</name>
+        <description>A demonstration project showing the synth-protocol XML structure</description>
+        <schemaVersion>1.0.0</schemaVersion>
+        <settings>
+            <defaultSceneId>scene_main</defaultSceneId>
+            <thumbnailAssetId/>
+            <autoSaveEnabled>true</autoSaveEnabled>
+            <autoSaveIntervalSeconds>300</autoSaveIntervalSeconds>
+            <customSettings>
+                <entry key="theme">dark</entry>
+                <entry key="language">en</entry>
+            </customSettings>
+        </settings>
+        <lastOpenedAt>1733400000000</lastOpenedAt>
+        <lastOpenedBy>developer</lastOpenedBy>
+    </project>
+
+    <!-- =================================================================== -->
+    <!-- MCP SERVER REQUIREMENTS -->
+    <!-- Based on nuna.project.McpServerRequirement -->
+    <!-- =================================================================== -->
+    <mcpServers>
+        <server>
+            <core:entityId>
+                <uuid>mcp_playground</uuid>
+                <version>1</version>
+                <createdAt>1733400000000</createdAt>
+                <updatedAt>1733400000000</updatedAt>
+            </core:entityId>
+            <serverName>synth-playground</serverName>
+            <version>1.0.0</version>
+            <required>true</required>
+            <source>MARKETPLACE_SOURCE_LOCAL</source>
+            <config>
+                <parameters>
+                    <entry key="port">8080</entry>
+                    <entry key="host">localhost</entry>
+                </parameters>
+                <autoStart>true</autoStart>
+                <startupTimeoutMs>30000</startupTimeoutMs>
+                <healthCheckIntervalMs>30000</healthCheckIntervalMs>
+            </config>
+        </server>
+        <server>
+            <core:entityId>
+                <uuid>mcp_vision</uuid>
+                <version>1</version>
+                <createdAt>1733400000000</createdAt>
+                <updatedAt>1733400000000</updatedAt>
+            </core:entityId>
+            <serverName>synth-vision</serverName>
+            <version>1.0.0</version>
+            <required>false</required>
+            <source>MARKETPLACE_SOURCE_DEV</source>
+            <config>
+                <autoStart>false</autoStart>
+            </config>
+        </server>
+    </mcpServers>
+
+    <!-- =================================================================== -->
+    <!-- PLUGIN REQUIREMENTS -->
+    <!-- Based on nuna.project.PluginRequirement -->
+    <!-- =================================================================== -->
+    <plugins>
+        <plugin>
+            <core:entityId>
+                <uuid>plugin_builtin</uuid>
+                <version>1</version>
+                <createdAt>1733400000000</createdAt>
+                <updatedAt>1733400000000</updatedAt>
+            </core:entityId>
+            <artifact>io.synth.playground:builtin-tools:1.0.0</artifact>
+            <type>PLUGIN_TYPE_JAR</type>
+            <source>MARKETPLACE_SOURCE_PRODUCTION</source>
+            <mcpBridgeServerId>mcp_playground</mcpBridgeServerId>
+            <providesMcpServer>false</providesMcpServer>
+        </plugin>
+    </plugins>
+
+    <!-- =================================================================== -->
+    <!-- RIBBON CONFIGURATION -->
+    <!-- Based on nuna.project.RibbonConfiguration -->
+    <!-- =================================================================== -->
+    <ribbon>
+        <tabs>
+            <tab>
+                <id>tab_home</id>
+                <label>Home</label>
+                <icon>home</icon>
+                <order>0</order>
+                <accentColor>#2196F3</accentColor>
+                <isDevTab>false</isDevTab>
+                <groups>
+                    <group>
+                        <id>grp_file</id>
+                        <label>File</label>
+                        <tools>
+                            <tool>
+                                <id>tool_save</id>
+                                <mcpToolName>playground/save</mcpToolName>
+                                <icon>save</icon>
+                                <label>Save</label>
+                                <size>TOOL_SIZE_LARGE</size>
+                                <shortcut>Ctrl+S</shortcut>
+                            </tool>
+                            <tool>
+                                <id>tool_open</id>
+                                <mcpToolName>playground/open</mcpToolName>
+                                <icon>folder_open</icon>
+                                <label>Open</label>
+                                <size>TOOL_SIZE_LARGE</size>
+                                <shortcut>Ctrl+O</shortcut>
+                            </tool>
+                        </tools>
+                    </group>
+                </groups>
+            </tab>
+            <tab>
+                <id>tab_documents</id>
+                <label>Documents</label>
+                <icon>description</icon>
+                <order>1</order>
+                <mcpServerId>mcp_playground</mcpServerId>
+                <accentColor>#4CAF50</accentColor>
+                <isDevTab>false</isDevTab>
+                <groups>
+                    <group>
+                        <id>grp_edit</id>
+                        <label>Edit</label>
+                        <tools>
+                            <tool>
+                                <id>tool_edit</id>
+                                <mcpToolName>document/edit</mcpToolName>
+                                <icon>edit</icon>
+                                <label>Edit</label>
+                                <size>TOOL_SIZE_SMALL</size>
+                                <shortcut>F2</shortcut>
+                                <visibility>
+                                    <showWhenSelectionType>document</showWhenSelectionType>
+                                    <requiresSelection>true</requiresSelection>
+                                    <minSelectionCount>1</minSelectionCount>
+                                    <maxSelectionCount>1</maxSelectionCount>
+                                </visibility>
+                            </tool>
+                            <tool>
+                                <id>tool_delete</id>
+                                <mcpToolName>document/delete</mcpToolName>
+                                <icon>delete</icon>
+                                <label>Delete</label>
+                                <size>TOOL_SIZE_SMALL</size>
+                                <shortcut>Delete</shortcut>
+                                <visibility>
+                                    <requiresSelection>true</requiresSelection>
+                                </visibility>
+                            </tool>
+                        </tools>
+                    </group>
+                </groups>
+            </tab>
+            <tab>
+                <id>tab_dev</id>
+                <label>Developer</label>
+                <icon>code</icon>
+                <order>99</order>
+                <mcpServerId>mcp_playground</mcpServerId>
+                <accentColor>#FF9800</accentColor>
+                <isDevTab>true</isDevTab>
+                <groups>
+                    <group>
+                        <id>grp_tools</id>
+                        <label>Tools</label>
+                        <tools>
+                            <tool>
+                                <id>tool_info</id>
+                                <mcpToolName>playground/info</mcpToolName>
+                                <icon>info</icon>
+                                <label>Server Info</label>
+                                <size>TOOL_SIZE_SMALL</size>
+                                <shortcut>F1</shortcut>
+                            </tool>
+                            <tool>
+                                <id>tool_echo</id>
+                                <mcpToolName>playground/echo</mcpToolName>
+                                <icon>chat</icon>
+                                <label>Echo Test</label>
+                                <size>TOOL_SIZE_SMALL</size>
+                            </tool>
+                        </tools>
+                    </group>
+                </groups>
+            </tab>
+        </tabs>
+    </ribbon>
+
+    <!-- =================================================================== -->
+    <!-- TAGS -->
+    <!-- Based on nuna.core.Tag -->
+    <!-- =================================================================== -->
+    <tags>
+        <tag>
+            <core:entityId>
+                <uuid>tag_important</uuid>
+                <version>1</version>
+                <createdAt>1733400000000</createdAt>
+                <updatedAt>1733400000000</updatedAt>
+            </core:entityId>
+            <name>Important</name>
+            <color>#FF5722</color>
+            <category>priority</category>
+        </tag>
+        <tag>
+            <core:entityId>
+                <uuid>tag_draft</uuid>
+                <version>1</version>
+                <createdAt>1733400000000</createdAt>
+                <updatedAt>1733400000000</updatedAt>
+            </core:entityId>
+            <name>Draft</name>
+            <color>#9E9E9E</color>
+            <category>status</category>
+        </tag>
+        <tag>
+            <core:entityId>
+                <uuid>tag_approved</uuid>
+                <version>1</version>
+                <createdAt>1733400000000</createdAt>
+                <updatedAt>1733400000000</updatedAt>
+            </core:entityId>
+            <name>Approved</name>
+            <color>#4CAF50</color>
+            <category>status</category>
+        </tag>
+        <tag>
+            <core:entityId>
+                <uuid>tag_review</uuid>
+                <version>1</version>
+                <createdAt>1733400000000</createdAt>
+                <updatedAt>1733400000000</updatedAt>
+            </core:entityId>
+            <name>Needs Review</name>
+            <color>#FFC107</color>
+            <category>status</category>
+        </tag>
+    </tags>
+
+    <!-- =================================================================== -->
+    <!-- CLUSTER NODES -->
+    <!-- Based on nuna.core.ClusterNode -->
+    <!-- Unified tree structure: Project -> Scene -> Folders/Documents -->
+    <!-- =================================================================== -->
+    <clusterNodes>
+        <!-- Scene node (was separate Scene message) -->
+        <node>
+            <core:entityId>
+                <uuid>scene_main</uuid>
+                <version>1</version>
+                <createdAt>1733400000000</createdAt>
+                <updatedAt>1733400000000</updatedAt>
+            </core:entityId>
+            <name>Main Scene</name>
+            <nodeType>CLUSTER_NODE_TYPE_SCENE</nodeType>
+            <state>CLUSTER_NODE_STATE_ACTIVE</state>
+            <childIds>
+                <id>doc_readme</id>
+                <id>doc_notes</id>
+                <id>folder_docs</id>
+            </childIds>
+            <siblingOrder>0</siblingOrder>
+        </node>
+
+        <!-- Folder node -->
+        <node>
+            <core:entityId>
+                <uuid>folder_docs</uuid>
+                <version>1</version>
+                <createdAt>1733400000000</createdAt>
+                <updatedAt>1733400000000</updatedAt>
+            </core:entityId>
+            <name>Documentation</name>
+            <nodeType>CLUSTER_NODE_TYPE_FOLDER</nodeType>
+            <state>CLUSTER_NODE_STATE_ACTIVE</state>
+            <parentId>scene_main</parentId>
+            <childIds>
+                <id>doc_spec</id>
+            </childIds>
+            <siblingOrder>2</siblingOrder>
+            <tagIds>
+                <id>tag_important</id>
+            </tagIds>
+        </node>
+
+        <!-- Document nodes -->
+        <node>
+            <core:entityId>
+                <uuid>doc_readme</uuid>
+                <version>1</version>
+                <createdAt>1733400000000</createdAt>
+                <updatedAt>1733400000000</updatedAt>
+            </core:entityId>
+            <name>README.md</name>
+            <nodeType>CLUSTER_NODE_TYPE_DOCUMENT</nodeType>
+            <state>CLUSTER_NODE_STATE_ACTIVE</state>
+            <parentId>scene_main</parentId>
+            <siblingOrder>0</siblingOrder>
+            <tagIds>
+                <id>tag_important</id>
+                <id>tag_approved</id>
+            </tagIds>
+            <metadata>
+                <entry key="format">markdown</entry>
+                <entry key="mime_type">text/markdown</entry>
+            </metadata>
+        </node>
+
+        <node>
+            <core:entityId>
+                <uuid>doc_notes</uuid>
+                <version>1</version>
+                <createdAt>1733400000000</createdAt>
+                <updatedAt>1733400000000</updatedAt>
+            </core:entityId>
+            <name>Project Notes</name>
+            <nodeType>CLUSTER_NODE_TYPE_DOCUMENT</nodeType>
+            <state>CLUSTER_NODE_STATE_ACTIVE</state>
+            <parentId>scene_main</parentId>
+            <siblingOrder>1</siblingOrder>
+            <tagIds>
+                <id>tag_draft</id>
+            </tagIds>
+            <metadata>
+                <entry key="format">text</entry>
+                <entry key="mime_type">text/plain</entry>
+            </metadata>
+        </node>
+
+        <node>
+            <core:entityId>
+                <uuid>doc_spec</uuid>
+                <version>1</version>
+                <createdAt>1733400000000</createdAt>
+                <updatedAt>1733400000000</updatedAt>
+            </core:entityId>
+            <name>Specification</name>
+            <nodeType>CLUSTER_NODE_TYPE_DOCUMENT</nodeType>
+            <state>CLUSTER_NODE_STATE_ACTIVE</state>
+            <parentId>folder_docs</parentId>
+            <siblingOrder>0</siblingOrder>
+            <tagIds>
+                <id>tag_important</id>
+                <id>tag_review</id>
+            </tagIds>
+            <metadata>
+                <entry key="format">markdown</entry>
+                <entry key="mime_type">text/markdown</entry>
+            </metadata>
+        </node>
+    </clusterNodes>
+
+    <!-- =================================================================== -->
+    <!-- COMPONENTS -->
+    <!-- Based on nuna.core.Component -->
+    <!-- Text content stored as components with Base64 encoding -->
+    <!-- =================================================================== -->
+    <components>
+        <!-- Scene settings component (attached to scene_main) -->
+        <component>
+            <core:entityId>
+                <uuid>comp_scene_settings</uuid>
+                <version>1</version>
+                <createdAt>1733400000000</createdAt>
+                <updatedAt>1733400000000</updatedAt>
+            </core:entityId>
+            <clusterNodeId>scene_main</clusterNodeId>
+            <componentType>scene_settings</componentType>
+            <state>COMPONENT_STATE_ENABLED</state>
+            <schemaVersion>1.0.0</schemaVersion>
+            <data encoding="json">{
+                "gravity": {"x": 0, "y": -9.81, "z": 0},
+                "activeSystemIds": ["sys_text_editor"],
+                "description": "The primary scene containing all documents"
+            }</data>
+        </component>
+
+        <!-- README.md header image (Base64 encoded PNG) -->
+        <component>
+            <core:entityId>
+                <uuid>comp_readme_image</uuid>
+                <version>1</version>
+                <createdAt>1733400000000</createdAt>
+                <updatedAt>1733400000000</updatedAt>
+            </core:entityId>
+            <clusterNodeId>doc_readme</clusterNodeId>
+            <componentType>image_content</componentType>
+            <state>COMPONENT_STATE_ENABLED</state>
+            <schemaVersion>1.0.0</schemaVersion>
+            <!-- Small 32x32 Cryo icon placeholder (blue gradient) -->
+            <data encoding="base64" mimeType="image/png" byteSize="232">iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAAA7AAAAOwBeShxvQAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAAE4SURBVFiF7ZZBDoIwEEW/JW7dwRO4cqMnkHgCj+IJPIHGhRtP4A48gWEhnsBNXdCFaExLoSCLJvzEJB3a/8e0MwNEQCOoiICGCGiIgIYIaIiAhghoiICGCGgIKRxMFzHpC3U+gBXQA26BHvCBBDvABngB3oEnYACEwDPQB9LsPLgIvHkPt0DMBbLy8yTg1P8S8N0EEhgn8JMlBDQGBEcJJCdwq0N/Cn9D4N0EYg+4BCYJfCdgAFiWdUxLCKjOAS9NIMvPr2XZ+STw0gRiD7gEXk2gPgJu/z8C7ybwMgK3N4FrE8j7/xLIO/DrO+B2Bm4n8HICt68DLy/Q6zvgdgZuJ/ByArevAy8v0PMc8NIEMnl5EvhpAgmME/hJEoKfAkIqQ+ATaAPnwB3QBq6AW+Ac6AG3wDnQBkJg/Au8iC8+KlD5GAAAAABJRU5ErkJggg==</data>
+        </component>
+
+        <!-- README.md content (Base64 encoded) - includes image reference ![alt](assets/header.png) -->
+        <component>
+            <core:entityId>
+                <uuid>comp_readme_text</uuid>
+                <version>1</version>
+                <createdAt>1733400000000</createdAt>
+                <updatedAt>1733400000000</updatedAt>
+            </core:entityId>
+            <clusterNodeId>doc_readme</clusterNodeId>
+            <componentType>text_content</componentType>
+            <state>COMPONENT_STATE_ENABLED</state>
+            <schemaVersion>1.0.0</schemaVersion>
+            <data encoding="base64" originalEncoding="UTF-8" mimeType="text/markdown" byteSize="571">IyBFeGFtcGxlIFN5bnRoIFByb2plY3QKCiFbUHJvamVjdCBIZWFkZXJdKGFzc2V0cy9oZWFkZXIucG5nKQoKVGhpcyBpcyBhIGRlbW9uc3RyYXRpb24gcHJvamVjdCBzaG93aW5nIHRoZSBzeW50aC1wcm90b2NvbCBzdHJ1Y3R1cmUuCgojIyBGZWF0dXJlcwoKLSBFbnRpdHktQ29tcG9uZW50LVN5c3RlbSAoRUNTKSBhcmNoaXRlY3R1cmUKLSBNQ1AgdG9vbCBpbnRlZ3JhdGlvbgotIFRleHQgZG9jdW1lbnQgbWFuYWdlbWVudAotIFhNTC1iYXNlZCBjb25maWd1cmF0aW9uCgojIyBHZXR0aW5nIFN0YXJ0ZWQKCjEuIE9wZW4gdGhpcyBwcm9qZWN0IGluIFN5bnRoIFBsYXlncm91bmQKMi4gRXhwbG9yZSB0aGUgZW50aXRpZXMgYW5kIGNvbXBvbmVudHMKMy4gVXNlIE1DUCB0b29scyB0byBtb2RpZnkgY29udGVudAoKIyMgUHJvdG9jb2wgQ29tcGxpYW5jZQoKVGhpcyBmaWxlIGZvbGxvd3MgdGhlICoqc3ludGgtcHJvdG9jb2wqKiBzcGVjaWZpY2F0aW9uOgotIG51bmEvY29yZS5wcm90byAtIEVudGl0eSwgQ29tcG9uZW50LCBUYWcgZGVmaW5pdGlvbnMKLSBudW5hL3Byb2plY3QucHJvdG8gLSBQcm9qZWN0IHN0cnVjdHVyZQotIG51bmEvbWNwLnByb3RvIC0gTUNQIHNlcnZlciBpbnRlZ3JhdGlvbgotIG51bmEvc2VjdXJpdHkucHJvdG8gLSBQZXJtaXNzaW9uIHN5c3RlbQo=</data>
+        </component>
+
+        <!-- Project Notes content (Base64 encoded) -->
+        <component>
+            <core:entityId>
+                <uuid>comp_notes_text</uuid>
+                <version>1</version>
+                <createdAt>1733400000000</createdAt>
+                <updatedAt>1733400000000</updatedAt>
+            </core:entityId>
+            <clusterNodeId>doc_notes</clusterNodeId>
+            <componentType>text_content</componentType>
+            <state>COMPONENT_STATE_ENABLED</state>
+            <schemaVersion>1.0.0</schemaVersion>
+            <data encoding="base64" originalEncoding="UTF-8" mimeType="text/plain" byteSize="456">UHJvamVjdCBOb3Rlcwo9PT09PT09PT09PT09CgpUT0RPOgotIFsgXSBJbXBsZW1lbnQgZG9jdW1lbnQgZWRpdG9yCi0gWyBdIEFkZCBzZWFyY2ggZnVuY3Rpb25hbGl0eQotIFt4XSBTZXR1cCBwcm90b2NvbCBzY2hlbWEKLSBbeF0gQ3JlYXRlIGV4YW1wbGUgZmlsZXMKCk5vdGVzOgotIFRoZSBzeW50aC1wcm90b2NvbCB1c2VzIHByb3RvYnVmIGRlZmluaXRpb25zCi0gQWxsIHRpbWVzdGFtcHMgYXJlIFVuaXggbWlsbGlzZWNvbmRzCi0gVVVJRHMgYXJlIHVzZWQgZm9yIGFsbCBlbnRpdHkgSURzCi0gWE1MIGZvcm1hdCBpcyBmb3IgaHVtYW4tcmVhZGFibGUgY29uZmlncwotIFNRTGl0ZSAoLnN5bnRoZGIpIGlzIGZvciBydW50aW1lIHN0b3JhZ2UKCkFyY2hpdGVjdHVyZSBEZWNpc2lvbnM6Ci0gRUNTIHBhdHRlcm4gZm9yIG1heGltdW0gZmxleGliaWxpdHkKLSBBbGwgc3lzdGVtIGFjY2VzcyB0aHJvdWdoIE1DUCB0b29scwotIENlbnRyYWwgcGVybWlzc2lvbiBtYW5hZ2VtZW50Cg==</data>
+        </component>
+
+        <!-- Specification content (Base64 encoded) -->
+        <component>
+            <core:entityId>
+                <uuid>comp_spec_text</uuid>
+                <version>1</version>
+                <createdAt>1733400000000</createdAt>
+                <updatedAt>1733400000000</updatedAt>
+            </core:entityId>
+            <clusterNodeId>doc_spec</clusterNodeId>
+            <componentType>text_content</componentType>
+            <state>COMPONENT_STATE_ENABLED</state>
+            <schemaVersion>1.0.0</schemaVersion>
+            <data encoding="base64" originalEncoding="UTF-8" mimeType="text/markdown" byteSize="1156">IyBTeW50aCBQcm90b2NvbCBTcGVjaWZpY2F0aW9uCgojIyBPdmVydmlldwoKVGhlIHN5bnRoLXByb3RvY29sIGRlZmluZXMgdGhlIGRhdGEgc3RydWN0dXJlcyBhbmQgY29tbXVuaWNhdGlvbiBwYXR0ZXJucwpmb3IgdGhlIFN5bnRoIGVjb3N5c3RlbS4gSXQgZW5hYmxlcyBhIENsb3NlZCBNb25vbGl0aCBQbHVnaW4gU3lzdGVtCndoZXJlIGFsbCBhY2Nlc3MgdG8gdGhlIHN5c3RlbSBnb2VzIHRocm91Z2ggTUNQIChNb2RlbCBDb250ZXh0IFByb3RvY29sKSB0b29scy4KCiMjIEZpbGUgRm9ybWF0cwoKIyMjIC5zeW50aCAoWE1MKQotIEh1bWFuLXJlYWRhYmxlIHByb2plY3QgY29uZmlndXJhdGlvbgotIFZlcnNpb24gY29udHJvbCBmcmllbmRseQotIFVzZWQgZm9yOiBQcm9qZWN0IHNldHRpbmdzLCBNQ1AgcmVxdWlyZW1lbnRzLCBSaWJib24gY29uZmlnCgojIyMgLnN5bnRoZGIgKFNRTGl0ZSkKLSBCaW5hcnkgcnVudGltZSBzdG9yYWdlCi0gRWZmaWNpZW50IHF1ZXJpZXMgd2l0aCBTUUwKLSBVc2VkIGZvcjogRW50aXRpZXMsIENvbXBvbmVudHMsIFRvb2wgaGlzdG9yeSwgQXVkaXQgbG9ncwoKIyMgQ29yZSBDb25jZXB0cwoKIyMjIEVudGl0eS1Db21wb25lbnQtU3lzdGVtIChFQ1MpCgp8IENvbmNlcHQgfCBEZXNjcmlwdGlvbiB8CnwtLS0tLS0tLS18LS0tLS0tLS0tLS0tLXwKfCBFbnRpdHkgfCBBIHVuaXF1ZSBpZGVudGlmaWVyIHdpdGggbWV0YWRhdGEgfAp8IENvbXBvbmVudCB8IERhdGEgYXR0YWNoZWQgdG8gYW4gZW50aXR5IHwKfCBTeXN0ZW0gfCBMb2dpYyBwcm92aWRlZCBieSBNQ1Agc2VydmVycyB8CnwgVGFnIHwgTGFiZWxzIGZvciBjYXRlZ29yaXphdGlvbiB8CgojIyMgTUNQIEludGVncmF0aW9uCgpBbGwgZnVuY3Rpb25hbGl0eSBpcyBleHBvc2VkIHRocm91Z2ggTUNQIHRvb2xzOgotIFRvb2xzIGFyZSByZWdpc3RlcmVkIGJ5IHBsdWdpbnMKLSBQZXJtaXNzaW9ucyBhcmUgY2hlY2tlZCBiZWZvcmUgaW52b2NhdGlvbgotIEFsbCBpbnZvY2F0aW9ucyBhcmUgbG9nZ2VkIGZvciBhdWRpdC91bmRvCgojIyBQcm90b2NvbCBNZXNzYWdlcwoKU2VlIHRoZSBwcm90byBmaWxlcyBmb3IgY29tcGxldGUgZGVmaW5pdGlvbnM6Ci0gc3ludGgvY29tbW9uLnByb3RvIC0gU2hhcmVkIHR5cGVzCi0gbnVuYS9jb3JlLnByb3RvIC0gRUNTIHR5cGVzCi0gbnVuYS9wcm9qZWN0LnByb3RvIC0gUHJvamVjdCBzdHJ1Y3R1cmUKLSBudW5hL21jcC5wcm90byAtIE1DUCBtYW5hZ2VtZW50Ci0gbnVuYS9zZWN1cml0eS5wcm90byAtIFBlcm1pc3Npb25zCg==</data>
+        </component>
+    </components>
+
+    <!-- =================================================================== -->
+    <!-- ASSETS -->
+    <!-- Based on nuna.project.Asset -->
+    <!-- =================================================================== -->
+    <assets>
+        <asset>
+            <core:entityId>
+                <uuid>asset_icon</uuid>
+                <version>1</version>
+                <createdAt>1733400000000</createdAt>
+                <updatedAt>1733400000000</updatedAt>
+            </core:entityId>
+            <name>project-icon</name>
+            <type>ASSET_TYPE_TEXTURE</type>
+            <sourcePath>./assets/icon.png</sourcePath>
+            <uri>asset://project/assets/icon.png</uri>
+            <sizeBytes>4096</sizeBytes>
+            <checksum>e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855</checksum>
+            <metadata>
+                <entry key="width">256</entry>
+                <entry key="height">256</entry>
+                <entry key="format">PNG</entry>
+            </metadata>
+        </asset>
+        <asset>
+            <core:entityId>
+                <uuid>asset_header</uuid>
+                <version>1</version>
+                <createdAt>1733400000000</createdAt>
+                <updatedAt>1733400000000</updatedAt>
+            </core:entityId>
+            <name>header.png</name>
+            <type>ASSET_TYPE_TEXTURE</type>
+            <sourcePath>./assets/header.png</sourcePath>
+            <uri>asset://project/assets/header.png</uri>
+            <sizeBytes>232</sizeBytes>
+            <checksum>a1b2c3d4e5f6789012345678901234567890abcdef</checksum>
+            <metadata>
+                <entry key="width">32</entry>
+                <entry key="height">32</entry>
+                <entry key="format">PNG</entry>
+                <entry key="referencedBy">doc_readme</entry>
+            </metadata>
+        </asset>
+    </assets>
+
+</synthProject>

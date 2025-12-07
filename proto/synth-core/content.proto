@@ -1,11 +1,16 @@
 syntax = "proto3";
 
-package synth;
+package synth.content;
 
-option java_package = "io.synth.protocol";
+option java_package = "io.synth.protocol.content";
 option java_multiple_files = true;
 
-import "synth/model.proto";
+import "synth-core/common.proto";
+
+// =============================================================================
+// CONTENT GENERATION
+// Domänen-übergreifend nutzbar für Asset-Generierung
+// =============================================================================
 
 // Content Generation for Cryo/Arctic Assets
 message ContentGenerationRequest {
@@ -81,7 +86,10 @@ enum GenerationStatus {
     GENERATION_STATUS_FAILED = 4;
 }
 
-// Texture Generation
+// =============================================================================
+// TEXTURE GENERATION
+// =============================================================================
+
 message TextureGenerationRequest {
     string prompt = 1;
     TextureType texture_type = 2;
@@ -110,7 +118,10 @@ message TextureGenerationResponse {
     bytes height_map = 6;
 }
 
-// Style Transfer
+// =============================================================================
+// STYLE TRANSFER
+// =============================================================================
+
 message StyleTransferRequest {
     bytes content_image = 1;
     bytes style_image = 2;
@@ -123,7 +134,10 @@ message StyleTransferResponse {
     float processing_time_ms = 2;
 }
 
-// Image Upscaling
+// =============================================================================
+// IMAGE UPSCALING
+// =============================================================================
+
 message UpscaleRequest {
     bytes image = 1;
     int32 scale_factor = 2;  // 2, 4, or 8
@@ -143,7 +157,10 @@ message UpscaleResponse {
     int32 output_height = 3;
 }
 
-// gRPC Service
+// =============================================================================
+// CONTENT GENERATION SERVICE
+// =============================================================================
+
 service ContentGenerationService {
     rpc GenerateContent(ContentGenerationRequest) returns (ContentGenerationResponse);
     rpc GenerateTexture(TextureGenerationRequest) returns (TextureGenerationResponse);
