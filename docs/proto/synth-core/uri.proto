@@ -1,0 +1,113 @@
+syntax = "proto3";
+
+package synth.core;
+
+option java_package = "io.synth.protocol.core";
+option java_multiple_files = true;
+
+// =============================================================================
+// URI SCHEME DEFINITIONS
+// Defines supported URI schemes for resource access in Synth editors
+// =============================================================================
+
+// Supported URI schemes in Synth ecosystem
+enum UriScheme {
+    URI_SCHEME_UNSPECIFIED = 0;
+    URI_SCHEME_FILE = 1;        // file:// - Direct local filesystem access
+    URI_SCHEME_FTPS = 2;        // ftps:// - FTP over TLS (requires FTP Sync connection)
+    URI_SCHEME_FTP = 3;         // ftp:// - Plain FTP (not recommended)
+    URI_SCHEME_SFTP = 4;        // sftp:// - SSH File Transfer Protocol
+    URI_SCHEME_HTTPS = 5;       // https:// - Remote HTTP(S) resource
+    URI_SCHEME_SYNTH = 6;       // synth:// - Internal Synth resource (e.g., synth://project/assets/...)
+    URI_SCHEME_DATA = 7;        // data:// - Inline data URI
+}
+
+// Resource availability status
+enum ResourceStatus {
+    RESOURCE_STATUS_UNSPECIFIED = 0;
+    RESOURCE_STATUS_AVAILABLE = 1;          // Resource is accessible
+    RESOURCE_STATUS_UNAVAILABLE = 2;        // Resource not found or inaccessible
+    RESOURCE_STATUS_REQUIRES_AUTH = 3;      // Needs authentication/connection
+    RESOURCE_STATUS_REQUIRES_CONFIG = 4;    // Needs configuration (e.g., FTP connection setup)
+    RESOURCE_STATUS_LOADING = 5;            // Currently being fetched
+    RESOURCE_STATUS_CACHED = 6;             // Available from local cache
+    RESOURCE_STATUS_ERROR = 7;              // Error accessing resource
+}
+
+// URI resolution request
+message UriResolveRequest {
+    string uri = 1;                         // Full URI (e.g., "ftps://myserver/path/file.txt")
+    bool use_cache = 2;                     // Whether to use cached version if available
+    int32 timeout_ms = 3;                   // Timeout for remote resources
+    map<string, string> options = 4;        // Scheme-specific options
+}
+
+// URI resolution result
+message UriResolveResponse {
+    string original_uri = 1;                // The requested URI
+    ResourceStatus status = 2;              // Resolution status
+    string local_path = 3;                  // Local path if available (cached or file://)
+    bytes content = 4;                      // Content if small enough to inline
+    int64 size = 5;                         // Resource size in bytes
+    string mime_type = 6;                   // Detected MIME type
+    string error_message = 7;               // Error details if status is ERROR
+    string redirect_page = 8;               // Page to open if REQUIRES_CONFIG (e.g., "page-ftp-sync")
+    UriScheme scheme = 9;                   // Detected scheme
+    int64 cached_at = 10;                   // Unix timestamp if cached
+}
+
+// Registered URI handler information
+message UriHandlerInfo {
+    UriScheme scheme = 1;                   // Which scheme this handler supports
+    string handler_id = 2;                  // Unique handler identifier
+    string display_name = 3;                // Human-readable name
+    string config_page = 4;                 // Page to open for configuration
+    bool requires_connection = 5;           // Whether a connection must be established first
+    bool supports_write = 6;                // Whether this handler supports writing
+    bool supports_streaming = 7;            // Whether this handler supports streaming
+    repeated string supported_extensions = 8; // File extensions this handler is optimized for
+}
+
+// Connection info for remote schemes (FTP, SFTP, etc.)
+message RemoteConnectionInfo {
+    string connection_id = 1;               // Unique connection identifier
+    string display_name = 2;                // User-friendly name
+    UriScheme scheme = 3;                   // Connection protocol
+    string host = 4;                        // Remote host
+    int32 port = 5;                         // Port number
+    string base_path = 6;                   // Base path on remote server
+    bool connected = 7;                     // Current connection status
+    int64 last_activity = 8;                // Unix timestamp of last activity
+}
+
+// =============================================================================
+// URI HANDLER SERVICE
+// =============================================================================
+
+service UriHandlerService {
+    // Resolve a URI to local content or path
+    rpc Resolve(UriResolveRequest) returns (UriResolveResponse);
+
+    // Get list of registered handlers
+    rpc ListHandlers(ListHandlersRequest) returns (ListHandlersResponse);
+
+    // Get active connections for remote schemes
+    rpc ListConnections(ListConnectionsRequest) returns (ListConnectionsResponse);
+
+    // Check if a URI is accessible without fetching content
+    rpc CheckStatus(UriResolveRequest) returns (UriResolveResponse);
+}
+
+message ListHandlersRequest {}
+
+message ListHandlersResponse {
+    repeated UriHandlerInfo handlers = 1;
+}
+
+message ListConnectionsRequest {
+    UriScheme scheme_filter = 1;            // Optional: filter by scheme
+}
+
+message ListConnectionsResponse {
+    repeated RemoteConnectionInfo connections = 1;
+}
