@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Synth - AI-Native Content Creation Platform</title>
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-tertiary: #1a1a24;
+            --text-primary: #e8e8ed;
+            --text-secondary: #a0a0b0;
+            --accent: #6366f1;
+            --accent-light: #818cf8;
+            --border: #2a2a3a;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        /* Header */
+        header {
+            padding: 20px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            text-decoration: none;
+            letter-spacing: -0.5px;
+        }
+
+        .logo span {
+            color: var(--accent);
+        }
+
+        nav a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            margin-left: 32px;
+            font-size: 0.95rem;
+            transition: color 0.2s;
+        }
+
+        nav a:hover {
+            color: var(--text-primary);
+        }
+
+        /* Hero */
+        .hero {
+            padding: 120px 0 80px;
+            text-align: center;
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            font-weight: 700;
+            line-height: 1.1;
+            margin-bottom: 24px;
+            letter-spacing: -1px;
+        }
+
+        .hero h1 span {
+            background: linear-gradient(135deg, var(--accent), var(--accent-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            max-width: 640px;
+            margin: 0 auto 40px;
+        }
+
+        .hero-cta {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 14px 28px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-light);
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--accent);
+        }
+
+        /* Core Concept */
+        .concept {
+            padding: 80px 0;
+        }
+
+        .concept-box {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 48px;
+            text-align: center;
+        }
+
+        .concept-box h2 {
+            font-size: 1.75rem;
+            margin-bottom: 16px;
+        }
+
+        .concept-box p {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Features */
+        .features {
+            padding: 80px 0;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 64px;
+        }
+
+        .section-header h2 {
+            font-size: 2.5rem;
+            margin-bottom: 16px;
+        }
+
+        .section-header p {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+        }
+
+        @media (max-width: 900px) {
+            .features-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .feature-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 32px;
+            transition: border-color 0.2s;
+        }
+
+        .feature-card:hover {
+            border-color: var(--accent);
+        }
+
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            background: var(--bg-tertiary);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+
+        .feature-card h3 {
+            font-size: 1.25rem;
+            margin-bottom: 12px;
+        }
+
+        .feature-card p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        /* Architecture */
+        .architecture {
+            padding: 80px 0;
+        }
+
+        .arch-diagram {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 48px;
+            margin-top: 48px;
+        }
+
+        .arch-layers {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .arch-layer {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 24px;
+        }
+
+        .arch-layer-title {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--accent);
+            margin-bottom: 12px;
+        }
+
+        .arch-layer-content {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .arch-item {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 12px 20px;
+            font-size: 0.9rem;
+        }
+
+        .arch-arrow {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 1.5rem;
+        }
+
+        /* Use Cases */
+        .use-cases {
+            padding: 80px 0;
+        }
+
+        .use-cases-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+        }
+
+        @media (max-width: 700px) {
+            .use-cases-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .use-case-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 32px;
+        }
+
+        .use-case-card h3 {
+            font-size: 1.25rem;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .use-case-card ul {
+            list-style: none;
+            color: var(--text-secondary);
+        }
+
+        .use-case-card li {
+            padding: 8px 0;
+            padding-left: 24px;
+            position: relative;
+        }
+
+        .use-case-card li::before {
+            content: "→";
+            position: absolute;
+            left: 0;
+            color: var(--accent);
+        }
+
+        /* Protocol */
+        .protocol {
+            padding: 80px 0;
+        }
+
+        .code-block {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 32px;
+            margin-top: 32px;
+            overflow-x: auto;
+        }
+
+        .code-block pre {
+            font-family: 'SF Mono', 'Consolas', monospace;
+            font-size: 0.9rem;
+            line-height: 1.7;
+            color: var(--text-secondary);
+        }
+
+        .code-block .comment {
+            color: #6b7280;
+        }
+
+        .code-block .keyword {
+            color: var(--accent-light);
+        }
+
+        .code-block .string {
+            color: #34d399;
+        }
+
+        /* CTA */
+        .cta {
+            padding: 120px 0;
+            text-align: center;
+        }
+
+        .cta h2 {
+            font-size: 2.5rem;
+            margin-bottom: 16px;
+        }
+
+        .cta p {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            margin-bottom: 32px;
+        }
+
+        /* Footer */
+        footer {
+            padding: 40px 0;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        footer a {
+            color: var(--text-secondary);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            color: var(--text-primary);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="container header-content">
+            <a href="#" class="logo">synth<span>.</span></a>
+            <nav>
+                <a href="#features">Features</a>
+                <a href="#architecture">Architektur</a>
+                <a href="#use-cases">Anwendungen</a>
+                <a href="https://github.com/chevp/synth-protocol">GitHub</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <!-- Hero -->
+        <section class="hero">
+            <div class="container">
+                <h1>Die Infrastruktur für<br><span>AI-native Content Creation</span></h1>
+                <p>Ein einheitliches Protokoll für Datenzugriff, Messaging und Content-Komposition. Designed für AI Agents und menschliche Entwickler.</p>
+                <div class="hero-cta">
+                    <a href="https://github.com/chevp/synth-protocol" class="btn btn-primary">Dokumentation</a>
+                    <a href="#architecture" class="btn btn-secondary">Mehr erfahren</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Core Concept -->
+        <section class="concept">
+            <div class="container">
+                <div class="concept-box">
+                    <h2>Ein Endpoint. Alles integriert.</h2>
+                    <p>Synth vereint Datenzugriff und Messaging in einer API. AI Agents und Anwendungen nutzen dasselbe Protokoll für Files, Events und Scene-Komposition.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features -->
+        <section class="features" id="features">
+            <div class="container">
+                <div class="section-header">
+                    <h2>Kernfunktionen</h2>
+                    <p>Entwickelt für verteilte Content-Pipelines</p>
+                </div>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">📡</div>
+                        <h3>Unified API</h3>
+                        <p>Ein REST/gRPC Endpoint für Dateizugriff, Pub/Sub Messaging und Scene-Komposition. Keine separaten Systeme nötig.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🌍</div>
+                        <h3>Geo-Routing</h3>
+                        <p>Automatische Auswahl des optimalen Nodes basierend auf Standort und Latenz. Verteilte Infrastruktur ohne Komplexität.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🤖</div>
+                        <h3>AI-Native</h3>
+                        <p>MCP-Integration ermöglicht AI Agents direkten Zugriff auf Content-Operationen. API-first statt GUI-first Design.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🧩</div>
+                        <h3>Scene Composition</h3>
+                        <p>Szenen aus verteilten Ressourcen automatisch zusammenstellen. Paralleles Laden mit Dependency-Management.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">💾</div>
+                        <h3>Intelligentes Caching</h3>
+                        <p>Mehrere Cache-Strategien von "Network-First" bis "Stale-While-Revalidate". ETags und Range-Requests inklusive.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">📨</div>
+                        <h3>Event Messaging</h3>
+                        <p>Pub/Sub mit Consumer Groups, Message Replay und verschiedenen Delivery-Garantien. Alles über denselben Endpoint.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Architecture -->
+        <section class="architecture" id="architecture">
+            <div class="container">
+                <div class="section-header">
+                    <h2>Architektur</h2>
+                    <p>Modularer Aufbau für flexible Integration</p>
+                </div>
+                <div class="arch-diagram">
+                    <div class="arch-layers">
+                        <div class="arch-layer">
+                            <div class="arch-layer-title">Clients</div>
+                            <div class="arch-layer-content">
+                                <div class="arch-item">AI Agents (MCP)</div>
+                                <div class="arch-item">C++ Renderer</div>
+                                <div class="arch-item">Web Apps</div>
+                                <div class="arch-item">Electron Tools</div>
+                            </div>
+                        </div>
+                        <div class="arch-arrow">↓</div>
+                        <div class="arch-layer">
+                            <div class="arch-layer-title">Synth Endpoint</div>
+                            <div class="arch-layer-content">
+                                <div class="arch-item">/api/v1/resources</div>
+                                <div class="arch-item">/api/v1/messages</div>
+                                <div class="arch-item">/api/v1/scenes</div>
+                                <div class="arch-item">/api/v1/nodes</div>
+                            </div>
+                        </div>
+                        <div class="arch-arrow">↓</div>
+                        <div class="arch-layer">
+                            <div class="arch-layer-title">Services</div>
+                            <div class="arch-layer-content">
+                                <div class="arch-item">EndpointService</div>
+                                <div class="arch-item">NodeRegistry</div>
+                                <div class="arch-item">CompositionService</div>
+                                <div class="arch-item">MessagingService</div>
+                            </div>
+                        </div>
+                        <div class="arch-arrow">↓</div>
+                        <div class="arch-layer">
+                            <div class="arch-layer-title">Storage</div>
+                            <div class="arch-layer-content">
+                                <div class="arch-item">Local Files</div>
+                                <div class="arch-item">Object Storage</div>
+                                <div class="arch-item">Edge Cache</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Use Cases -->
+        <section class="use-cases" id="use-cases">
+            <div class="container">
+                <div class="section-header">
+                    <h2>Anwendungsbereiche</h2>
+                    <p>Flexible Einsatzmöglichkeiten</p>
+                </div>
+                <div class="use-cases-grid">
+                    <div class="use-case-card">
+                        <h3>🎮 Content Pipelines</h3>
+                        <ul>
+                            <li>Asset-Verwaltung über verteilte Teams</li>
+                            <li>Automatisierte Verarbeitungs-Workflows</li>
+                            <li>Versionierung und Synchronisation</li>
+                        </ul>
+                    </div>
+                    <div class="use-case-card">
+                        <h3>🤖 AI-gesteuerte Workflows</h3>
+                        <ul>
+                            <li>AI Agents erstellen und modifizieren Content</li>
+                            <li>Automatische Asset-Generierung</li>
+                            <li>Intelligente Scene-Komposition</li>
+                        </ul>
+                    </div>
+                    <div class="use-case-card">
+                        <h3>🌐 Verteilte Anwendungen</h3>
+                        <ul>
+                            <li>Geografisch verteilte Content-Delivery</li>
+                            <li>Edge-Caching für niedrige Latenz</li>
+                            <li>Multi-Region Deployments</li>
+                        </ul>
+                    </div>
+                    <div class="use-case-card">
+                        <h3>🔄 Echtzeit-Kollaboration</h3>
+                        <ul>
+                            <li>Live-Updates zwischen Clients</li>
+                            <li>Event-basierte Synchronisation</li>
+                            <li>Multi-Agent Koordination</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Protocol -->
+        <section class="protocol" id="protocol">
+            <div class="container">
+                <div class="section-header">
+                    <h2>Das Protokoll</h2>
+                    <p>Einfache, konsistente API</p>
+                </div>
+                <div class="code-block">
+<pre><span class="comment">// Ressource laden</span>
+<span class="keyword">GET</span> /api/v1/resources/scenes/forest.glb
+<span class="keyword">Authorization:</span> Bearer {token}
+
+<span class="comment">// Event publizieren</span>
+<span class="keyword">POST</span> /api/v1/messages/publish
+{
+  <span class="string">"topic"</span>: <span class="string">"scenes/forest/updated"</span>,
+  <span class="string">"payload"</span>: { <span class="string">"action"</span>: <span class="string">"modified"</span> }
+}
+
+<span class="comment">// Scene komponieren</span>
+<span class="keyword">POST</span> /api/v1/scenes/compose
+{
+  <span class="string">"scene_uri"</span>: <span class="string">"synth://hub/scenes/forest"</span>,
+  <span class="string">"options"</span>: {
+    <span class="string">"max_concurrent"</span>: 8,
+    <span class="string">"use_cache"</span>: true
+  }
+}
+
+<span class="comment">// Events empfangen (Long-Poll)</span>
+<span class="keyword">GET</span> /api/v1/messages/poll?topic=scenes/*&timeout=30</pre>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA -->
+        <section class="cta">
+            <div class="container">
+                <h2>Open Protocol</h2>
+                <p>Synth Protocol ist offen und dokumentiert. Beginne mit der Integration.</p>
+                <div class="hero-cta">
+                    <a href="https://github.com/chevp/synth-protocol" class="btn btn-primary">GitHub Repository</a>
+                    <a href="proto/synth-endpoint/README.md" class="btn btn-secondary">Protokoll-Dokumentation</a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>Synth Protocol &copy; 2025 &nbsp;·&nbsp; <a href="https://github.com/chevp/synth-protocol">GitHub</a> &nbsp;·&nbsp; <a href="proto/synth-endpoint/README.md">Dokumentation</a></p>
+        </div>
+    </footer>
+
+</body>
+</html>

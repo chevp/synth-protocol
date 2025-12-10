@@ -1,0 +1,233 @@
+// =============================================================================
+// Synth MCP Tools - AI Agent Interface
+// =============================================================================
+// MCP (Model Context Protocol) Tool-Definitionen für AI Agent-Zugriff
+// Ermöglicht Claude, GPT und anderen AI-Systemen Zugriff auf Synth Endpoint
+// =============================================================================
+
+syntax = "proto3";
+
+package synth.endpoint.mcp;
+
+option java_package = "com.synth.endpoint.mcp";
+option java_multiple_files = true;
+
+import "google/protobuf/struct.proto";
+
+// =============================================================================
+// MCP Tool Definitionen
+// =============================================================================
+
+// Ein MCP-Tool das von AI Agents aufgerufen werden kann
+message McpTool {
+  string name = 1;                    // Tool-Name (z.B. "synth_fetch_resource")
+  string description = 2;             // Beschreibung für AI
+  McpToolSchema input_schema = 3;     // JSON-Schema für Input
+  McpToolSchema output_schema = 4;    // JSON-Schema für Output
+  repeated string tags = 5;           // Kategorisierung
+  bool requires_confirmation = 6;     // User-Bestätigung nötig?
+}
+
+message McpToolSchema {
+  string type = 1;                    // "object", "string", etc.
+  google.protobuf.Struct properties = 2;
+  repeated string required = 3;
+}
+
+// =============================================================================
+// Synth Endpoint MCP Tools
+// =============================================================================
+
+// Tool: synth_fetch_resource
+// Lädt eine Ressource von einem Synth Node
+message FetchResourceInput {
+  string uri = 1;                     // synth://node/path oder https://...
+  string preferred_format = 2;        // Optional: gewünschtes Format
+  bool use_cache = 3;                 // Cache nutzen (default: true)
+}
+
+message FetchResourceOutput {
+  bool success = 1;
+  string content_type = 2;
+  string content = 3;                 // Text-Content (für JSON, XML, etc.)
+  string binary_ref = 4;              // Referenz für Binary-Content
+  int64 size_bytes = 5;
+  string source_node = 6;
+  string error_message = 7;
+}
+
+// Tool: synth_list_nodes
+// Listet verfügbare Nodes
+message ListNodesInput {
+  string region_filter = 1;           // Optional: "eu", "us", "asia"
+  string type_filter = 2;             // Optional: "origin", "edge", "compute"
+}
+
+message ListNodesOutput {
+  repeated NodeSummary nodes = 1;
+}
+
+message NodeSummary {
+  string node_id = 1;
+  string display_name = 2;
+  string region = 3;
+  string type = 4;
+  string status = 5;
+  double latency_ms = 6;
+}
+
+// Tool: synth_compose_scene
+// Stellt eine Scene aus Komponenten zusammen
+message ComposeSceneInput {
+  string scene_uri = 1;               // URI zur Scene-Definition
+  int32 max_lod_level = 2;            // Level of Detail (0 = max quality)
+  int32 max_texture_resolution = 3;   // Max Textur-Größe
+}
+
+message ComposeSceneOutput {
+  bool success = 1;
+  string scene_id = 2;
+  int32 resources_loaded = 3;
+  int32 resources_cached = 4;
+  int64 total_size_bytes = 5;
+  repeated string failed_resources = 6;
+  string error_message = 7;
+}
+
+// Tool: synth_publish_event
+// Publiziert ein Event im Messaging-System
+message PublishEventInput {
+  string topic = 1;                   // z.B. "synth://events/scene-updated"
+  string event_type = 2;              // z.B. "SCENE_UPDATED"
+  google.protobuf.Struct payload = 3; // Event-Daten
+  string priority = 4;                // "low", "normal", "high", "critical"
+}
+
+message PublishEventOutput {
+  bool success = 1;
+  string message_id = 2;
+  string error_message = 3;
+}
+
+// Tool: synth_subscribe_events
+// Abonniert Events (für Streaming-Kontext)
+message SubscribeEventsInput {
+  repeated string topics = 1;         // Topic-Filter (wildcards erlaubt)
+  string filter = 2;                  // Optional: CEL-Filter
+}
+
+message SubscribeEventsOutput {
+  string subscription_id = 1;
+  bool active = 2;
+  string error_message = 3;
+}
+
+// Tool: synth_query_resources
+// Sucht Ressourcen nach Kriterien
+message QueryResourcesInput {
+  string node_id = 1;                 // Optional: spezifischer Node
+  string path_prefix = 2;             // Pfad-Präfix (z.B. "/scenes/")
+  string content_type = 3;            // MIME-Type Filter
+  string name_pattern = 4;            // Glob-Pattern
+  int32 limit = 5;                    // Max Ergebnisse
+}
+
+message QueryResourcesOutput {
+  repeated ResourceInfo resources = 1;
+  int32 total_count = 2;
+}
+
+message ResourceInfo {
+  string uri = 1;
+  string name = 2;
+  string content_type = 3;
+  int64 size_bytes = 4;
+  string last_modified = 5;
+}
+
+// Tool: synth_send_to_node
+// Sendet Nachricht an spezifischen Node
+message SendToNodeInput {
+  string node_id = 1;
+  string message_type = 2;
+  google.protobuf.Struct payload = 3;
+  bool wait_for_response = 4;
+  int32 timeout_seconds = 5;
+}
+
+message SendToNodeOutput {
+  bool delivered = 1;
+  google.protobuf.Struct response = 2;
+  string error_message = 3;
+}
+
+// =============================================================================
+// MCP Server Configuration
+// =============================================================================
+
+// Konfiguration für den Synth MCP Server
+message McpServerConfig {
+  string server_name = 1;             // "synth-endpoint"
+  string version = 2;                 // "1.0.0"
+  repeated McpTool tools = 3;         // Verfügbare Tools
+
+  // Endpoint-Konfiguration
+  string endpoint_url = 4;            // gRPC Endpoint
+  string rest_url = 5;                // REST API (für C++)
+
+  // Authentifizierung
+  AuthConfig auth = 6;
+}
+
+message AuthConfig {
+  string type = 1;                    // "bearer", "api_key", "none"
+  string token_env_var = 2;           // Env-Variable für Token
+  repeated string allowed_origins = 3;
+}
+
+// =============================================================================
+// Tool Registry
+// =============================================================================
+
+// Standard-Tools die der MCP Server bereitstellt
+message SynthMcpToolRegistry {
+  // Definiert alle Standard-Tools
+  option deprecated = false;
+
+  // Diese Message dient als Dokumentation der verfügbaren Tools:
+  //
+  // 1. synth_fetch_resource
+  //    - Lädt Ressourcen von Synth Nodes
+  //    - Input: FetchResourceInput
+  //    - Output: FetchResourceOutput
+  //
+  // 2. synth_list_nodes
+  //    - Listet verfügbare Nodes
+  //    - Input: ListNodesInput
+  //    - Output: ListNodesOutput
+  //
+  // 3. synth_compose_scene
+  //    - Stellt Scenes zusammen
+  //    - Input: ComposeSceneInput
+  //    - Output: ComposeSceneOutput
+  //
+  // 4. synth_publish_event
+  //    - Publiziert Events
+  //    - Input: PublishEventInput
+  //    - Output: PublishEventOutput
+  //
+  // 5. synth_subscribe_events
+  //    - Abonniert Events
+  //    - Input: SubscribeEventsInput
+  //    - Output: SubscribeEventsOutput
+  //
+  // 6. synth_query_resources
+  //    - Sucht Ressourcen
+  //    - Input: QueryResourcesInput
+  //    - Output: QueryResourcesOutput
+  //
+  // 7. synth_send_to_node
+  //    - Node-to-Node Messaging
+  //    - Input: SendToNodeInput
+  //    - Output: SendToNodeOutput
+}

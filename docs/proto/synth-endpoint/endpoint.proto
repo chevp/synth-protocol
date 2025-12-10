@@ -1,0 +1,252 @@
+// =============================================================================
+// Synth Endpoint Protocol - Unified Data Access Layer
+// =============================================================================
+// Protokoll-agnostischer, format-transparenter Datenzugriff über verteilte Nodes
+// =============================================================================
+
+syntax = "proto3";
+
+package synth.endpoint;
+
+option java_package = "com.synth.endpoint";
+option java_multiple_files = true;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/any.proto";
+import "google/protobuf/duration.proto";
+
+// =============================================================================
+// URI Schema Definitionen
+// =============================================================================
+
+// Unterstützte URI-Schemata für den Datenzugriff
+enum UriScheme {
+  URI_SCHEME_UNSPECIFIED = 0;
+  URI_SCHEME_FILE = 1;        // Lokales Dateisystem
+  URI_SCHEME_HTTP = 2;        // HTTP/HTTPS
+  URI_SCHEME_HTTPS = 3;
+  URI_SCHEME_FTP = 4;         // FTP/FTPS/SFTP
+  URI_SCHEME_FTPS = 5;
+  URI_SCHEME_SFTP = 6;
+  URI_SCHEME_SYNTH = 7;       // Synth-internes Protokoll (synth://node/path)
+  URI_SCHEME_DATA = 8;        // Data-URIs (inline content)
+  URI_SCHEME_S3 = 9;          // AWS S3
+  URI_SCHEME_GCS = 10;        // Google Cloud Storage
+  URI_SCHEME_AZURE = 11;      // Azure Blob Storage
+}
+
+// Geparste URI-Struktur
+message ParsedUri {
+  UriScheme scheme = 1;
+  string host = 2;            // Hostname oder Node-ID
+  int32 port = 3;             // Port (0 = default)
+  string path = 4;            // Ressourcenpfad
+  string query = 5;           // Query-String
+  string fragment = 6;        // Fragment/Anchor
+  map<string, string> query_params = 7;  // Geparste Query-Parameter
+  string original_uri = 8;    // Original-URI für Debugging
+}
+
+// =============================================================================
+// Resource Status
+// =============================================================================
+
+// Status einer Ressource
+enum ResourceStatus {
+  RESOURCE_STATUS_UNSPECIFIED = 0;
+  RESOURCE_STATUS_AVAILABLE = 1;       // Ressource verfügbar
+  RESOURCE_STATUS_UNAVAILABLE = 2;     // Nicht erreichbar
+  RESOURCE_STATUS_REQUIRES_AUTH = 3;   // Authentifizierung erforderlich
+  RESOURCE_STATUS_REQUIRES_CONFIG = 4; // Konfiguration nötig (z.B. FTP-Verbindung)
+  RESOURCE_STATUS_LOADING = 5;         // Wird geladen
+  RESOURCE_STATUS_CACHED = 6;          // Aus Cache geladen
+  RESOURCE_STATUS_ERROR = 7;           // Fehler beim Laden
+  RESOURCE_STATUS_NOT_FOUND = 8;       // Ressource existiert nicht
+  RESOURCE_STATUS_FORBIDDEN = 9;       // Zugriff verweigert
+}
+
+// =============================================================================
+// Content Types und Formate
+// =============================================================================
+
+// Bekannte Content-Kategorien für intelligente Verarbeitung
+enum ContentCategory {
+  CONTENT_CATEGORY_UNSPECIFIED = 0;
+  CONTENT_CATEGORY_TEXT = 1;          // Text-basiert (JSON, XML, Plain)
+  CONTENT_CATEGORY_BINARY = 2;        // Binärdaten
+  CONTENT_CATEGORY_IMAGE = 3;         // Bilder (PNG, JPG, WebP, etc.)
+  CONTENT_CATEGORY_AUDIO = 4;         // Audio (MP3, WAV, OGG, etc.)
+  CONTENT_CATEGORY_VIDEO = 5;         // Video (MP4, WebM, etc.)
+  CONTENT_CATEGORY_MODEL_3D = 6;      // 3D-Modelle (GLTF, FBX, OBJ, etc.)
+  CONTENT_CATEGORY_SCENE = 7;         // Synth-Scenes
+  CONTENT_CATEGORY_DOCUMENT = 8;      // Dokumente (PDF, etc.)
+  CONTENT_CATEGORY_ARCHIVE = 9;       // Archive (ZIP, TAR, etc.)
+  CONTENT_CATEGORY_DATA = 10;         // Strukturierte Daten (Protobuf, etc.)
+}
+
+// Content-Metadaten
+message ContentMeta {
+  string mime_type = 1;               // MIME-Type (z.B. "application/json")
+  ContentCategory category = 2;       // Kategorisierung
+  string charset = 3;                 // Zeichenkodierung (für Text)
+  int64 size_bytes = 4;               // Größe in Bytes
+  string etag = 5;                    // Entity-Tag für Caching
+  google.protobuf.Timestamp last_modified = 6;
+  map<string, string> headers = 7;    // Zusätzliche Header/Metadaten
+}
+
+// =============================================================================
+// Request/Response für Datenzugriff
+// =============================================================================
+
+// Cache-Strategie
+enum CacheStrategy {
+  CACHE_STRATEGY_UNSPECIFIED = 0;
+  CACHE_STRATEGY_DEFAULT = 1;         // Standard-Caching
+  CACHE_STRATEGY_NO_CACHE = 2;        // Immer frisch laden
+  CACHE_STRATEGY_CACHE_FIRST = 3;     // Cache bevorzugen
+  CACHE_STRATEGY_NETWORK_FIRST = 4;   // Netzwerk bevorzugen, Cache als Fallback
+  CACHE_STRATEGY_STALE_WHILE_REVALIDATE = 5;  // Cached liefern, im Hintergrund aktualisieren
+}
+
+// Anfrage zum Laden einer Ressource
+message ResolveRequest {
+  string uri = 1;                     // URI der Ressource
+  CacheStrategy cache_strategy = 2;   // Cache-Verhalten
+  google.protobuf.Duration timeout = 3;  // Timeout für die Anfrage
+  map<string, string> headers = 4;    // Zusätzliche Header
+  string accept = 5;                  // Gewünschter Content-Type
+  bool stream = 6;                    // Streaming-Modus aktivieren
+  string correlation_id = 7;          // Für Request-Tracking
+
+  // Authentifizierung (falls nötig)
+  oneof auth {
+    BasicAuth basic_auth = 10;
+    BearerToken bearer_token = 11;
+    string connection_id = 12;        // Referenz auf gespeicherte Verbindung
+  }
+}
+
+message BasicAuth {
+  string username = 1;
+  string password = 2;
+}
+
+message BearerToken {
+  string token = 1;
+}
+
+// Antwort mit geladener Ressource
+message ResolveResponse {
+  string original_uri = 1;            // Angeforderte URI
+  string resolved_uri = 2;            // Tatsächlich aufgelöste URI (nach Redirects)
+  ResourceStatus status = 3;          // Status der Ressource
+  ContentMeta meta = 4;               // Content-Metadaten
+
+  // Content (je nach Größe)
+  oneof content {
+    bytes data = 5;                   // Inline-Daten (für kleine Ressourcen)
+    string local_path = 6;            // Lokaler Pfad (für große/gecachte Dateien)
+    StreamReference stream_ref = 7;   // Referenz für Streaming
+  }
+
+  // Cache-Information
+  bool from_cache = 8;
+  google.protobuf.Timestamp cached_at = 9;
+  google.protobuf.Duration cache_ttl = 10;
+
+  // Fehlerbehandlung
+  ErrorInfo error = 11;
+
+  string correlation_id = 12;         // Echo vom Request
+}
+
+message StreamReference {
+  string stream_id = 1;
+  int64 total_size = 2;
+  int32 chunk_size = 3;
+}
+
+message ErrorInfo {
+  string code = 1;                    // Fehlercode (z.B. "ECONNREFUSED")
+  string message = 2;                 // Menschenlesbare Nachricht
+  string details = 3;                 // Technische Details
+  map<string, string> context = 4;    // Zusätzlicher Kontext
+}
+
+// =============================================================================
+// Batch-Operationen
+// =============================================================================
+
+// Mehrere Ressourcen parallel laden
+message BatchResolveRequest {
+  repeated ResolveRequest requests = 1;
+  bool fail_fast = 2;                 // Bei erstem Fehler abbrechen
+  int32 max_concurrent = 3;           // Maximale Parallelität (0 = unbegrenzt)
+  string correlation_id = 4;
+}
+
+message BatchResolveResponse {
+  repeated ResolveResponse responses = 1;
+  int32 successful = 2;
+  int32 failed = 3;
+  google.protobuf.Duration total_duration = 4;
+  string correlation_id = 5;
+}
+
+// =============================================================================
+// Write-Operationen
+// =============================================================================
+
+// Ressource schreiben/erstellen
+message WriteRequest {
+  string uri = 1;
+  bytes content = 2;
+  ContentMeta meta = 3;
+  bool create_parents = 4;            // Verzeichnisse erstellen falls nötig
+  bool overwrite = 5;                 // Überschreiben erlauben
+
+  oneof auth {
+    BasicAuth basic_auth = 10;
+    BearerToken bearer_token = 11;
+    string connection_id = 12;
+  }
+
+  string correlation_id = 13;
+}
+
+message WriteResponse {
+  string uri = 1;
+  bool success = 2;
+  ResourceStatus status = 3;
+  ErrorInfo error = 4;
+  string correlation_id = 5;
+}
+
+// =============================================================================
+// gRPC Service Definition
+// =============================================================================
+
+service EndpointService {
+  // Einzelne Ressource laden
+  rpc Resolve(ResolveRequest) returns (ResolveResponse);
+
+  // Mehrere Ressourcen parallel laden
+  rpc BatchResolve(BatchResolveRequest) returns (BatchResolveResponse);
+
+  // Ressource streamen (für große Dateien)
+  rpc StreamResolve(ResolveRequest) returns (stream ResolveResponse);
+
+  // Status einer Ressource prüfen (ohne Inhalt zu laden)
+  rpc CheckStatus(ResolveRequest) returns (ResolveResponse);
+
+  // Ressource schreiben
+  rpc Write(WriteRequest) returns (WriteResponse);
+
+  // URI parsen
+  rpc ParseUri(ParseUriRequest) returns (ParsedUri);
+}
+
+message ParseUriRequest {
+  string uri = 1;
+}

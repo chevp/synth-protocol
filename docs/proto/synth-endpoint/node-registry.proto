@@ -1,0 +1,289 @@
+// =============================================================================
+// Synth Node Registry - Verteilte Node-Verwaltung
+// =============================================================================
+// Registrierung und Discovery von Synth-Nodes für geografisch verteilten Zugriff
+// =============================================================================
+
+syntax = "proto3";
+
+package synth.endpoint;
+
+option java_package = "com.synth.endpoint";
+option java_multiple_files = true;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/duration.proto";
+
+// =============================================================================
+// Node-Definitionen
+// =============================================================================
+
+// Status eines Nodes
+enum NodeStatus {
+  NODE_STATUS_UNSPECIFIED = 0;
+  NODE_STATUS_ONLINE = 1;             // Node ist erreichbar
+  NODE_STATUS_OFFLINE = 2;            // Node nicht erreichbar
+  NODE_STATUS_DEGRADED = 3;           // Eingeschränkte Funktionalität
+  NODE_STATUS_MAINTENANCE = 4;        // Wartungsmodus
+  NODE_STATUS_SYNCING = 5;            // Synchronisiert Daten
+}
+
+// Typ des Nodes
+enum NodeType {
+  NODE_TYPE_UNSPECIFIED = 0;
+  NODE_TYPE_ORIGIN = 1;               // Primärer Datenhalter
+  NODE_TYPE_EDGE = 2;                 // Edge/CDN Node
+  NODE_TYPE_CACHE = 3;                // Reiner Cache-Node
+  NODE_TYPE_GATEWAY = 4;              // API-Gateway Node
+  NODE_TYPE_COMPUTE = 5;              // Compute-Node (ML-Inferenz)
+}
+
+// Fähigkeiten eines Nodes
+message NodeCapabilities {
+  bool supports_read = 1;             // Lesen unterstützt
+  bool supports_write = 2;            // Schreiben unterstützt
+  bool supports_streaming = 3;        // Streaming unterstützt
+  bool supports_composition = 4;      // Scene-Komposition unterstützt
+  bool supports_inference = 5;        // ML-Inferenz unterstützt
+  repeated string supported_schemes = 6;  // Unterstützte URI-Schemata
+  repeated string supported_formats = 7;  // Unterstützte Content-Formate
+  int64 max_file_size = 8;            // Maximale Dateigröße in Bytes
+  int32 max_concurrent_requests = 9;  // Maximale parallele Anfragen
+}
+
+// Geografische Position
+message GeoLocation {
+  double latitude = 1;
+  double longitude = 2;
+  string country_code = 3;            // ISO 3166-1 alpha-2 (z.B. "DE")
+  string region = 4;                  // Region/Bundesland
+  string city = 5;                    // Stadt
+  string datacenter = 6;              // Rechenzentrums-ID
+}
+
+// Node-Definition
+message NodeInfo {
+  string node_id = 1;                 // Eindeutige Node-ID (z.B. "de-frankfurt-1")
+  string display_name = 2;            // Anzeigename
+  NodeType type = 3;
+  NodeStatus status = 4;
+  NodeCapabilities capabilities = 5;
+  GeoLocation location = 6;
+
+  // Verbindungsinformationen
+  repeated Endpoint endpoints = 7;
+
+  // Metriken
+  NodeMetrics metrics = 8;
+
+  // Zeitstempel
+  google.protobuf.Timestamp registered_at = 9;
+  google.protobuf.Timestamp last_seen = 10;
+  google.protobuf.Timestamp last_health_check = 11;
+
+  // Zusätzliche Metadaten
+  map<string, string> labels = 12;    // Labels für Filtering
+  map<string, string> annotations = 13;
+}
+
+// Verbindungsendpunkt eines Nodes
+message Endpoint {
+  string protocol = 1;                // "grpc", "http", "https", "ws"
+  string host = 2;
+  int32 port = 3;
+  string path = 4;                    // Base-Path (z.B. "/api/v1")
+  bool primary = 5;                   // Primärer Endpunkt
+  bool internal = 6;                  // Nur intern erreichbar
+}
+
+// Node-Metriken
+message NodeMetrics {
+  int32 current_connections = 1;
+  int32 requests_per_second = 2;
+  double cpu_usage_percent = 3;
+  double memory_usage_percent = 4;
+  double disk_usage_percent = 5;
+  int64 bandwidth_bps = 6;            // Aktuelle Bandbreite in Bits/Sekunde
+  google.protobuf.Duration avg_latency = 7;
+  double error_rate_percent = 8;
+  int64 cache_size_bytes = 9;
+  double cache_hit_rate = 10;
+}
+
+// =============================================================================
+// Node-Gruppen und Cluster
+// =============================================================================
+
+// Gruppe von Nodes (z.B. alle Nodes in einer Region)
+message NodeGroup {
+  string group_id = 1;
+  string display_name = 2;
+  string description = 3;
+  repeated string node_ids = 4;       // Member-Nodes
+  NodeSelectionStrategy selection_strategy = 5;
+  map<string, string> labels = 6;
+}
+
+// Strategie zur Node-Auswahl
+enum NodeSelectionStrategy {
+  NODE_SELECTION_UNSPECIFIED = 0;
+  NODE_SELECTION_NEAREST = 1;         // Geografisch nächster Node
+  NODE_SELECTION_LOWEST_LATENCY = 2;  // Niedrigste Latenz
+  NODE_SELECTION_ROUND_ROBIN = 3;     // Gleichmäßige Verteilung
+  NODE_SELECTION_LEAST_LOADED = 4;    // Geringste Last
+  NODE_SELECTION_RANDOM = 5;          // Zufällig
+  NODE_SELECTION_PRIORITY = 6;        // Nach Priorität
+}
+
+// =============================================================================
+// Registry Operations
+// =============================================================================
+
+// Node registrieren
+message RegisterNodeRequest {
+  NodeInfo node = 1;
+  string auth_token = 2;              // Authentifizierung
+}
+
+message RegisterNodeResponse {
+  bool success = 1;
+  string node_id = 2;
+  string error_message = 3;
+}
+
+// Node abmelden
+message UnregisterNodeRequest {
+  string node_id = 1;
+  string auth_token = 2;
+}
+
+message UnregisterNodeResponse {
+  bool success = 1;
+  string error_message = 2;
+}
+
+// Nodes suchen
+message FindNodesRequest {
+  // Filter
+  repeated NodeType types = 1;
+  repeated NodeStatus statuses = 2;
+  map<string, string> labels = 3;     // Label-Filter
+
+  // Geografische Suche
+  GeoLocation near_location = 4;
+  double max_distance_km = 5;
+  string country_code = 6;
+
+  // Capability-Filter
+  NodeCapabilities required_capabilities = 7;
+
+  // Pagination
+  int32 page_size = 8;
+  string page_token = 9;
+}
+
+message FindNodesResponse {
+  repeated NodeInfo nodes = 1;
+  string next_page_token = 2;
+  int32 total_count = 3;
+}
+
+// Besten Node für eine Ressource finden
+message SelectNodeRequest {
+  string resource_uri = 1;            // URI der gewünschten Ressource
+  GeoLocation client_location = 2;    // Position des Clients
+  NodeSelectionStrategy strategy = 3;
+  NodeCapabilities required_capabilities = 4;
+  repeated string preferred_node_ids = 5;  // Bevorzugte Nodes
+  repeated string excluded_node_ids = 6;   // Ausgeschlossene Nodes
+}
+
+message SelectNodeResponse {
+  NodeInfo selected_node = 1;
+  repeated NodeInfo alternatives = 2; // Alternative Nodes (sortiert)
+  string selection_reason = 3;        // Begründung der Auswahl
+}
+
+// Heartbeat für Node-Health
+message HeartbeatRequest {
+  string node_id = 1;
+  NodeStatus status = 2;
+  NodeMetrics metrics = 3;
+}
+
+message HeartbeatResponse {
+  bool acknowledged = 1;
+  google.protobuf.Duration next_heartbeat_in = 2;
+  repeated string pending_commands = 3;  // Befehle für den Node
+}
+
+// =============================================================================
+// gRPC Service Definition
+// =============================================================================
+
+service NodeRegistryService {
+  // Node-Verwaltung
+  rpc RegisterNode(RegisterNodeRequest) returns (RegisterNodeResponse);
+  rpc UnregisterNode(UnregisterNodeRequest) returns (UnregisterNodeResponse);
+  rpc UpdateNode(RegisterNodeRequest) returns (RegisterNodeResponse);
+
+  // Node-Discovery
+  rpc GetNode(GetNodeRequest) returns (NodeInfo);
+  rpc FindNodes(FindNodesRequest) returns (FindNodesResponse);
+  rpc SelectNode(SelectNodeRequest) returns (SelectNodeResponse);
+  rpc ListNodes(ListNodesRequest) returns (FindNodesResponse);
+
+  // Health & Monitoring
+  rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse);
+  rpc StreamNodeEvents(StreamNodeEventsRequest) returns (stream NodeEvent);
+
+  // Node-Gruppen
+  rpc CreateNodeGroup(NodeGroup) returns (NodeGroup);
+  rpc GetNodeGroup(GetNodeGroupRequest) returns (NodeGroup);
+  rpc ListNodeGroups(ListNodeGroupsRequest) returns (ListNodeGroupsResponse);
+}
+
+message GetNodeRequest {
+  string node_id = 1;
+}
+
+message ListNodesRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+}
+
+message GetNodeGroupRequest {
+  string group_id = 1;
+}
+
+message ListNodeGroupsRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+}
+
+message ListNodeGroupsResponse {
+  repeated NodeGroup groups = 1;
+  string next_page_token = 2;
+}
+
+message StreamNodeEventsRequest {
+  repeated string node_ids = 1;       // Leer = alle Nodes
+  repeated NodeStatus status_filter = 2;
+}
+
+// Event bei Node-Änderungen
+message NodeEvent {
+  string node_id = 1;
+  NodeEventType event_type = 2;
+  NodeInfo node = 3;
+  google.protobuf.Timestamp timestamp = 4;
+}
+
+enum NodeEventType {
+  NODE_EVENT_UNSPECIFIED = 0;
+  NODE_EVENT_REGISTERED = 1;
+  NODE_EVENT_UNREGISTERED = 2;
+  NODE_EVENT_STATUS_CHANGED = 3;
+  NODE_EVENT_METRICS_UPDATED = 4;
+  NODE_EVENT_CAPABILITIES_CHANGED = 5;
+}

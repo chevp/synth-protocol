@@ -1,0 +1,491 @@
+// =============================================================================
+// Synth REST API - HTTP/JSON Interface für C++ und andere Clients
+// =============================================================================
+// REST-API Mapping für das Synth Endpoint Protocol
+// Primär für: C++ Vulkan Renderer, Mobile Apps, Web Clients
+// =============================================================================
+
+syntax = "proto3";
+
+package synth.endpoint.rest;
+
+option java_package = "com.synth.endpoint.rest";
+option java_multiple_files = true;
+
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/struct.proto";
+
+// =============================================================================
+// REST API Service Definition
+// =============================================================================
+
+// HTTP/REST Gateway für Synth Endpoint
+// Alle Endpunkte sind unter /api/v1/ verfügbar
+service SynthRestApi {
+
+  // =========================================================================
+  // Resource Operations
+  // =========================================================================
+
+  // GET /api/v1/resources/{uri}
+  // Lädt eine Ressource
+  rpc GetResource(GetResourceRequest) returns (ResourceResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/resources/{uri=**}"
+    };
+  }
+
+  // HEAD /api/v1/resources/{uri}
+  // Prüft Status ohne Content zu laden
+  rpc HeadResource(HeadResourceRequest) returns (ResourceMetaResponse) {
+    option (google.api.http) = {
+      custom: { kind: "HEAD", path: "/api/v1/resources/{uri=**}" }
+    };
+  }
+
+  // PUT /api/v1/resources/{uri}
+  // Schreibt eine Ressource
+  rpc PutResource(PutResourceRequest) returns (PutResourceResponse) {
+    option (google.api.http) = {
+      put: "/api/v1/resources/{uri=**}"
+      body: "content"
+    };
+  }
+
+  // DELETE /api/v1/resources/{uri}
+  // Löscht eine Ressource
+  rpc DeleteResource(DeleteResourceRequest) returns (DeleteResourceResponse) {
+    option (google.api.http) = {
+      delete: "/api/v1/resources/{uri=**}"
+    };
+  }
+
+  // POST /api/v1/resources/batch
+  // Batch-Loading mehrerer Ressourcen
+  rpc BatchGetResources(BatchGetRequest) returns (BatchGetResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/resources/batch"
+      body: "*"
+    };
+  }
+
+  // =========================================================================
+  // Node Operations
+  // =========================================================================
+
+  // GET /api/v1/nodes
+  // Listet alle Nodes
+  rpc ListNodes(ListNodesRequest) returns (ListNodesResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/nodes"
+    };
+  }
+
+  // GET /api/v1/nodes/{node_id}
+  // Node-Details abrufen
+  rpc GetNode(GetNodeRequest) returns (NodeResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/nodes/{node_id}"
+    };
+  }
+
+  // POST /api/v1/nodes/select
+  // Besten Node für Anfrage auswählen
+  rpc SelectNode(SelectNodeRequest) returns (SelectNodeResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/nodes/select"
+      body: "*"
+    };
+  }
+
+  // =========================================================================
+  // Scene Composition
+  // =========================================================================
+
+  // POST /api/v1/scenes/compose
+  // Scene zusammenstellen
+  rpc ComposeScene(ComposeSceneRequest) returns (ComposeSceneResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/scenes/compose"
+      body: "*"
+    };
+  }
+
+  // GET /api/v1/scenes/{scene_id}
+  // Komponierte Scene abrufen
+  rpc GetComposedScene(GetComposedSceneRequest) returns (ComposedSceneResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/scenes/{scene_id}"
+    };
+  }
+
+  // GET /api/v1/scenes/{scene_id}/manifest
+  // Dependency-Manifest abrufen
+  rpc GetSceneManifest(GetSceneManifestRequest) returns (SceneManifestResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/scenes/{scene_id}/manifest"
+    };
+  }
+
+  // =========================================================================
+  // Messaging (für C++ Event-Handling)
+  // =========================================================================
+
+  // POST /api/v1/messages/publish
+  // Nachricht publizieren
+  rpc PublishMessage(PublishMessageRequest) returns (PublishMessageResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/messages/publish"
+      body: "*"
+    };
+  }
+
+  // GET /api/v1/messages/poll
+  // Messages abholen (Long-Polling)
+  rpc PollMessages(PollMessagesRequest) returns (PollMessagesResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/messages/poll"
+    };
+  }
+
+  // POST /api/v1/messages/ack
+  // Messages bestätigen
+  rpc AcknowledgeMessages(AckMessagesRequest) returns (AckMessagesResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/messages/ack"
+      body: "*"
+    };
+  }
+
+  // =========================================================================
+  // Health & Discovery
+  // =========================================================================
+
+  // GET /api/v1/health
+  rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/health"
+    };
+  }
+
+  // GET /api/v1/discovery
+  // API-Capabilities und verfügbare Endpunkte
+  rpc Discovery(DiscoveryRequest) returns (DiscoveryResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/discovery"
+    };
+  }
+}
+
+// =============================================================================
+// Request/Response Messages
+// =============================================================================
+
+// --- Resource Operations ---
+
+message GetResourceRequest {
+  string uri = 1;
+  // Query params:
+  string cache = 2;                   // "default", "no-cache", "cache-first"
+  string accept = 3;                  // Accept header
+  int32 timeout_ms = 4;               // Timeout in ms
+}
+
+message ResourceResponse {
+  string uri = 1;
+  string status = 2;                  // "available", "not_found", "error"
+  string content_type = 3;
+  bytes content = 4;
+  ResourceMeta meta = 5;
+  string error = 6;
+}
+
+message ResourceMeta {
+  int64 size_bytes = 1;
+  string etag = 2;
+  string last_modified = 3;           // ISO 8601
+  string source_node = 4;
+  bool from_cache = 5;
+  map<string, string> headers = 6;
+}
+
+message HeadResourceRequest {
+  string uri = 1;
+}
+
+message ResourceMetaResponse {
+  string uri = 1;
+  string status = 2;
+  ResourceMeta meta = 3;
+}
+
+message PutResourceRequest {
+  string uri = 1;
+  bytes content = 2;
+  string content_type = 3;
+  bool create_parents = 4;
+  bool overwrite = 5;
+}
+
+message PutResourceResponse {
+  bool success = 1;
+  string uri = 2;
+  string error = 3;
+}
+
+message DeleteResourceRequest {
+  string uri = 1;
+}
+
+message DeleteResourceResponse {
+  bool success = 1;
+  string error = 2;
+}
+
+message BatchGetRequest {
+  repeated string uris = 1;
+  string cache = 2;
+  int32 max_concurrent = 3;
+  bool fail_fast = 4;
+}
+
+message BatchGetResponse {
+  repeated ResourceResponse resources = 1;
+  int32 successful = 2;
+  int32 failed = 3;
+  int64 total_duration_ms = 4;
+}
+
+// --- Node Operations ---
+
+message ListNodesRequest {
+  string region = 1;                  // Filter: "eu", "us", "asia"
+  string type = 2;                    // Filter: "origin", "edge", "compute"
+  string status = 3;                  // Filter: "online", "offline"
+  int32 page_size = 4;
+  string page_token = 5;
+}
+
+message ListNodesResponse {
+  repeated NodeInfo nodes = 1;
+  string next_page_token = 2;
+  int32 total_count = 3;
+}
+
+message NodeInfo {
+  string node_id = 1;
+  string display_name = 2;
+  string type = 3;
+  string status = 4;
+  string region = 5;
+  string country = 6;
+  double latitude = 7;
+  double longitude = 8;
+  NodeCapabilities capabilities = 9;
+  NodeMetrics metrics = 10;
+}
+
+message NodeCapabilities {
+  bool read = 1;
+  bool write = 2;
+  bool streaming = 3;
+  bool composition = 4;
+  repeated string formats = 5;
+}
+
+message NodeMetrics {
+  double latency_ms = 1;
+  double cpu_percent = 2;
+  double memory_percent = 3;
+  int64 bandwidth_bps = 4;
+  double cache_hit_rate = 5;
+}
+
+message GetNodeRequest {
+  string node_id = 1;
+}
+
+message NodeResponse {
+  NodeInfo node = 1;
+}
+
+message SelectNodeRequest {
+  string resource_uri = 1;
+  double client_lat = 2;
+  double client_lon = 3;
+  string strategy = 4;                // "nearest", "lowest_latency", "least_loaded"
+  repeated string preferred_nodes = 5;
+  repeated string excluded_nodes = 6;
+}
+
+message SelectNodeResponse {
+  NodeInfo selected = 1;
+  repeated NodeInfo alternatives = 2;
+  string reason = 3;
+}
+
+// --- Scene Operations ---
+
+message ComposeSceneRequest {
+  string scene_uri = 1;
+  CompositionOptions options = 2;
+  ClientContext context = 3;
+}
+
+message CompositionOptions {
+  int32 max_concurrent_fetches = 1;
+  bool use_cache = 2;
+  int32 max_lod_level = 3;
+  int32 max_texture_resolution = 4;
+  bool fail_on_missing = 5;
+}
+
+message ClientContext {
+  string client_id = 1;
+  double latitude = 2;
+  double longitude = 3;
+  int64 available_vram = 4;
+  repeated string supported_formats = 5;
+}
+
+message ComposeSceneResponse {
+  string scene_id = 1;
+  string status = 2;                  // "success", "partial", "failed"
+  ComposedScene scene = 3;
+  CompositionStats stats = 4;
+  repeated CompositionError errors = 5;
+}
+
+message ComposedScene {
+  string scene_id = 1;
+  string name = 2;
+  repeated ResourceRef resources = 3;
+  google.protobuf.Struct scene_graph = 4;  // JSON scene graph
+}
+
+message ResourceRef {
+  string uri = 1;
+  string content_type = 2;
+  int64 size_bytes = 3;
+  string checksum = 4;
+  string local_path = 5;              // Cached path
+}
+
+message CompositionStats {
+  int32 resources_fetched = 1;
+  int32 resources_from_cache = 2;
+  int32 resources_failed = 3;
+  int64 total_bytes = 4;
+  int64 duration_ms = 5;
+}
+
+message CompositionError {
+  string uri = 1;
+  string code = 2;
+  string message = 3;
+}
+
+message GetComposedSceneRequest {
+  string scene_id = 1;
+}
+
+message ComposedSceneResponse {
+  ComposedScene scene = 1;
+}
+
+message GetSceneManifestRequest {
+  string scene_id = 1;
+}
+
+message SceneManifestResponse {
+  string scene_id = 1;
+  repeated ManifestEntry entries = 2;
+  int64 total_size_bytes = 3;
+}
+
+message ManifestEntry {
+  string uri = 1;
+  string content_type = 2;
+  int64 size_bytes = 3;
+  string checksum = 4;
+  repeated string depends_on = 5;
+}
+
+// --- Messaging ---
+
+message PublishMessageRequest {
+  string topic = 1;
+  string message_type = 2;
+  google.protobuf.Struct payload = 3;
+  string priority = 4;                // "low", "normal", "high", "critical"
+  string correlation_id = 5;
+}
+
+message PublishMessageResponse {
+  bool success = 1;
+  string message_id = 2;
+  string error = 3;
+}
+
+message PollMessagesRequest {
+  string subscription_id = 1;
+  repeated string topics = 2;         // Topic filter
+  int32 max_messages = 3;
+  int32 timeout_seconds = 4;          // Long-poll timeout
+}
+
+message PollMessagesResponse {
+  repeated ReceivedMessage messages = 1;
+}
+
+message ReceivedMessage {
+  string message_id = 1;
+  string topic = 2;
+  string message_type = 3;
+  google.protobuf.Struct payload = 4;
+  string ack_id = 5;
+  string timestamp = 6;               // ISO 8601
+}
+
+message AckMessagesRequest {
+  string subscription_id = 1;
+  repeated string ack_ids = 2;
+}
+
+message AckMessagesResponse {
+  int32 acknowledged = 1;
+}
+
+// --- Health & Discovery ---
+
+message HealthCheckRequest {}
+
+message HealthCheckResponse {
+  string status = 1;                  // "healthy", "degraded", "unhealthy"
+  string version = 2;
+  string node_id = 3;
+  int64 uptime_seconds = 4;
+  map<string, string> checks = 5;     // Component health
+}
+
+message DiscoveryRequest {}
+
+message DiscoveryResponse {
+  string api_version = 1;
+  string server_name = 2;
+  repeated EndpointInfo endpoints = 3;
+  repeated string supported_formats = 4;
+  AuthInfo auth = 5;
+}
+
+message EndpointInfo {
+  string path = 1;
+  string method = 2;
+  string description = 3;
+}
+
+message AuthInfo {
+  string type = 1;                    // "bearer", "api_key", "none"
+  string token_header = 2;            // z.B. "Authorization"
+}

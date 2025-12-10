@@ -1,0 +1,402 @@
+// =============================================================================
+// Synth Messaging - Distributed Message & Event System
+// =============================================================================
+// Erweiterung des Endpoint-Protokolls um Pub/Sub und Request/Reply Messaging
+// =============================================================================
+
+syntax = "proto3";
+
+package synth.endpoint;
+
+option java_package = "com.synth.endpoint";
+option java_multiple_files = true;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/duration.proto";
+import "google/protobuf/any.proto";
+
+// =============================================================================
+// Message Types
+// =============================================================================
+
+// Delivery-Garantien
+enum DeliveryMode {
+  DELIVERY_MODE_UNSPECIFIED = 0;
+  DELIVERY_MODE_AT_MOST_ONCE = 1;     // Fire-and-forget (schnellste)
+  DELIVERY_MODE_AT_LEAST_ONCE = 2;    // Mit Retry (Standard)
+  DELIVERY_MODE_EXACTLY_ONCE = 3;     // Transaktional (langsamste)
+}
+
+// Message-Priorität
+enum MessagePriority {
+  MESSAGE_PRIORITY_UNSPECIFIED = 0;
+  MESSAGE_PRIORITY_LOW = 1;
+  MESSAGE_PRIORITY_NORMAL = 2;
+  MESSAGE_PRIORITY_HIGH = 3;
+  MESSAGE_PRIORITY_CRITICAL = 4;
+}
+
+// Eine Nachricht im System
+message Message {
+  string message_id = 1;              // Eindeutige ID (UUID)
+  string topic = 2;                   // Topic/Channel (z.B. "synth://events/scene-updated")
+
+  // Routing
+  string source_node = 3;             // Absender-Node
+  string target_node = 4;             // Ziel-Node (leer = broadcast)
+  repeated string target_groups = 5;  // Ziel-Gruppen
+
+  // Payload
+  string content_type = 6;            // MIME-Type des Payloads
+  bytes payload = 7;                  // Serialisierter Inhalt
+  google.protobuf.Any typed_payload = 8;  // Oder typisiert via Any
+
+  // Metadaten
+  map<string, string> headers = 9;    // Custom Headers
+  MessagePriority priority = 10;
+  DeliveryMode delivery_mode = 11;
+
+  // Tracing
+  string correlation_id = 12;         // Request-Korrelation
+  string causation_id = 13;           // Auslösende Message
+  string trace_id = 14;               // Distributed Tracing
+
+  // Timing
+  google.protobuf.Timestamp created_at = 15;
+  google.protobuf.Timestamp expires_at = 16;  // TTL
+  google.protobuf.Duration max_age = 17;
+
+  // Sequenzierung
+  int64 sequence_number = 18;         // Für Ordering
+  string partition_key = 19;          // Für partitionierte Topics
+}
+
+// =============================================================================
+// Topic-Definitionen
+// =============================================================================
+
+// Topic-Konfiguration
+message TopicConfig {
+  string topic_name = 1;              // z.B. "synth://events/nodes/*"
+  string description = 2;
+
+  // Retention
+  google.protobuf.Duration retention_period = 3;  // Wie lange aufbewahren
+  int64 max_messages = 4;             // Max Nachrichten im Topic
+  int64 max_size_bytes = 5;           // Max Größe
+
+  // Partitionierung
+  int32 partitions = 6;               // Anzahl Partitionen
+  int32 replication_factor = 7;       // Replikation über Nodes
+
+  // Schema
+  string schema_uri = 8;              // Protobuf/JSON Schema URI
+  bool schema_validation = 9;         // Schema erzwingen
+
+  // Berechtigungen
+  repeated string allowed_publishers = 10;
+  repeated string allowed_subscribers = 11;
+}
+
+// =============================================================================
+// Pub/Sub Pattern
+// =============================================================================
+
+// Publish-Request
+message PublishRequest {
+  Message message = 1;
+  bool wait_for_ack = 2;              // Auf Bestätigung warten
+  google.protobuf.Duration timeout = 3;
+}
+
+message PublishResponse {
+  string message_id = 1;
+  bool acknowledged = 2;
+  string assigned_partition = 3;
+  int64 sequence_number = 4;
+  string error_message = 5;
+}
+
+// Batch-Publish
+message BatchPublishRequest {
+  repeated Message messages = 1;
+  bool atomic = 2;                    // Alle oder keine
+}
+
+message BatchPublishResponse {
+  repeated PublishResponse results = 1;
+  int32 successful = 2;
+  int32 failed = 3;
+}
+
+// Subscription
+message Subscription {
+  string subscription_id = 1;
+  string subscriber_id = 2;           // Client-ID
+
+  // Topic-Filter (unterstützt Wildcards)
+  repeated string topics = 3;         // z.B. "synth://events/scene/*"
+
+  // Filter
+  string filter_expression = 4;       // CEL-Expression für Filtering
+  map<string, string> header_filters = 5;
+
+  // Delivery
+  DeliveryMode delivery_mode = 6;
+  int32 max_in_flight = 7;            // Unbestätigte Nachrichten
+  google.protobuf.Duration ack_timeout = 8;
+
+  // Replay
+  ReplayPosition start_position = 9;
+
+  // Dead Letter
+  string dead_letter_topic = 10;      // Für fehlgeschlagene Messages
+  int32 max_delivery_attempts = 11;
+}
+
+message ReplayPosition {
+  oneof position {
+    bool from_beginning = 1;          // Alle Messages
+    bool from_latest = 2;             // Nur neue
+    google.protobuf.Timestamp from_timestamp = 3;
+    int64 from_sequence = 4;
+  }
+}
+
+// Subscribe-Request
+message SubscribeRequest {
+  Subscription subscription = 1;
+}
+
+// Empfangene Nachricht (mit Ack-Handle)
+message ReceivedMessage {
+  Message message = 1;
+  string ack_id = 2;                  // Für Acknowledge
+  int32 delivery_attempt = 3;
+}
+
+// Acknowledge
+message AcknowledgeRequest {
+  repeated string ack_ids = 1;
+  string subscription_id = 2;
+}
+
+message AcknowledgeResponse {
+  int32 acknowledged = 1;
+  repeated string failed_ack_ids = 2;
+}
+
+// Negative Acknowledge (Retry)
+message NackRequest {
+  repeated string ack_ids = 1;
+  string subscription_id = 2;
+  google.protobuf.Duration delay = 3; // Verzögerung vor Retry
+}
+
+// =============================================================================
+// Request/Reply Pattern
+// =============================================================================
+
+// Request mit erwarteter Antwort
+message RequestMessage {
+  Message request = 1;
+  string reply_topic = 2;             // Wohin die Antwort soll
+  google.protobuf.Duration timeout = 3;
+}
+
+message ReplyMessage {
+  Message reply = 1;
+  string in_response_to = 2;          // Original message_id
+  bool is_error = 3;
+  string error_code = 4;
+  string error_message = 5;
+}
+
+// =============================================================================
+// Node-to-Node Messaging
+// =============================================================================
+
+// Direkte Nachricht an einen Node
+message NodeMessage {
+  string target_node_id = 1;
+  Message message = 2;
+  bool require_online = 3;            // Fehlschlagen wenn offline
+}
+
+message NodeMessageResponse {
+  bool delivered = 1;
+  string error_message = 2;
+}
+
+// Broadcast an alle Nodes
+message BroadcastRequest {
+  Message message = 1;
+  repeated string target_node_types = 2;  // Filter nach Node-Typ
+  repeated string target_regions = 3;     // Filter nach Region
+  bool exclude_self = 4;
+}
+
+message BroadcastResponse {
+  int32 nodes_reached = 1;
+  repeated string failed_nodes = 2;
+}
+
+// =============================================================================
+// Stream Processing
+// =============================================================================
+
+// Consumer Group für Load-Balancing
+message ConsumerGroup {
+  string group_id = 1;
+  string topic = 2;
+  repeated ConsumerMember members = 3;
+  RebalanceStrategy rebalance_strategy = 4;
+}
+
+message ConsumerMember {
+  string consumer_id = 1;
+  string node_id = 2;
+  repeated int32 assigned_partitions = 3;
+  google.protobuf.Timestamp joined_at = 4;
+}
+
+enum RebalanceStrategy {
+  REBALANCE_STRATEGY_UNSPECIFIED = 0;
+  REBALANCE_STRATEGY_RANGE = 1;       // Zusammenhängende Partitionen
+  REBALANCE_STRATEGY_ROUND_ROBIN = 2; // Gleichmäßig verteilt
+  REBALANCE_STRATEGY_STICKY = 3;      // Minimale Änderungen
+}
+
+// =============================================================================
+// Message Queries
+// =============================================================================
+
+// Nachrichten in einem Topic abfragen
+message QueryMessagesRequest {
+  string topic = 1;
+
+  // Zeitbereich
+  google.protobuf.Timestamp from_time = 2;
+  google.protobuf.Timestamp to_time = 3;
+
+  // Sequenzbereich
+  int64 from_sequence = 4;
+  int64 to_sequence = 5;
+
+  // Filter
+  string filter_expression = 6;
+  map<string, string> header_filters = 7;
+
+  // Pagination
+  int32 limit = 8;
+  string page_token = 9;
+}
+
+message QueryMessagesResponse {
+  repeated Message messages = 1;
+  string next_page_token = 2;
+  int64 total_count = 3;
+}
+
+// =============================================================================
+// gRPC Service Definition
+// =============================================================================
+
+service MessagingService {
+  // Pub/Sub
+  rpc Publish(PublishRequest) returns (PublishResponse);
+  rpc BatchPublish(BatchPublishRequest) returns (BatchPublishResponse);
+  rpc Subscribe(SubscribeRequest) returns (stream ReceivedMessage);
+  rpc Acknowledge(AcknowledgeRequest) returns (AcknowledgeResponse);
+  rpc Nack(NackRequest) returns (AcknowledgeResponse);
+
+  // Request/Reply
+  rpc Request(RequestMessage) returns (ReplyMessage);
+  rpc StreamRequest(stream RequestMessage) returns (stream ReplyMessage);
+
+  // Node Messaging
+  rpc SendToNode(NodeMessage) returns (NodeMessageResponse);
+  rpc Broadcast(BroadcastRequest) returns (BroadcastResponse);
+
+  // Topic Management
+  rpc CreateTopic(TopicConfig) returns (TopicConfig);
+  rpc GetTopic(GetTopicRequest) returns (TopicConfig);
+  rpc ListTopics(ListTopicsRequest) returns (ListTopicsResponse);
+  rpc DeleteTopic(DeleteTopicRequest) returns (DeleteTopicResponse);
+
+  // Consumer Groups
+  rpc JoinConsumerGroup(JoinGroupRequest) returns (ConsumerGroup);
+  rpc LeaveConsumerGroup(LeaveGroupRequest) returns (LeaveGroupResponse);
+  rpc GetConsumerGroup(GetGroupRequest) returns (ConsumerGroup);
+
+  // Queries
+  rpc QueryMessages(QueryMessagesRequest) returns (QueryMessagesResponse);
+  rpc GetMessage(GetMessageRequest) returns (Message);
+
+  // Health
+  rpc GetTopicStats(GetTopicStatsRequest) returns (TopicStats);
+}
+
+// Supporting messages for service operations
+message GetTopicRequest {
+  string topic_name = 1;
+}
+
+message ListTopicsRequest {
+  string prefix = 1;
+  int32 page_size = 2;
+  string page_token = 3;
+}
+
+message ListTopicsResponse {
+  repeated TopicConfig topics = 1;
+  string next_page_token = 2;
+}
+
+message DeleteTopicRequest {
+  string topic_name = 1;
+}
+
+message DeleteTopicResponse {
+  bool deleted = 1;
+}
+
+message JoinGroupRequest {
+  string group_id = 1;
+  string consumer_id = 2;
+  repeated string topics = 3;
+}
+
+message LeaveGroupRequest {
+  string group_id = 1;
+  string consumer_id = 2;
+}
+
+message LeaveGroupResponse {
+  bool left = 1;
+}
+
+message GetGroupRequest {
+  string group_id = 1;
+}
+
+message GetMessageRequest {
+  string topic = 1;
+  string message_id = 2;
+}
+
+message GetTopicStatsRequest {
+  string topic_name = 1;
+}
+
+message TopicStats {
+  string topic_name = 1;
+  int64 message_count = 2;
+  int64 size_bytes = 3;
+  int64 messages_per_second = 4;
+  int64 bytes_per_second = 5;
+  int32 publisher_count = 6;
+  int32 subscriber_count = 7;
+  google.protobuf.Timestamp oldest_message = 8;
+  google.protobuf.Timestamp newest_message = 9;
+}

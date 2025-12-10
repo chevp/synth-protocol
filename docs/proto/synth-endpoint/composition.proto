@@ -1,0 +1,431 @@
+// =============================================================================
+// Synth Composition - Scene & Resource Composition
+// =============================================================================
+// Automatisches Zusammenfügen von Szenen und Ressourcen aus verteilten Quellen
+// =============================================================================
+
+syntax = "proto3";
+
+package synth.endpoint;
+
+option java_package = "com.synth.endpoint";
+option java_multiple_files = true;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/any.proto";
+import "google/protobuf/struct.proto";
+
+// =============================================================================
+// Resource References
+// =============================================================================
+
+// Referenz auf eine Ressource (kann lokal oder remote sein)
+message ResourceRef {
+  string uri = 1;                     // URI der Ressource
+  string node_id = 2;                 // Optionaler spezifischer Node
+  string version = 3;                 // Optionale Version
+  string checksum = 4;                // SHA-256 für Integrität
+  bool required = 5;                  // Pflicht-Ressource?
+  ResourceRefType ref_type = 6;
+}
+
+enum ResourceRefType {
+  RESOURCE_REF_UNSPECIFIED = 0;
+  RESOURCE_REF_INLINE = 1;            // Inline einbetten
+  RESOURCE_REF_LINK = 2;              // Als Link referenzieren
+  RESOURCE_REF_LAZY = 3;              // Erst bei Bedarf laden
+}
+
+// Aufgelöste Ressource
+message ResolvedResource {
+  ResourceRef ref = 1;
+  ResourceStatus status = 2;
+  bytes content = 3;                  // Inhalt (wenn inline)
+  string local_path = 4;              // Lokaler Cache-Pfad
+  ContentMeta meta = 5;
+  string resolved_from_node = 6;      // Von welchem Node geladen
+}
+
+// Import aus endpoint.proto
+enum ResourceStatus {
+  RESOURCE_STATUS_UNSPECIFIED = 0;
+  RESOURCE_STATUS_AVAILABLE = 1;
+  RESOURCE_STATUS_UNAVAILABLE = 2;
+  RESOURCE_STATUS_REQUIRES_AUTH = 3;
+  RESOURCE_STATUS_REQUIRES_CONFIG = 4;
+  RESOURCE_STATUS_LOADING = 5;
+  RESOURCE_STATUS_CACHED = 6;
+  RESOURCE_STATUS_ERROR = 7;
+  RESOURCE_STATUS_NOT_FOUND = 8;
+  RESOURCE_STATUS_FORBIDDEN = 9;
+}
+
+message ContentMeta {
+  string mime_type = 1;
+  int64 size_bytes = 2;
+  string etag = 3;
+  google.protobuf.Timestamp last_modified = 4;
+}
+
+// =============================================================================
+// Scene Composition
+// =============================================================================
+
+// Scene-Definition mit Abhängigkeiten
+message SceneDefinition {
+  string scene_id = 1;
+  string name = 2;
+  string description = 3;
+  string version = 4;
+
+  // Basis-Scene (für Vererbung/Overrides)
+  ResourceRef base_scene = 5;
+
+  // Direkte Abhängigkeiten
+  repeated ResourceRef dependencies = 6;
+
+  // Scene-Graph
+  SceneNode root = 7;
+
+  // Metadaten
+  map<string, string> metadata = 8;
+  google.protobuf.Timestamp created_at = 9;
+  google.protobuf.Timestamp updated_at = 10;
+}
+
+// Knoten im Scene-Graph
+message SceneNode {
+  string node_id = 1;
+  string name = 2;
+  string node_type = 3;               // "mesh", "light", "camera", "group", etc.
+
+  // Transform
+  Transform transform = 4;
+
+  // Komponenten (Meshes, Materials, etc.)
+  repeated ComponentRef components = 5;
+
+  // Kind-Knoten
+  repeated SceneNode children = 6;
+
+  // Aktivierungsstatus
+  bool enabled = 7;
+
+  // Zusätzliche Properties
+  google.protobuf.Struct properties = 8;
+}
+
+message Transform {
+  Vec3 position = 1;
+  Quat rotation = 2;
+  Vec3 scale = 3;
+}
+
+message Vec3 {
+  float x = 1;
+  float y = 2;
+  float z = 3;
+}
+
+message Quat {
+  float x = 1;
+  float y = 2;
+  float z = 3;
+  float w = 4;
+}
+
+// Referenz auf eine Komponente
+message ComponentRef {
+  string component_type = 1;          // "mesh", "material", "texture", etc.
+  ResourceRef resource = 2;           // URI zur Komponenten-Ressource
+  google.protobuf.Struct overrides = 3;  // Lokale Überschreibungen
+}
+
+// =============================================================================
+// Composition Request/Response
+// =============================================================================
+
+// Scene zusammenstellen
+message ComposeSceneRequest {
+  // Entweder eine Scene-URI oder inline Definition
+  oneof scene_source {
+    string scene_uri = 1;             // URI zu einer Scene-Datei
+    SceneDefinition inline_scene = 2; // Inline Scene-Definition
+  }
+
+  // Composition-Optionen
+  CompositionOptions options = 3;
+
+  // Client-Kontext
+  ClientContext context = 4;
+
+  string correlation_id = 5;
+}
+
+message CompositionOptions {
+  // Welche Ressourcen einbetten vs. referenzieren
+  ResourceRefType default_ref_type = 1;
+  int64 inline_size_threshold = 2;    // Max-Größe für Inline (Bytes)
+
+  // Parallelität
+  int32 max_concurrent_fetches = 3;
+
+  // Caching
+  bool use_cache = 4;
+  bool populate_cache = 5;
+
+  // Fehlerbehandlung
+  bool fail_on_missing_optional = 6;
+  bool continue_on_error = 7;
+
+  // Format-Konvertierung
+  repeated FormatConversion conversions = 8;
+
+  // LOD (Level of Detail)
+  LodSettings lod = 9;
+}
+
+message FormatConversion {
+  string source_mime_type = 1;
+  string target_mime_type = 2;
+  map<string, string> options = 3;
+}
+
+message LodSettings {
+  int32 max_lod_level = 1;            // 0 = höchste Qualität
+  int64 texture_max_resolution = 2;   // Max Textur-Auflösung
+  int64 mesh_max_triangles = 3;       // Max Dreiecke pro Mesh
+}
+
+message ClientContext {
+  string client_id = 1;
+  GeoLocation location = 2;
+  DeviceCapabilities device = 3;
+}
+
+message GeoLocation {
+  double latitude = 1;
+  double longitude = 2;
+  string country_code = 3;
+}
+
+message DeviceCapabilities {
+  int64 available_memory = 1;         // Verfügbarer Speicher
+  int64 available_vram = 2;           // Verfügbarer VRAM
+  int64 available_disk = 3;           // Verfügbarer Festplattenspeicher
+  int32 max_texture_size = 4;         // Max Textur-Dimension
+  repeated string supported_formats = 5;  // Unterstützte Formate
+}
+
+// Zusammengestellte Scene
+message ComposeSceneResponse {
+  string scene_id = 1;
+  CompositionStatus status = 2;
+
+  // Die zusammengestellte Scene
+  ComposedScene scene = 3;
+
+  // Statistiken
+  CompositionStats stats = 4;
+
+  // Fehler (falls vorhanden)
+  repeated CompositionError errors = 5;
+
+  string correlation_id = 6;
+}
+
+enum CompositionStatus {
+  COMPOSITION_STATUS_UNSPECIFIED = 0;
+  COMPOSITION_STATUS_SUCCESS = 1;           // Vollständig erfolgreich
+  COMPOSITION_STATUS_PARTIAL = 2;           // Teilweise erfolgreich
+  COMPOSITION_STATUS_FAILED = 3;            // Fehlgeschlagen
+}
+
+message ComposedScene {
+  SceneDefinition definition = 1;
+
+  // Alle aufgelösten Ressourcen
+  repeated ResolvedResource resources = 2;
+
+  // Manifest aller Abhängigkeiten
+  DependencyManifest manifest = 3;
+}
+
+message DependencyManifest {
+  repeated DependencyEntry entries = 1;
+  int64 total_size_bytes = 2;
+  int32 total_resources = 3;
+  int32 inline_resources = 4;
+  int32 linked_resources = 5;
+  int32 lazy_resources = 6;
+}
+
+message DependencyEntry {
+  ResourceRef ref = 1;
+  ResourceStatus status = 2;
+  string resolved_node = 3;           // Von welchem Node
+  int64 size_bytes = 4;
+  string checksum = 5;
+  repeated string depends_on = 6;     // Transitive Abhängigkeiten (URIs)
+}
+
+message CompositionStats {
+  int32 resources_fetched = 1;
+  int32 resources_from_cache = 2;
+  int32 resources_failed = 3;
+  int64 total_bytes_transferred = 4;
+  int64 total_bytes_cached = 5;
+  int32 nodes_contacted = 6;
+  int64 composition_duration_ms = 7;
+}
+
+message CompositionError {
+  string resource_uri = 1;
+  string error_code = 2;
+  string message = 3;
+  bool recoverable = 4;
+}
+
+// =============================================================================
+// Incremental Composition
+// =============================================================================
+
+// Inkrementelle Updates für Live-Szenen
+message IncrementalUpdateRequest {
+  string scene_id = 1;
+
+  // Änderungen
+  repeated ResourceUpdate updates = 2;
+
+  string correlation_id = 3;
+}
+
+message ResourceUpdate {
+  ResourceRef resource = 1;
+  UpdateType update_type = 2;
+  bytes new_content = 3;              // Für REPLACE
+  google.protobuf.Struct property_changes = 4;  // Für MODIFY
+}
+
+enum UpdateType {
+  UPDATE_TYPE_UNSPECIFIED = 0;
+  UPDATE_TYPE_ADD = 1;                // Neue Ressource hinzufügen
+  UPDATE_TYPE_REMOVE = 2;             // Ressource entfernen
+  UPDATE_TYPE_REPLACE = 3;            // Ressource ersetzen
+  UPDATE_TYPE_MODIFY = 4;             // Properties ändern
+  UPDATE_TYPE_REFRESH = 5;            // Neu laden
+}
+
+message IncrementalUpdateResponse {
+  bool success = 1;
+  repeated ResourceRef affected_resources = 2;
+  repeated CompositionError errors = 3;
+  string correlation_id = 4;
+}
+
+// =============================================================================
+// Prefetching & Preloading
+// =============================================================================
+
+// Ressourcen vorladen
+message PrefetchRequest {
+  repeated ResourceRef resources = 1;
+  PrefetchPriority priority = 2;
+  int32 max_concurrent = 3;
+  string correlation_id = 4;
+}
+
+enum PrefetchPriority {
+  PREFETCH_PRIORITY_UNSPECIFIED = 0;
+  PREFETCH_PRIORITY_LOW = 1;
+  PREFETCH_PRIORITY_NORMAL = 2;
+  PREFETCH_PRIORITY_HIGH = 3;
+}
+
+message PrefetchResponse {
+  int32 queued = 1;
+  int32 already_cached = 2;
+  int32 failed = 3;
+  string correlation_id = 4;
+}
+
+// =============================================================================
+// gRPC Service Definition
+// =============================================================================
+
+service CompositionService {
+  // Scene-Komposition
+  rpc ComposeScene(ComposeSceneRequest) returns (ComposeSceneResponse);
+
+  // Streaming-Komposition (für sehr große Szenen)
+  rpc StreamComposeScene(ComposeSceneRequest) returns (stream ComposeSceneResponse);
+
+  // Inkrementelle Updates
+  rpc ApplyUpdate(IncrementalUpdateRequest) returns (IncrementalUpdateResponse);
+
+  // Watch für Live-Updates
+  rpc WatchScene(WatchSceneRequest) returns (stream SceneChangeEvent);
+
+  // Prefetching
+  rpc Prefetch(PrefetchRequest) returns (PrefetchResponse);
+
+  // Dependency-Analyse
+  rpc AnalyzeDependencies(AnalyzeDependenciesRequest) returns (DependencyManifest);
+
+  // Validierung
+  rpc ValidateScene(ValidateSceneRequest) returns (ValidateSceneResponse);
+}
+
+message WatchSceneRequest {
+  string scene_id = 1;
+  repeated string watch_resources = 2;  // Leer = alle
+}
+
+message SceneChangeEvent {
+  string scene_id = 1;
+  SceneChangeType change_type = 2;
+  ResourceRef changed_resource = 3;
+  google.protobuf.Timestamp timestamp = 4;
+}
+
+enum SceneChangeType {
+  SCENE_CHANGE_UNSPECIFIED = 0;
+  SCENE_CHANGE_RESOURCE_UPDATED = 1;
+  SCENE_CHANGE_RESOURCE_ADDED = 2;
+  SCENE_CHANGE_RESOURCE_REMOVED = 3;
+  SCENE_CHANGE_STRUCTURE_CHANGED = 4;
+}
+
+message AnalyzeDependenciesRequest {
+  string scene_uri = 1;
+  bool recursive = 2;                 // Transitive Abhängigkeiten
+  int32 max_depth = 3;                // Max Tiefe (0 = unbegrenzt)
+}
+
+message ValidateSceneRequest {
+  oneof scene_source {
+    string scene_uri = 1;
+    SceneDefinition inline_scene = 2;
+  }
+  bool check_resources = 3;           // Ressourcen-Verfügbarkeit prüfen
+  bool check_integrity = 4;           // Checksums prüfen
+}
+
+message ValidateSceneResponse {
+  bool valid = 1;
+  repeated ValidationIssue issues = 2;
+}
+
+message ValidationIssue {
+  ValidationSeverity severity = 1;
+  string code = 2;
+  string message = 3;
+  string location = 4;                // Pfad zum Problem
+}
+
+enum ValidationSeverity {
+  VALIDATION_SEVERITY_UNSPECIFIED = 0;
+  VALIDATION_SEVERITY_INFO = 1;
+  VALIDATION_SEVERITY_WARNING = 2;
+  VALIDATION_SEVERITY_ERROR = 3;
+}
