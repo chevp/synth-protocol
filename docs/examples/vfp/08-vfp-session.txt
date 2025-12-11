@@ -1,0 +1,461 @@
+# =============================================================================
+# SYNTH VIRTUAL FILE PROTOCOL (VFP) - Session Example
+# =============================================================================
+#
+# Ein komplettes Session-Beispiel das FTP, Git und Realtime kombiniert.
+#
+# =============================================================================
+
+# =============================================================================
+# CONNECTION & AUTHENTICATION
+# =============================================================================
+
+# Client verbindet zum VFP Server
+> CONNECT vfp://synth.example.com:2121
+< 220 Synth VFP Server v1.0 Ready
+< 220 Supported: FTP, GIT, REALTIME
+
+# Authentifizierung
+> AUTH TOKEN eyJhbGciOiJIUzI1NiIs...
+< 230 User "developer_01" authenticated
+< 230 Workspace: /projects/game_01
+
+# Session info
+> SYST
+< 215 SYNTH VFP Type: L8
+< 215 Features: UTF8, MLST, SIZE, REST, WATCH, GIT, REALTIME
+< 215 Server tick: 1000
+< 215 Branch: main
+
+# =============================================================================
+# FTP-STYLE: NAVIGIEREN & LESEN
+# =============================================================================
+
+# Aktuelles Verzeichnis
+> PWD
+< 257 "/" is current directory
+
+# Verzeichnis wechseln
+> CWD /scenes/level_01
+< 250 Directory changed to /scenes/level_01
+
+# Inhalt auflisten
+> LIST
+< 150 Opening data connection
+< drw-r--r-- 1 developer_01    0 Dec 11 10:00 nodes/
+< -rw-r--r-- 1 developer_01 4096 Dec 11 09:55 scene.json
+< -rw-r--r-- 1 developer_01 2048 Dec 11 09:50 lighting.json
+< drw-r--r-- 1 developer_01    0 Dec 11 09:45 assets/
+< 226 Transfer complete. 4 entries.
+
+# Nodes auflisten
+> LIST nodes/
+< 150 Opening data connection
+< -rw-r--r-- 1 developer_01  512 Dec 11 10:00 player_01.state    tick:1000
+< -rw-r--r-- 1 developer_01  256 Dec 11 09:58 enemy_01.state     tick:998
+< -rw-r--r-- 1 developer_01  256 Dec 11 09:58 enemy_02.state     tick:998
+< -rw-r--r-- 1 developer_01 1024 Dec 11 09:55 terrain.state      tick:950
+< drw-r--r-- 1 developer_01    0 Dec 11 09:50 props/
+< 226 Transfer complete. 5 entries.
+
+# Node-State lesen
+> GET nodes/player_01.state
+< 150 Opening BINARY mode data connection
+< {
+<   "id": "player_01",
+<   "type": "Character",
+<   "transform": {
+<     "position": [10.0, 0.0, 5.0],
+<     "rotation": [0.0, 90.0, 0.0],
+<     "scale": [1.0, 1.0, 1.0]
+<   },
+<   "components": {
+<     "health": { "current": 85, "max": 100 },
+<     "inventory": { "items": ["sword", "potion"] }
+<   },
+<   "tick": 1000
+< }
+< 226 Transfer complete. 512 bytes.
+
+# Datei-Metadaten
+> STAT nodes/player_01.state
+< 213 Status of nodes/player_01.state:
+< 213  Size: 512
+< 213  Modified: 2024-12-11T10:00:00Z
+< 213  Type: application/json
+< 213  Checksum: sha256:abc123...
+< 213  Version: tick:1000 hash:def456
+< 213  Branch: main
+
+# =============================================================================
+# GIT-STYLE: VERSIONIERUNG
+# =============================================================================
+
+# Aktuelle Version
+> VERSION
+< 200 Current version:
+< 200  Tick: 1000
+< 200  Hash: abc123def456
+< 200  Branch: main
+< 200  Author: developer_01
+< 200  Time: 2024-12-11T10:00:00Z
+
+# History anzeigen
+> LOG nodes/player_01.state --limit=5
+< 200 Version history for nodes/player_01.state:
+<
+< tick:1000 | hash:abc123 | developer_01 | 2024-12-11 10:00
+<   transform: position update
+<
+< tick:998  | hash:def456 | developer_01 | 2024-12-11 09:58
+<   health: 100 → 85 (damage taken)
+<
+< tick:995  | hash:ghi789 | developer_01 | 2024-12-11 09:55
+<   inventory: added "potion"
+<
+< tick:990  | hash:jkl012 | developer_01 | 2024-12-11 09:50
+<   spawn at position [0, 0, 0]
+<
+< tick:0    | hash:mno345 | system       | 2024-12-11 09:00
+<   initial creation
+
+# Diff zwischen Versionen
+> DIFF tick:990..1000 nodes/player_01.state
+< 200 Diff tick:990..1000 nodes/player_01.state:
+<
+< @@ transform.position @@
+< - [0.0, 0.0, 0.0]
+< + [10.0, 0.0, 5.0]
+<
+< @@ transform.rotation @@
+< - [0.0, 0.0, 0.0]
+< + [0.0, 90.0, 0.0]
+<
+< @@ components.health.current @@
+< - 100
+< + 85
+<
+< @@ components.inventory.items @@
+< - ["sword"]
+< + ["sword", "potion"]
+<
+< Summary: 4 fields changed
+
+# Alte Version lesen
+> GET nodes/player_01.state@tick:990
+< 150 Opening BINARY mode data connection
+< {
+<   "id": "player_01",
+<   "transform": {
+<     "position": [0.0, 0.0, 0.0],
+<     "rotation": [0.0, 0.0, 0.0],
+<     "scale": [1.0, 1.0, 1.0]
+<   },
+<   "components": {
+<     "health": { "current": 100, "max": 100 },
+<     "inventory": { "items": ["sword"] }
+<   },
+<   "tick": 990
+< }
+< 226 Transfer complete.
+
+# =============================================================================
+# GIT-STYLE: BRANCHING & MERGING
+# =============================================================================
+
+# Branches auflisten
+> BRANCH
+< 200 Branches:
+< * main                tick:1000  (current)
+<   feature/new-enemy   tick:980
+<   bugfix/collision    tick:975
+
+# Neuen Branch erstellen
+> BRANCH feature/boss-fight
+< 200 Branch 'feature/boss-fight' created from main@tick:1000
+
+# Branch wechseln
+> CHECKOUT feature/boss-fight
+< 200 Switched to branch 'feature/boss-fight'
+
+# Änderung machen
+> PUT nodes/boss_01.state
+> {"id": "boss_01", "type": "Boss", "health": {"current": 1000, "max": 1000}}
+< 201 Created nodes/boss_01.state (256 bytes)
+< 201 Uncommitted changes: 1 file
+
+# Commit
+> COMMIT "Added boss enemy"
+< 200 Committed as tick:1001 hash:xyz789
+< 200 Branch feature/boss-fight is now 1 ahead of main
+
+# Zurück zu main
+> CHECKOUT main
+< 200 Switched to branch 'main'
+< 200 Note: nodes/boss_01.state does not exist on main
+
+# Fetch remote changes
+> FETCH origin
+< 200 Fetching from origin...
+< 200 Remote main: tick:1005
+< 200 Local main: tick:1000
+< 200 5 new commits available
+
+# Pull (fetch + merge)
+> PULL origin main
+< 200 Pulling from origin/main...
+< 200 Fast-forward: tick:1000 → tick:1005
+< 200 Updated files:
+< 200   M nodes/enemy_01.state
+< 200   M nodes/enemy_02.state
+< 200   A nodes/enemy_03.state
+
+# Merge feature branch
+> MERGE feature/boss-fight
+< 200 Merging feature/boss-fight into main...
+< 200 Auto-merge successful
+< 200 Created merge commit tick:1006
+< 200 Changes:
+< 200   A nodes/boss_01.state
+
+# Push to remote
+> PUSH origin main
+< 200 Pushing to origin/main...
+< 200 tick:1000 → tick:1006 (6 commits)
+< 200 Push successful
+
+# =============================================================================
+# REALTIME: LIVE STATE SYNC
+# =============================================================================
+
+# Subscribe to all nodes in scene
+> WATCH /scenes/level_01/nodes/* --from-tick=1006
+< 200 Subscribed to /scenes/level_01/nodes/*
+< 200 Subscription ID: sub_001
+< 200 Current tick: 1006
+< 200 Watching 5 paths
+
+# Server sendet aktuelle States (initial)
+<<< SNAPSHOT sub_001 tick:1006
+<<< nodes/player_01.state: {"position": [10, 0, 5], "health": 85}
+<<< nodes/enemy_01.state: {"position": [20, 0, 10], "health": 100}
+<<< nodes/enemy_02.state: {"position": [25, 0, 15], "health": 100}
+<<< nodes/enemy_03.state: {"position": [30, 0, 20], "health": 100}
+<<< nodes/boss_01.state: {"position": [50, 0, 0], "health": 1000}
+<<< END SNAPSHOT
+
+# Client sendet Input
+> INPUT nodes/player_01 seq:1 type:move
+> {"direction": [1, 0, 0], "speed": 5.0}
+< 200 Input accepted seq:1
+
+# Server sendet Delta (alle Clients bekommen das)
+<<< DELTA tick:1007 sub_001
+<<< nodes/player_01.state
+<<<   transform.position: [10, 0, 5] → [11, 0, 5]
+<<< END DELTA
+
+# Weiterer Input
+> INPUT nodes/player_01 seq:2 type:action
+> {"action": "attack", "target": "enemy_01"}
+< 200 Input accepted seq:2
+
+# Server berechnet und sendet Deltas
+<<< DELTA tick:1008 sub_001
+<<< nodes/player_01.state
+<<<   components.state: "idle" → "attacking"
+<<< nodes/enemy_01.state
+<<<   components.health.current: 100 → 75
+<<<   components.state: "patrol" → "alert"
+<<< END DELTA
+
+# Server-seitige Korrektur (Client hatte falsch predicted)
+<<< CORRECTION tick:1008 sub_001
+<<< nodes/player_01.state
+<<<   transform.position: [12, 0, 5] → [11.5, 0, 5]
+<<<   rejected_input: seq:3
+<<<   reason: "collision detected"
+<<< END CORRECTION
+
+# Client acknowledged
+> ACK tick:1008
+< 200 ACK received
+
+# Anderer Client ändert etwas (Server pushed)
+<<< DELTA tick:1009 sub_001
+<<< nodes/enemy_02.state
+<<<   transform.position: [25, 0, 15] → [24, 0, 14]
+<<<   transform.rotation: [0, 0, 0] → [0, 45, 0]
+<<< END DELTA
+
+# Notification (Event ohne State-Änderung)
+<<< NOTIFICATION sub_001 tick:1009
+<<< event: "enemy_spotted"
+<<< source: "enemy_02"
+<<< target: "player_01"
+<<< data: {"distance": 15.0}
+<<< END NOTIFICATION
+
+# =============================================================================
+# REALTIME: SNAPSHOT REQUEST
+# =============================================================================
+
+# Client reconnected und braucht Full State
+> SNAPSHOT /scenes/level_01 --format=binary --compressed
+< 150 Preparing snapshot...
+< 200 Snapshot ready:
+< 200   Tick: 1010
+< 200   Nodes: 5
+< 200   Size: 4096 bytes (compressed: 1024 bytes)
+< 200   Format: msgpack+zstd
+< [BINARY DATA: 1024 bytes compressed snapshot]
+< 226 Snapshot complete
+
+# =============================================================================
+# COMBINING ALL: REALTIME AUTHORING
+# =============================================================================
+
+# Designer arbeitet live an der Scene
+# Andere Clients sehen Änderungen in Echtzeit
+
+# Designer erstellt neuen Node
+> PUT nodes/treasure_01.state
+> {"id": "treasure_01", "type": "Pickup", "position": [15, 0, 8]}
+< 201 Created nodes/treasure_01.state
+< 201 Uncommitted changes: 1 file
+
+# Andere Clients bekommen sofort das Delta
+<<< DELTA tick:1011 sub_001
+<<< nodes/treasure_01.state (NEW)
+<<<   id: "treasure_01"
+<<<   type: "Pickup"
+<<<   position: [15, 0, 8]
+<<< END DELTA
+
+# Designer macht mehr Änderungen...
+> PUT nodes/treasure_01.state
+> {"id": "treasure_01", "type": "Pickup", "position": [15, 0, 8], "value": 100}
+< 200 Updated nodes/treasure_01.state
+
+<<< DELTA tick:1012 sub_001
+<<< nodes/treasure_01.state
+<<<   value: (none) → 100
+<<< END DELTA
+
+# Designer ist zufrieden und committed
+> COMMIT "Added treasure pickup"
+< 200 Committed as tick:1012 hash:pqr567
+< 200 1 file changed
+
+# Andere Designer können das pullen
+# > PULL origin main
+# < 200 1 new commit: "Added treasure pickup"
+
+# =============================================================================
+# CONFLICT RESOLUTION
+# =============================================================================
+
+# Zwei Clients ändern denselben Node gleichzeitig
+
+# Client A:
+> PUT nodes/enemy_01.state
+> {"health": 50}
+< 200 Updated (local)
+
+# Client B (gleichzeitig):
+> PUT nodes/enemy_01.state
+> {"health": 60}
+< 200 Updated (local)
+
+# Client A versucht zu pushen
+> PUSH
+< 409 CONFLICT: nodes/enemy_01.state
+< 409 Local version: tick:1012
+< 409 Remote version: tick:1013
+< 409 Resolve with: MERGE, OURS, THEIRS, or REVERT
+
+# Client A merged
+> MERGE --strategy=theirs
+< 200 Merged using 'theirs' strategy
+< 200 nodes/enemy_01.state: health = 60
+
+# Oder bei Realtime - Server ist Authority
+<<< CORRECTION tick:1013 sub_001
+<<< nodes/enemy_01.state
+<<<   health: 50 → 60
+<<<   reason: "server authority"
+<<< END CORRECTION
+
+# =============================================================================
+# DISCONNECT & RECONNECT
+# =============================================================================
+
+# Client disconnected (network issue)
+# ... time passes ...
+
+# Client reconnects
+> CONNECT vfp://synth.example.com:2121
+< 220 Synth VFP Server Ready
+
+> AUTH TOKEN eyJhbGciOiJIUzI1NiIs...
+< 230 Welcome back developer_01
+
+# Resume watching from last known tick
+> WATCH /scenes/level_01/nodes/* --from-tick=1013
+< 200 Subscribed, catching up from tick:1013
+< 200 Current tick: 1050
+< 200 37 deltas to replay
+
+# Server sendet alle verpassten Deltas
+<<< DELTA tick:1014 sub_001
+<<< ...
+<<< DELTA tick:1015 sub_001
+<<< ...
+# ... alle Deltas bis tick:1050 ...
+<<< DELTA tick:1050 sub_001
+<<< END CATCHUP
+
+< 200 Caught up to tick:1050, now live
+
+# =============================================================================
+# SESSION END
+# =============================================================================
+
+# Unsubscribe
+> UNWATCH sub_001
+< 200 Unsubscribed from sub_001
+
+# Disconnect
+> QUIT
+< 221 Goodbye. Session stats:
+< 221   Duration: 45 minutes
+< 221   Commands: 127
+< 221   Bytes sent: 15.2 MB
+< 221   Bytes received: 8.4 MB
+< 221   Commits: 3
+< 221   Deltas received: 156
+
+# =============================================================================
+# ZUSAMMENFASSUNG
+# =============================================================================
+#
+# VFP kombiniert drei Paradigmen nahtlos:
+#
+# 1. FTP-Style: Vertraute Befehle (GET, PUT, LIST, CWD)
+#    - Einfache Navigation und Dateioperationen
+#    - Hierarchische Struktur
+#
+# 2. Git-Style: Versionierung und Kollaboration
+#    - Branches, Commits, Merges
+#    - History und Diff
+#    - Push/Pull für Sync
+#
+# 3. Realtime: Live State Sync
+#    - WATCH für Subscriptions
+#    - INPUT für Client-Aktionen
+#    - DELTA für inkrementelle Updates
+#    - CORRECTION für Server-Authority
+#
+# Alles über EIN Protokoll, EINE Verbindung!
+#
+# =============================================================================

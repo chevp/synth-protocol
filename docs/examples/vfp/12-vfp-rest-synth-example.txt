@@ -1,0 +1,772 @@
+================================================================================
+VFP REST - SYNTH PROJECT EXAMPLE
+================================================================================
+
+Dieses Beispiel zeigt wie ein Synth Projekt (01-basic-example.synth.xml)
+über VFP REST API erstellt und bearbeitet wird.
+
+Phase 1: Authoritative Scene Setup (HTTP REST)
+Phase 2: Live Events (WebSocket Realtime)
+
+
+================================================================================
+PHASE 1: AUTHORITATIVE SCENE SETUP
+================================================================================
+
+Das vollständige Projekt wird initial über HTTP REST erstellt.
+Alle Requests sind idempotent - bei Neustart wird der gleiche State erreicht.
+
+
+--------------------------------------------------------------------------------
+1.1 PROJECT ERSTELLEN
+--------------------------------------------------------------------------------
+
+PUT /vfp/projects/proj_01HXYZ123456789ABCDEF/meta.json HTTP/1.1
+Host: api.synth.local
+Content-Type: application/json
+X-Vfp-Message: Initialize project
+
+{
+  "id": "proj_01HXYZ123456789ABCDEF",
+  "name": "Example Synth Project",
+  "description": "A demonstration project showing the synth-protocol XML structure",
+  "schemaVersion": "1.0.0",
+  "settings": {
+    "defaultSceneId": "scene_main",
+    "autoSaveEnabled": true,
+    "autoSaveIntervalSeconds": 300,
+    "customSettings": {
+      "theme": "dark",
+      "language": "en"
+    }
+  },
+  "createdAt": 1733400000000,
+  "lastOpenedBy": "developer"
+}
+
+HTTP/1.1 201 Created
+Location: /vfp/projects/proj_01HXYZ123456789ABCDEF/meta.json
+ETag: "proj_v1"
+X-Vfp-Tick: 1
+
+
+--------------------------------------------------------------------------------
+1.2 TAGS ERSTELLEN
+--------------------------------------------------------------------------------
+
+POST /vfp/_batch HTTP/1.1
+Content-Type: application/json
+
+{
+  "atomic": true,
+  "operations": [
+    {
+      "id": "tag1",
+      "method": "PUT",
+      "path": "/projects/proj_01HXYZ123456789ABCDEF/tags/tag_important.json",
+      "body": "{\"id\":\"tag_important\",\"name\":\"Important\",\"color\":\"#FF5722\",\"category\":\"priority\"}"
+    },
+    {
+      "id": "tag2",
+      "method": "PUT",
+      "path": "/projects/proj_01HXYZ123456789ABCDEF/tags/tag_draft.json",
+      "body": "{\"id\":\"tag_draft\",\"name\":\"Draft\",\"color\":\"#9E9E9E\",\"category\":\"status\"}"
+    },
+    {
+      "id": "tag3",
+      "method": "PUT",
+      "path": "/projects/proj_01HXYZ123456789ABCDEF/tags/tag_approved.json",
+      "body": "{\"id\":\"tag_approved\",\"name\":\"Approved\",\"color\":\"#4CAF50\",\"category\":\"status\"}"
+    },
+    {
+      "id": "tag4",
+      "method": "PUT",
+      "path": "/projects/proj_01HXYZ123456789ABCDEF/tags/tag_review.json",
+      "body": "{\"id\":\"tag_review\",\"name\":\"Needs Review\",\"color\":\"#FFC107\",\"category\":\"status\"}"
+    }
+  ]
+}
+
+HTTP/1.1 200 OK
+X-Vfp-Tick: 5
+
+{
+  "results": [
+    { "id": "tag1", "status": 201 },
+    { "id": "tag2", "status": 201 },
+    { "id": "tag3", "status": 201 },
+    { "id": "tag4", "status": 201 }
+  ],
+  "all_ok": true
+}
+
+
+--------------------------------------------------------------------------------
+1.3 CLUSTER NODES ERSTELLEN (Scene, Folder, Documents)
+--------------------------------------------------------------------------------
+
+-- Scene Node --
+PUT /vfp/projects/proj_01HXYZ123456789ABCDEF/nodes/scene_main.json HTTP/1.1
+Content-Type: application/json
+X-Vfp-Message: Create main scene
+
+{
+  "id": "scene_main",
+  "name": "Main Scene",
+  "nodeType": "CLUSTER_NODE_TYPE_SCENE",
+  "state": "CLUSTER_NODE_STATE_ACTIVE",
+  "childIds": ["doc_readme", "doc_notes", "folder_docs"],
+  "siblingOrder": 0,
+  "version": 1,
+  "createdAt": 1733400000000
+}
+
+HTTP/1.1 201 Created
+X-Vfp-Tick: 6
+
+
+-- Folder Node --
+PUT /vfp/projects/proj_01HXYZ123456789ABCDEF/nodes/folder_docs.json HTTP/1.1
+Content-Type: application/json
+
+{
+  "id": "folder_docs",
+  "name": "Documentation",
+  "nodeType": "CLUSTER_NODE_TYPE_FOLDER",
+  "state": "CLUSTER_NODE_STATE_ACTIVE",
+  "parentId": "scene_main",
+  "childIds": ["doc_spec"],
+  "siblingOrder": 2,
+  "tagIds": ["tag_important"]
+}
+
+HTTP/1.1 201 Created
+X-Vfp-Tick: 7
+
+
+-- Document Nodes (Batch) --
+POST /vfp/_batch HTTP/1.1
+Content-Type: application/json
+
+{
+  "atomic": true,
+  "operations": [
+    {
+      "id": "doc1",
+      "method": "PUT",
+      "path": "/projects/proj_01HXYZ123456789ABCDEF/nodes/doc_readme.json",
+      "body": "{\"id\":\"doc_readme\",\"name\":\"README.md\",\"nodeType\":\"CLUSTER_NODE_TYPE_DOCUMENT\",\"state\":\"CLUSTER_NODE_STATE_ACTIVE\",\"parentId\":\"scene_main\",\"siblingOrder\":0,\"tagIds\":[\"tag_important\",\"tag_approved\"],\"metadata\":{\"format\":\"markdown\",\"mime_type\":\"text/markdown\"}}"
+    },
+    {
+      "id": "doc2",
+      "method": "PUT",
+      "path": "/projects/proj_01HXYZ123456789ABCDEF/nodes/doc_notes.json",
+      "body": "{\"id\":\"doc_notes\",\"name\":\"Project Notes\",\"nodeType\":\"CLUSTER_NODE_TYPE_DOCUMENT\",\"state\":\"CLUSTER_NODE_STATE_ACTIVE\",\"parentId\":\"scene_main\",\"siblingOrder\":1,\"tagIds\":[\"tag_draft\"],\"metadata\":{\"format\":\"text\",\"mime_type\":\"text/plain\"}}"
+    },
+    {
+      "id": "doc3",
+      "method": "PUT",
+      "path": "/projects/proj_01HXYZ123456789ABCDEF/nodes/doc_spec.json",
+      "body": "{\"id\":\"doc_spec\",\"name\":\"Specification\",\"nodeType\":\"CLUSTER_NODE_TYPE_DOCUMENT\",\"state\":\"CLUSTER_NODE_STATE_ACTIVE\",\"parentId\":\"folder_docs\",\"siblingOrder\":0,\"tagIds\":[\"tag_important\",\"tag_review\"],\"metadata\":{\"format\":\"markdown\",\"mime_type\":\"text/markdown\"}}"
+    }
+  ]
+}
+
+HTTP/1.1 200 OK
+X-Vfp-Tick: 10
+
+{
+  "results": [
+    { "id": "doc1", "status": 201 },
+    { "id": "doc2", "status": 201 },
+    { "id": "doc3", "status": 201 }
+  ],
+  "all_ok": true
+}
+
+
+--------------------------------------------------------------------------------
+1.4 COMPONENTS ERSTELLEN (Scene Settings, Text Content)
+--------------------------------------------------------------------------------
+
+-- Scene Settings Component --
+PUT /vfp/projects/proj_01HXYZ123456789ABCDEF/components/comp_scene_settings.json HTTP/1.1
+Content-Type: application/json
+
+{
+  "id": "comp_scene_settings",
+  "clusterNodeId": "scene_main",
+  "componentType": "scene_settings",
+  "state": "COMPONENT_STATE_ENABLED",
+  "schemaVersion": "1.0.0",
+  "data": {
+    "gravity": { "x": 0, "y": -9.81, "z": 0 },
+    "activeSystemIds": ["sys_text_editor"],
+    "description": "The primary scene containing all documents"
+  }
+}
+
+HTTP/1.1 201 Created
+X-Vfp-Tick: 11
+
+
+-- Text Content Components --
+PUT /vfp/projects/proj_01HXYZ123456789ABCDEF/components/comp_readme_text.json HTTP/1.1
+Content-Type: application/json
+
+{
+  "id": "comp_readme_text",
+  "clusterNodeId": "doc_readme",
+  "componentType": "text_content",
+  "state": "COMPONENT_STATE_ENABLED",
+  "schemaVersion": "1.0.0",
+  "encoding": "base64",
+  "mimeType": "text/markdown",
+  "data": "IyBFeGFtcGxlIFN5bnRoIFByb2plY3QKCiFbUHJvamVjdCBIZWFkZXJdKGFzc2V0cy9oZWFkZXIucG5nKQoKVGhpcyBpcyBhIGRlbW9uc3RyYXRpb24gcHJvamVjdC4uLg=="
+}
+
+HTTP/1.1 201 Created
+X-Vfp-Tick: 12
+
+
+PUT /vfp/projects/proj_01HXYZ123456789ABCDEF/components/comp_notes_text.json HTTP/1.1
+Content-Type: application/json
+
+{
+  "id": "comp_notes_text",
+  "clusterNodeId": "doc_notes",
+  "componentType": "text_content",
+  "state": "COMPONENT_STATE_ENABLED",
+  "mimeType": "text/plain",
+  "data": "Project Notes\n=============\n\nTODO:\n- [ ] Implement document editor\n- [ ] Add search functionality"
+}
+
+HTTP/1.1 201 Created
+X-Vfp-Tick: 13
+
+
+--------------------------------------------------------------------------------
+1.5 ASSETS ERSTELLEN
+--------------------------------------------------------------------------------
+
+-- Asset Metadata --
+PUT /vfp/projects/proj_01HXYZ123456789ABCDEF/assets/asset_header/meta.json HTTP/1.1
+Content-Type: application/json
+
+{
+  "id": "asset_header",
+  "name": "header.png",
+  "type": "ASSET_TYPE_TEXTURE",
+  "sourcePath": "./assets/header.png",
+  "uri": "asset://project/assets/header.png",
+  "sizeBytes": 232,
+  "checksum": "a1b2c3d4e5f6789012345678901234567890abcdef",
+  "metadata": {
+    "width": "32",
+    "height": "32",
+    "format": "PNG",
+    "referencedBy": "doc_readme"
+  }
+}
+
+HTTP/1.1 201 Created
+X-Vfp-Tick: 14
+
+
+-- Asset Binary Upload --
+PUT /vfp/projects/proj_01HXYZ123456789ABCDEF/assets/asset_header/data HTTP/1.1
+Content-Type: image/png
+Content-Length: 232
+
+[Binary PNG Data]
+
+HTTP/1.1 201 Created
+X-Vfp-Tick: 15
+
+
+--------------------------------------------------------------------------------
+1.6 INITIAL COMMIT
+--------------------------------------------------------------------------------
+
+POST /vfp/projects/proj_01HXYZ123456789ABCDEF/_commit HTTP/1.1
+Content-Type: application/json
+
+{
+  "message": "Initial project setup",
+  "paths": ["/"]
+}
+
+HTTP/1.1 200 OK
+
+{
+  "version": { "tick": 20, "hash": "init_abc123", "branch": "main" },
+  "changes": 15
+}
+
+
+================================================================================
+PHASE 2: LIVE EVENTS (WebSocket)
+================================================================================
+
+Nach dem initialen Setup verbindet sich der Client per WebSocket
+für Realtime-Updates.
+
+
+--------------------------------------------------------------------------------
+2.1 WEBSOCKET VERBINDUNG
+--------------------------------------------------------------------------------
+
+Client connects to: ws://api.synth.local/vfp/realtime
+
+Server:
+{
+  "op": "CONNECTED",
+  "payload": {
+    "tick": 20,
+    "branch": "main",
+    "projectId": "proj_01HXYZ123456789ABCDEF"
+  }
+}
+
+
+--------------------------------------------------------------------------------
+2.2 WATCH - Scene Nodes abonnieren
+--------------------------------------------------------------------------------
+
+Client:
+{
+  "id": "req-001",
+  "op": "WATCH",
+  "payload": {
+    "patterns": ["/projects/proj_01HXYZ123456789ABCDEF/nodes/*"],
+    "initial": true,
+    "from_tick": 0
+  }
+}
+
+Server:
+{
+  "id": "req-001",
+  "op": "WATCH_OK",
+  "payload": {
+    "subscription_id": "sub_nodes_001",
+    "tick": 20,
+    "matched": 5
+  }
+}
+
+Server (Initial State):
+{
+  "op": "DELTA",
+  "payload": {
+    "tick": 20,
+    "nodes": [
+      { "path": "/nodes/scene_main", "op": "snapshot", "data": {"name":"Main Scene","nodeType":"CLUSTER_NODE_TYPE_SCENE"} },
+      { "path": "/nodes/folder_docs", "op": "snapshot", "data": {"name":"Documentation","parentId":"scene_main"} },
+      { "path": "/nodes/doc_readme", "op": "snapshot", "data": {"name":"README.md","parentId":"scene_main"} },
+      { "path": "/nodes/doc_notes", "op": "snapshot", "data": {"name":"Project Notes","parentId":"scene_main"} },
+      { "path": "/nodes/doc_spec", "op": "snapshot", "data": {"name":"Specification","parentId":"folder_docs"} }
+    ]
+  }
+}
+
+
+--------------------------------------------------------------------------------
+2.3 EVENT: Document umbenennen
+--------------------------------------------------------------------------------
+
+Client (via HTTP):
+PUT /vfp/projects/proj_01HXYZ123456789ABCDEF/nodes/doc_notes.json HTTP/1.1
+Content-Type: application/json
+If-Match: "doc_notes_v1"
+X-Vfp-Message: Rename notes document
+
+{
+  "id": "doc_notes",
+  "name": "Development Notes",
+  "nodeType": "CLUSTER_NODE_TYPE_DOCUMENT",
+  "state": "CLUSTER_NODE_STATE_ACTIVE",
+  "parentId": "scene_main",
+  "siblingOrder": 1,
+  "tagIds": ["tag_draft"]
+}
+
+HTTP/1.1 200 OK
+ETag: "doc_notes_v2"
+X-Vfp-Tick: 21
+
+
+Server (WebSocket Push to all subscribers):
+{
+  "op": "DELTA",
+  "payload": {
+    "tick": 21,
+    "nodes": [
+      {
+        "path": "/nodes/doc_notes",
+        "op": "update",
+        "fields": [
+          { "field": "name", "value": "Development Notes" }
+        ]
+      }
+    ]
+  }
+}
+
+
+--------------------------------------------------------------------------------
+2.4 EVENT: Tag hinzufuegen
+--------------------------------------------------------------------------------
+
+Client (via HTTP):
+PUT /vfp/projects/proj_01HXYZ123456789ABCDEF/nodes/doc_notes.json HTTP/1.1
+Content-Type: application/json
+If-Match: "doc_notes_v2"
+
+{
+  "id": "doc_notes",
+  "name": "Development Notes",
+  "nodeType": "CLUSTER_NODE_TYPE_DOCUMENT",
+  "state": "CLUSTER_NODE_STATE_ACTIVE",
+  "parentId": "scene_main",
+  "siblingOrder": 1,
+  "tagIds": ["tag_draft", "tag_review"]
+}
+
+HTTP/1.1 200 OK
+ETag: "doc_notes_v3"
+X-Vfp-Tick: 22
+
+
+Server (WebSocket):
+{
+  "op": "DELTA",
+  "payload": {
+    "tick": 22,
+    "nodes": [
+      {
+        "path": "/nodes/doc_notes",
+        "op": "update",
+        "fields": [
+          { "field": "tagIds", "value": ["tag_draft", "tag_review"] }
+        ]
+      }
+    ]
+  }
+}
+
+
+--------------------------------------------------------------------------------
+2.5 EVENT: Document verschieben (Drag and Drop)
+--------------------------------------------------------------------------------
+
+Client (WebSocket PUSH fuer schnelle UI-Reaktion):
+{
+  "id": "req-002",
+  "op": "PUSH",
+  "payload": {
+    "path": "/projects/proj_01HXYZ123456789ABCDEF/nodes/doc_notes",
+    "field": "parentId",
+    "value": "folder_docs",
+    "seq": 1001,
+    "predicted": true
+  }
+}
+
+Server (ACK):
+{
+  "id": "req-002",
+  "op": "ACK",
+  "payload": { "tick": 23, "seq": 1001 }
+}
+
+Server (Broadcast to other clients):
+{
+  "op": "DELTA",
+  "payload": {
+    "tick": 23,
+    "nodes": [
+      {
+        "path": "/nodes/doc_notes",
+        "op": "update",
+        "fields": [
+          { "field": "parentId", "value": "folder_docs" },
+          { "field": "siblingOrder", "value": 1 }
+        ]
+      },
+      {
+        "path": "/nodes/scene_main",
+        "op": "update",
+        "fields": [
+          { "field": "childIds", "value": ["doc_readme", "folder_docs"] }
+        ]
+      },
+      {
+        "path": "/nodes/folder_docs",
+        "op": "update",
+        "fields": [
+          { "field": "childIds", "value": ["doc_spec", "doc_notes"] }
+        ]
+      }
+    ]
+  }
+}
+
+
+--------------------------------------------------------------------------------
+2.6 EVENT: Neues Document erstellen
+--------------------------------------------------------------------------------
+
+Client (HTTP):
+PUT /vfp/projects/proj_01HXYZ123456789ABCDEF/nodes/doc_changelog.json HTTP/1.1
+Content-Type: application/json
+X-Vfp-Message: Add changelog document
+
+{
+  "id": "doc_changelog",
+  "name": "CHANGELOG.md",
+  "nodeType": "CLUSTER_NODE_TYPE_DOCUMENT",
+  "state": "CLUSTER_NODE_STATE_ACTIVE",
+  "parentId": "scene_main",
+  "siblingOrder": 1,
+  "tagIds": [],
+  "metadata": {
+    "format": "markdown",
+    "mime_type": "text/markdown"
+  }
+}
+
+HTTP/1.1 201 Created
+X-Vfp-Tick: 24
+
+
+Server (WebSocket):
+{
+  "op": "DELTA",
+  "payload": {
+    "tick": 24,
+    "nodes": [
+      {
+        "path": "/nodes/doc_changelog",
+        "op": "create",
+        "data": {
+          "id": "doc_changelog",
+          "name": "CHANGELOG.md",
+          "nodeType": "CLUSTER_NODE_TYPE_DOCUMENT",
+          "parentId": "scene_main"
+        }
+      },
+      {
+        "path": "/nodes/scene_main",
+        "op": "update",
+        "fields": [
+          { "field": "childIds", "value": ["doc_readme", "doc_changelog", "folder_docs"] }
+        ]
+      }
+    ]
+  }
+}
+
+
+--------------------------------------------------------------------------------
+2.7 EVENT: Document loeschen
+--------------------------------------------------------------------------------
+
+Client (HTTP):
+DELETE /vfp/projects/proj_01HXYZ123456789ABCDEF/nodes/doc_changelog.json HTTP/1.1
+X-Vfp-Message: Remove changelog
+
+HTTP/1.1 204 No Content
+X-Vfp-Tick: 25
+
+
+Server (WebSocket):
+{
+  "op": "DELTA",
+  "payload": {
+    "tick": 25,
+    "nodes": [
+      {
+        "path": "/nodes/doc_changelog",
+        "op": "delete"
+      },
+      {
+        "path": "/nodes/scene_main",
+        "op": "update",
+        "fields": [
+          { "field": "childIds", "value": ["doc_readme", "folder_docs"] }
+        ]
+      }
+    ]
+  }
+}
+
+
+--------------------------------------------------------------------------------
+2.8 EVENT: Text Content Update
+--------------------------------------------------------------------------------
+
+Client (HTTP):
+PUT /vfp/projects/proj_01HXYZ123456789ABCDEF/components/comp_notes_text.json HTTP/1.1
+Content-Type: application/json
+If-Match: "comp_notes_v1"
+X-Vfp-Message: Update notes content
+
+{
+  "id": "comp_notes_text",
+  "clusterNodeId": "doc_notes",
+  "componentType": "text_content",
+  "state": "COMPONENT_STATE_ENABLED",
+  "mimeType": "text/plain",
+  "data": "Development Notes\n=================\n\nTODO:\n- [x] Implement document editor\n- [ ] Add search functionality\n- [ ] Add export feature"
+}
+
+HTTP/1.1 200 OK
+ETag: "comp_notes_v2"
+X-Vfp-Tick: 26
+
+
+--------------------------------------------------------------------------------
+2.9 VERSIONING: Diff anzeigen
+--------------------------------------------------------------------------------
+
+POST /vfp/projects/proj_01HXYZ123456789ABCDEF/_diff HTTP/1.1
+Content-Type: application/json
+
+{
+  "from_tick": 20,
+  "to_tick": 26,
+  "content": false
+}
+
+HTTP/1.1 200 OK
+
+{
+  "changes": [
+    { "path": "/nodes/doc_notes", "op": "modify" },
+    { "path": "/nodes/folder_docs", "op": "modify" },
+    { "path": "/nodes/scene_main", "op": "modify" },
+    { "path": "/nodes/doc_changelog", "op": "add" },
+    { "path": "/nodes/doc_changelog", "op": "delete" },
+    { "path": "/components/comp_notes_text", "op": "modify" }
+  ],
+  "additions": 1,
+  "deletions": 1,
+  "modifications": 4
+}
+
+
+--------------------------------------------------------------------------------
+2.10 VERSIONING: Commit erstellen
+--------------------------------------------------------------------------------
+
+POST /vfp/projects/proj_01HXYZ123456789ABCDEF/_commit HTTP/1.1
+Content-Type: application/json
+
+{
+  "message": "Reorganize documents and update notes"
+}
+
+HTTP/1.1 200 OK
+
+{
+  "version": { "tick": 30, "hash": "commit_xyz789", "branch": "main" },
+  "changes": 6
+}
+
+
+--------------------------------------------------------------------------------
+2.11 VERSIONING: Log abrufen
+--------------------------------------------------------------------------------
+
+GET /vfp/projects/proj_01HXYZ123456789ABCDEF/_log?limit=5 HTTP/1.1
+
+HTTP/1.1 200 OK
+
+{
+  "entries": [
+    {
+      "version": { "tick": 30, "hash": "commit_xyz789" },
+      "message": "Reorganize documents and update notes",
+      "changes": 6
+    },
+    {
+      "version": { "tick": 20, "hash": "init_abc123" },
+      "message": "Initial project setup",
+      "changes": 15
+    }
+  ],
+  "next_cursor": null
+}
+
+
+--------------------------------------------------------------------------------
+2.12 QUERY: Dokumente mit Tag suchen
+--------------------------------------------------------------------------------
+
+GET /vfp/projects/proj_01HXYZ123456789ABCDEF/nodes/_select?filter=tagIds%20contains%20tag_important HTTP/1.1
+
+HTTP/1.1 200 OK
+
+{
+  "results": [
+    { "path": "/nodes/doc_readme", "data": { "name": "README.md", "tagIds": ["tag_important", "tag_approved"] } },
+    { "path": "/nodes/folder_docs", "data": { "name": "Documentation", "tagIds": ["tag_important"] } },
+    { "path": "/nodes/doc_spec", "data": { "name": "Specification", "tagIds": ["tag_important", "tag_review"] } }
+  ],
+  "total": 3,
+  "has_more": false
+}
+
+
+--------------------------------------------------------------------------------
+2.13 SESSION BEENDEN
+--------------------------------------------------------------------------------
+
+Client:
+{
+  "id": "req-999",
+  "op": "UNWATCH",
+  "payload": { "subscription_id": "sub_nodes_001" }
+}
+
+Server:
+{
+  "id": "req-999",
+  "op": "UNWATCH_OK"
+}
+
+Client disconnects WebSocket.
+
+
+================================================================================
+ZUSAMMENFASSUNG
+================================================================================
+
+VFP REST Mapping fuer Synth Projekte:
+
+  /vfp/projects/{projectId}/
+    meta.json                     Project Metadata
+    tags/{tagId}.json             Tags
+    nodes/{nodeId}.json           ClusterNodes (Scene, Folder, Document)
+    components/{compId}.json      Components (ECS Data)
+    assets/{assetId}/
+      meta.json                   Asset Metadata
+      data                        Asset Binary
+
+HTTP Verben:
+  GET       Lesen
+  PUT       Erstellen/Update
+  DELETE    Loeschen
+  POST      Actions (_commit, _diff, _batch)
+
+WebSocket:
+  WATCH     Aenderungen abonnieren
+  PUSH      Schnelle Updates (Client Prediction)
+  DELTA     Server Broadcasts
+  UNWATCH   Subscription beenden
+
+Tick System:
+  - Jede Aenderung erhoet den Tick
+  - ETags fuer Optimistic Locking
+  - Commits gruppieren Aenderungen

@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documentation</title>
+    <style>
+        :root {
+            --bg: #ffffff;
+            --bg-sidebar: #f8f9fa;
+            --text: #212529;
+            --text-muted: #6c757d;
+            --border: #dee2e6;
+            --accent: #0d6efd;
+            --accent-hover: #0b5ed7;
+            --code-bg: #f1f3f5;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            background: var(--bg-sidebar);
+            border-right: 1px solid var(--border);
+            padding: 20px;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+        .sidebar-header {
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 20px;
+        }
+
+        .sidebar-header h1 {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .sidebar-header p {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .nav-section {
+            margin-bottom: 24px;
+        }
+
+        .nav-section-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .nav-list {
+            list-style: none;
+        }
+
+        .nav-item {
+            margin-bottom: 2px;
+        }
+
+        .nav-link {
+            display: block;
+            padding: 8px 12px;
+            color: var(--text);
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 0.9375rem;
+            transition: background 0.15s;
+        }
+
+        .nav-link:hover {
+            background: var(--border);
+        }
+
+        .nav-link.active {
+            background: var(--accent);
+            color: white;
+        }
+
+        /* Main Content */
+        .main {
+            padding: 40px 60px;
+            max-width: 900px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px;
+            color: var(--text-muted);
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #fff5f5;
+            border: 1px solid #feb2b2;
+            color: #c53030;
+            padding: 16px;
+            border-radius: 8px;
+        }
+
+        /* Content Styling */
+        .content h1 {
+            font-size: 2.25rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .content h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-top: 40px;
+            margin-bottom: 16px;
+        }
+
+        .content h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-top: 32px;
+            margin-bottom: 12px;
+        }
+
+        .content p {
+            margin-bottom: 16px;
+        }
+
+        .content ul, .content ol {
+            margin-bottom: 16px;
+            padding-left: 24px;
+        }
+
+        .content li {
+            margin-bottom: 8px;
+        }
+
+        .content code {
+            background: var(--code-bg);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'SF Mono', Consolas, monospace;
+            font-size: 0.875em;
+        }
+
+        .content pre {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 16px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin-bottom: 16px;
+        }
+
+        .content pre code {
+            background: none;
+            padding: 0;
+            color: inherit;
+        }
+
+        .content a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        .content a:hover {
+            text-decoration: underline;
+        }
+
+        .content blockquote {
+            border-left: 4px solid var(--accent);
+            padding-left: 16px;
+            margin: 16px 0;
+            color: var(--text-muted);
+        }
+
+        .content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 16px;
+        }
+
+        .content th, .content td {
+            border: 1px solid var(--border);
+            padding: 10px 14px;
+            text-align: left;
+        }
+
+        .content th {
+            background: var(--bg-sidebar);
+            font-weight: 600;
+        }
+
+        /* Meta Info */
+        .meta {
+            display: flex;
+            gap: 20px;
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            margin-bottom: 24px;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Breadcrumb */
+        .breadcrumb {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+        }
+
+        .breadcrumb a {
+            color: var(--text-muted);
+            text-decoration: none;
+        }
+
+        .breadcrumb a:hover {
+            color: var(--accent);
+        }
+
+        .breadcrumb span {
+            margin: 0 8px;
+        }
+
+        /* Connection Status */
+        .status-bar {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--bg-sidebar);
+            border: 1px solid var(--border);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #6c757d;
+        }
+
+        .status-dot.connected {
+            background: #28a745;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+            .sidebar {
+                position: relative;
+                height: auto;
+            }
+            .main {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1 id="siteTitle">Documentation</h1>
+                <p id="siteDescription">Loading...</p>
+            </div>
+            <nav id="navigation">
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main">
+            <div id="content" class="content">
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    <p>Loading content...</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Status Bar -->
+    <div class="status-bar">
+        <div class="status-dot" id="statusDot"></div>
+        <span id="statusText">Connecting...</span>
+    </div>
+
+    <script>
+        // =============================================================================
+        // VFP REST Client (Minimal)
+        // =============================================================================
+
+        class VfpDocsClient {
+            constructor(baseUrl) {
+                this.baseUrl = baseUrl;
+                this.cache = new Map();
+            }
+
+            async get(path) {
+                const url = `${this.baseUrl}/vfp${path}`;
+
+                // Check cache
+                if (this.cache.has(path)) {
+                    return this.cache.get(path);
+                }
+
+                try {
+                    const response = await fetch(url, {
+                        headers: {
+                            'Accept': 'application/json'
+                        }
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    this.cache.set(path, data);
+                    return data;
+
+                } catch (error) {
+                    console.error(`Failed to fetch ${path}:`, error);
+                    throw error;
+                }
+            }
+
+            async list(path, options = {}) {
+                let url = `${this.baseUrl}/vfp${path}?list=true`;
+
+                if (options.pattern) {
+                    url += `&pattern=${encodeURIComponent(options.pattern)}`;
+                }
+                if (options.recursive) {
+                    url += '&recursive=true';
+                }
+
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                return response.json();
+            }
+
+            clearCache() {
+                this.cache.clear();
+            }
+        }
+
+        // =============================================================================
+        // Documentation Viewer
+        // =============================================================================
+
+        class DocsViewer {
+            constructor(config) {
+                this.config = {
+                    serverUrl: config.serverUrl || 'http://localhost:8080',
+                    siteId: config.siteId || 'docs',
+                    defaultPage: config.defaultPage || 'index'
+                };
+
+                this.client = new VfpDocsClient(this.config.serverUrl);
+                this.currentPage = null;
+
+                this.init();
+            }
+
+            async init() {
+                this.updateStatus('connecting');
+
+                try {
+                    // Load site metadata
+                    await this.loadSiteInfo();
+
+                    // Load navigation
+                    await this.loadNavigation();
+
+                    // Load initial page from URL hash or default
+                    const pageSlug = this.getPageFromHash() || this.config.defaultPage;
+                    await this.loadPage(pageSlug);
+
+                    this.updateStatus('connected');
+
+                    // Listen for hash changes
+                    window.addEventListener('hashchange', () => {
+                        const slug = this.getPageFromHash();
+                        if (slug && slug !== this.currentPage) {
+                            this.loadPage(slug);
+                        }
+                    });
+
+                } catch (error) {
+                    this.updateStatus('error');
+                    this.showError('Failed to connect to documentation server');
+                }
+            }
+
+            getPageFromHash() {
+                const hash = window.location.hash.slice(1);
+                return hash || null;
+            }
+
+            async loadSiteInfo() {
+                try {
+                    const site = await this.client.get(`/sites/${this.config.siteId}/meta.json`);
+
+                    document.getElementById('siteTitle').textContent = site.name || 'Documentation';
+                    document.getElementById('siteDescription').textContent = site.description || '';
+                    document.title = site.name || 'Documentation';
+
+                } catch (error) {
+                    // Use defaults if site info not available
+                    document.getElementById('siteTitle').textContent = 'Documentation';
+                    document.getElementById('siteDescription').textContent = '';
+                }
+            }
+
+            async loadNavigation() {
+                const nav = document.getElementById('navigation');
+
+                try {
+                    // Get navigation structure
+                    const navData = await this.client.get(`/sites/${this.config.siteId}/navigation.json`);
+
+                    nav.innerHTML = this.renderNavigation(navData.sections);
+
+                } catch (error) {
+                    // Fallback: list all pages
+                    try {
+                        const pages = await this.client.list(
+                            `/sites/${this.config.siteId}/content/pages/`,
+                            { pattern: '*.json' }
+                        );
+
+                        const items = pages.entries.map(entry => ({
+                            title: entry.name.replace('.json', ''),
+                            slug: entry.name.replace('.json', '')
+                        }));
+
+                        nav.innerHTML = this.renderNavigation([{ title: 'Pages', items }]);
+
+                    } catch (e) {
+                        nav.innerHTML = '<p style="color: var(--text-muted); padding: 12px;">No pages found</p>';
+                    }
+                }
+            }
+
+            renderNavigation(sections) {
+                return sections.map(section => `
+                    <div class="nav-section">
+                        <div class="nav-section-title">${section.title}</div>
+                        <ul class="nav-list">
+                            ${section.items.map(item => `
+                                <li class="nav-item">
+                                    <a href="#${item.slug}"
+                                       class="nav-link ${this.currentPage === item.slug ? 'active' : ''}"
+                                       data-slug="${item.slug}">
+                                        ${item.title}
+                                    </a>
+                                </li>
+                            `).join('')}
+                        </ul>
+                    </div>
+                `).join('');
+            }
+
+            async loadPage(slug) {
+                const content = document.getElementById('content');
+                content.innerHTML = '<div class="loading"><div class="loading-spinner"></div><p>Loading...</p></div>';
+
+                try {
+                    const page = await this.client.get(
+                        `/sites/${this.config.siteId}/content/pages/${slug}.json`
+                    );
+
+                    this.currentPage = slug;
+                    window.location.hash = slug;
+
+                    // Update navigation active state
+                    document.querySelectorAll('.nav-link').forEach(link => {
+                        link.classList.toggle('active', link.dataset.slug === slug);
+                    });
+
+                    // Render page
+                    content.innerHTML = this.renderPage(page);
+
+                } catch (error) {
+                    content.innerHTML = `
+                        <div class="error">
+                            <strong>Page not found</strong>
+                            <p>The page "${slug}" could not be loaded.</p>
+                        </div>
+                    `;
+                }
+            }
+
+            renderPage(page) {
+                const meta = page.updatedAt ? `
+                    <div class="meta">
+                        <div class="meta-item">
+                            <span>Last updated:</span>
+                            <span>${new Date(page.updatedAt).toLocaleDateString('de-DE')}</span>
+                        </div>
+                        ${page.author ? `
+                            <div class="meta-item">
+                                <span>Author:</span>
+                                <span>${page.author}</span>
+                            </div>
+                        ` : ''}
+                    </div>
+                ` : '';
+
+                // Convert content to HTML
+                const html = this.contentToHtml(page.content);
+
+                return `
+                    <h1>${page.title}</h1>
+                    ${meta}
+                    ${html}
+                `;
+            }
+
+            contentToHtml(content) {
+                if (!content) return '';
+
+                // If content is already HTML string
+                if (typeof content === 'string') {
+                    return content;
+                }
+
+                // If content is structured (ProseMirror-like)
+                if (content.type === 'doc' && content.content) {
+                    return content.content.map(node => this.nodeToHtml(node)).join('');
+                }
+
+                // If content is markdown (would need a markdown parser)
+                if (content.markdown) {
+                    return this.simpleMarkdown(content.markdown);
+                }
+
+                return '';
+            }
+
+            nodeToHtml(node) {
+                const children = node.content ? node.content.map(n => this.nodeToHtml(n)).join('') : '';
+
+                switch (node.type) {
+                    case 'heading':
+                        const level = node.attrs?.level || 2;
+                        return `<h${level}>${children}</h${level}>`;
+
+                    case 'paragraph':
+                        return `<p>${children}</p>`;
+
+                    case 'text':
+                        let text = node.text || '';
+                        if (node.marks) {
+                            node.marks.forEach(mark => {
+                                switch (mark.type) {
+                                    case 'bold': text = `<strong>${text}</strong>`; break;
+                                    case 'italic': text = `<em>${text}</em>`; break;
+                                    case 'code': text = `<code>${text}</code>`; break;
+                                    case 'link': text = `<a href="${mark.attrs.href}">${text}</a>`; break;
+                                }
+                            });
+                        }
+                        return text;
+
+                    case 'bullet_list':
+                        return `<ul>${children}</ul>`;
+
+                    case 'ordered_list':
+                        return `<ol>${children}</ol>`;
+
+                    case 'list_item':
+                        return `<li>${children}</li>`;
+
+                    case 'code_block':
+                        const lang = node.attrs?.language || '';
+                        return `<pre><code class="language-${lang}">${node.content?.[0]?.text || ''}</code></pre>`;
+
+                    case 'blockquote':
+                        return `<blockquote>${children}</blockquote>`;
+
+                    case 'horizontal_rule':
+                        return '<hr>';
+
+                    case 'image':
+                        return `<img src="${node.attrs.src}" alt="${node.attrs.alt || ''}" />`;
+
+                    default:
+                        return children;
+                }
+            }
+
+            simpleMarkdown(md) {
+                // Very basic markdown conversion
+                return md
+                    .replace(/^### (.*$)/gm, '<h3>$1</h3>')
+                    .replace(/^## (.*$)/gm, '<h2>$1</h2>')
+                    .replace(/^# (.*$)/gm, '<h1>$1</h1>')
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                    .replace(/`(.*?)`/g, '<code>$1</code>')
+                    .replace(/\n\n/g, '</p><p>')
+                    .replace(/^(.+)$/gm, '<p>$1</p>')
+                    .replace(/<p><\/p>/g, '');
+            }
+
+            updateStatus(status) {
+                const dot = document.getElementById('statusDot');
+                const text = document.getElementById('statusText');
+
+                switch (status) {
+                    case 'connecting':
+                        dot.className = 'status-dot';
+                        text.textContent = 'Connecting...';
+                        break;
+                    case 'connected':
+                        dot.className = 'status-dot connected';
+                        text.textContent = 'Connected';
+                        break;
+                    case 'error':
+                        dot.className = 'status-dot';
+                        text.textContent = 'Connection failed';
+                        break;
+                }
+            }
+
+            showError(message) {
+                document.getElementById('content').innerHTML = `
+                    <div class="error">
+                        <strong>Error</strong>
+                        <p>${message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        // =============================================================================
+        // Initialize
+        // =============================================================================
+
+        // Configure and start the viewer
+        const docs = new DocsViewer({
+            serverUrl: 'http://localhost:8080',  // VFP Server URL
+            siteId: 'docs',                      // Site ID
+            defaultPage: 'getting-started'       // Default page
+        });
+    </script>
+</body>
+</html>

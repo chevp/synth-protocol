@@ -1,0 +1,452 @@
+syntax = "proto3";
+
+package synth.wire;
+
+option java_package = "io.synth.protocol.wire";
+option java_multiple_files = true;
+option csharp_namespace = "Synth.Wire";
+option go_package = "synth/wire";
+
+// =============================================================================
+// VFP REST API - Datenmodell
+// =============================================================================
+//
+// VFP Semantik über Standard REST/WebSocket Transport.
+// Nutzt HTTP Verben und WebSocket für Realtime.
+//
+// TRANSPORT MAPPING:
+//
+//   HTTP REST (Request/Response)
+//     GET     /vfp/{path}              READ
+//     PUT     /vfp/{path}              WRITE
+//     DELETE  /vfp/{path}              REMOVE
+//     GET     /vfp/{path}?list=true    SCAN
+//     HEAD    /vfp/{path}              META
+//     POST    /vfp/{path}/_move        MOVE
+//     POST    /vfp/{path}/_copy        COPY
+//     POST    /vfp/{path}/_commit      COMMIT
+//     POST    /vfp/{path}/_diff        DIFF
+//     GET     /vfp/{path}/_log         LOG
+//     POST    /vfp/{path}/_revert      REVERT
+//     POST    /vfp/_branch             BRANCH
+//     POST    /vfp/_checkout           CHECKOUT
+//     POST    /vfp/_merge              MERGE
+//     GET     /vfp/{path}/_select      SELECT (Query)
+//     POST    /vfp/_batch              BATCH
+//
+//   WebSocket (Bidirectional Stream)
+//     ws://host/vfp/realtime
+//     WATCH, UNWATCH, PUSH, PULL, SYNC, ACK, PING
+//
+// =============================================================================
+
+// =============================================================================
+// COMMON TYPES
+// =============================================================================
+
+message VfpVersion {
+    uint64 tick = 1;                    // Server-autoritativer Tick
+    string hash = 2;                    // Content Hash (optional)
+    string branch = 3;                  // Branch Name
+    int64 timestamp = 4;                // Unix Timestamp
+    string author = 5;                  // Author ID
+}
+
+message VfpMeta {
+    string content_type = 1;            // MIME Type
+    int64 size = 2;                     // Bytes
+    int64 created = 3;                  // Unix Timestamp
+    int64 modified = 4;                 // Unix Timestamp
+    string etag = 5;                    // HTTP ETag
+    map<string, string> attributes = 6; // Custom Attributes
+}
+
+message VfpError {
+    string code = 1;                    // Error Code: NOT_FOUND, CONFLICT, etc.
+    string message = 2;                 // Human-readable Message
+    string path = 3;                    // Affected Path
+    VfpVersion version = 4;             // Current Version (for conflicts)
+}
+
+// =============================================================================
+// FILE OPERATIONS - REST
+// =============================================================================
+
+// GET /vfp/{path}
+// Response Body: Binary Data
+// Response Headers: X-Vfp-Version, X-Vfp-Tick, Content-Type, ETag
+message VfpReadResponse {
+    VfpMeta meta = 1;
+    VfpVersion version = 2;
+}
+
+// PUT /vfp/{path}
+// Request Body: Binary Data
+// Request Headers: Content-Type, If-Match (ETag), X-Vfp-Message
+message VfpWriteRequest {
+    bool create_only = 1;               // Fail if exists (POST semantic)
+    bool update_only = 2;               // Fail if not exists
+    string if_match = 3;                // ETag for optimistic locking
+    uint64 if_tick = 4;                 // Tick for optimistic locking
+    string message = 5;                 // Commit message
+    map<string, string> attributes = 6; // Custom attributes
+}
+
+message VfpWriteResponse {
+    VfpVersion version = 1;
+    VfpMeta meta = 2;
+}
+
+// DELETE /vfp/{path}
+message VfpRemoveRequest {
+    bool recursive = 1;                 // Delete directory contents
+    string if_match = 2;                // ETag for optimistic locking
+    string message = 3;                 // Commit message
+}
+
+// GET /vfp/{path}?list=true
+message VfpScanRequest {
+    string pattern = 1;                 // Glob pattern: *.json
+    bool recursive = 2;
+    int32 limit = 3;
+    string cursor = 4;
+    uint64 at_tick = 5;                 // At specific version
+}
+
+message VfpScanResponse {
+    repeated VfpEntry entries = 1;
+    string next_cursor = 2;
+    int32 total = 3;
+}
+
+message VfpEntry {
+    string name = 1;
+    string path = 2;
+    string type = 3;                    // file, directory, link
+    VfpMeta meta = 4;
+    VfpVersion version = 5;
+}
+
+// HEAD /vfp/{path}
+// Response nur Headers, kein Body
+message VfpMetaResponse {
+    bool exists = 1;
+    VfpMeta meta = 2;
+    VfpVersion version = 3;
+}
+
+// POST /vfp/{path}/_move
+message VfpMoveRequest {
+    string destination = 1;             // Target path
+    bool overwrite = 2;
+    string message = 3;
+}
+
+// POST /vfp/{path}/_copy
+message VfpCopyRequest {
+    string destination = 1;
+    bool overwrite = 2;
+}
+
+// =============================================================================
+// VERSION OPERATIONS - REST
+// =============================================================================
+
+// POST /vfp/{path}/_commit
+message VfpCommitRequest {
+    string message = 1;
+    repeated string paths = 2;          // Specific paths (empty = all)
+}
+
+message VfpCommitResponse {
+    VfpVersion version = 1;
+    int32 changes = 2;
+}
+
+// POST /vfp/{path}/_diff
+message VfpDiffRequest {
+    uint64 from_tick = 1;
+    uint64 to_tick = 2;                 // 0 = current
+    string from_branch = 3;
+    string to_branch = 4;
+    bool content = 5;                   // Include content changes
+}
+
+message VfpDiffResponse {
+    repeated VfpChange changes = 1;
+    int32 additions = 2;
+    int32 deletions = 3;
+    int32 modifications = 4;
+}
+
+message VfpChange {
+    string path = 1;
+    string op = 2;                      // add, modify, delete, rename
+    string old_path = 3;                // For rename
+    bytes old_value = 4;                // If content=true
+    bytes new_value = 5;
+}
+
+// GET /vfp/{path}/_log
+message VfpLogRequest {
+    int32 limit = 1;
+    string cursor = 2;
+    string author = 3;                  // Filter by author
+    uint64 since_tick = 4;
+    uint64 until_tick = 5;
+}
+
+message VfpLogResponse {
+    repeated VfpLogEntry entries = 1;
+    string next_cursor = 2;
+}
+
+message VfpLogEntry {
+    VfpVersion version = 1;
+    string message = 2;
+    int32 changes = 3;
+    repeated string paths = 4;          // Changed paths
+}
+
+// POST /vfp/{path}/_revert
+message VfpRevertRequest {
+    uint64 to_tick = 1;
+    string message = 2;
+}
+
+// POST /vfp/_branch
+message VfpBranchRequest {
+    string op = 1;                      // create, delete, list
+    string name = 2;
+    string from = 3;                    // Base branch for create
+}
+
+message VfpBranchResponse {
+    repeated VfpBranchInfo branches = 1;
+}
+
+message VfpBranchInfo {
+    string name = 1;
+    uint64 tick = 2;
+    int64 created = 3;
+    string author = 4;
+}
+
+// POST /vfp/_checkout
+message VfpCheckoutRequest {
+    string branch = 1;
+    uint64 tick = 2;                    // Or specific tick
+}
+
+// POST /vfp/_merge
+message VfpMergeRequest {
+    string source = 1;                  // Source branch
+    string target = 2;                  // Target branch (default: current)
+    string strategy = 3;                // auto, ours, theirs
+    string message = 4;
+}
+
+message VfpMergeResponse {
+    VfpVersion version = 1;
+    bool conflicts = 2;
+    repeated VfpConflict conflict_list = 3;
+}
+
+message VfpConflict {
+    string path = 1;
+    bytes ours = 2;
+    bytes theirs = 3;
+}
+
+// =============================================================================
+// QUERY OPERATIONS - REST
+// =============================================================================
+
+// GET /vfp/{path}/_select?filter=...&sort=...&limit=...
+message VfpSelectRequest {
+    string filter = 1;                  // type=player AND score > 100
+    repeated VfpSort sort = 2;
+    int32 limit = 3;
+    int32 offset = 4;
+    string cursor = 5;
+    repeated string fields = 6;         // Projection
+}
+
+message VfpSort {
+    string field = 1;
+    bool desc = 2;
+}
+
+message VfpSelectResponse {
+    repeated VfpResult results = 1;
+    int32 total = 2;
+    string next_cursor = 3;
+    bool has_more = 4;
+}
+
+message VfpResult {
+    string path = 1;
+    bytes data = 2;
+    VfpMeta meta = 3;
+    float score = 4;                    // Search relevance
+}
+
+// POST /vfp/_batch
+message VfpBatchRequest {
+    repeated VfpBatchOp operations = 1;
+    bool atomic = 2;                    // All or nothing
+    bool stop_on_error = 3;
+}
+
+message VfpBatchOp {
+    string id = 1;                      // Client-provided ID
+    string method = 2;                  // GET, PUT, DELETE, etc.
+    string path = 3;
+    bytes body = 4;
+    map<string, string> headers = 5;
+}
+
+message VfpBatchResponse {
+    repeated VfpBatchResult results = 1;
+    bool all_ok = 2;
+}
+
+message VfpBatchResult {
+    string id = 1;
+    int32 status = 2;                   // HTTP Status Code
+    bytes body = 3;
+    VfpError error = 4;
+}
+
+// =============================================================================
+// REALTIME OPERATIONS - WebSocket
+// =============================================================================
+//
+// WebSocket Connection: ws://host/vfp/realtime
+// All messages are JSON encoded VfpWsMessage
+//
+
+message VfpWsMessage {
+    string id = 1;                      // Request/Response correlation
+    string op = 2;                      // Operation type
+
+    oneof payload {
+        VfpWatchRequest watch = 10;
+        VfpUnwatchRequest unwatch = 11;
+        VfpPushRequest push = 12;
+        VfpPullRequest pull = 13;
+        VfpAckRequest ack = 14;
+        VfpPingRequest ping = 15;
+
+        VfpWatchResponse watch_resp = 20;
+        VfpDeltaMessage delta = 21;
+        VfpCorrectionMessage correction = 22;
+        VfpPullResponse pull_resp = 23;
+        VfpPongResponse pong = 24;
+
+        VfpError error = 30;
+    }
+}
+
+// Client: WATCH
+message VfpWatchRequest {
+    repeated string patterns = 1;       // /scenes/*/nodes/*
+    bool initial = 2;                   // Send current state
+    uint64 from_tick = 3;               // Resume from tick
+    repeated string fields = 4;         // Only these fields
+}
+
+message VfpWatchResponse {
+    string subscription_id = 1;
+    uint64 tick = 2;
+    int32 matched = 3;
+}
+
+// Client: UNWATCH
+message VfpUnwatchRequest {
+    string subscription_id = 1;
+}
+
+// Client: PUSH (send input to server)
+message VfpPushRequest {
+    string path = 1;                    // Target node
+    string field = 2;                   // Target field
+    bytes value = 3;                    // New value
+    uint32 seq = 4;                     // Client sequence number
+    bool predicted = 5;                 // Client already applied
+}
+
+// Client: PULL (request full snapshot)
+message VfpPullRequest {
+    string path = 1;
+    string format = 2;                  // json, binary, msgpack
+}
+
+message VfpPullResponse {
+    uint64 tick = 1;
+    int32 count = 2;
+    bytes data = 3;
+}
+
+// Client: ACK
+message VfpAckRequest {
+    uint64 tick = 1;
+}
+
+// Client: PING
+message VfpPingRequest {
+    int64 timestamp = 1;
+}
+
+message VfpPongResponse {
+    int64 client_timestamp = 1;
+    int64 server_timestamp = 2;
+}
+
+// Server: DELTA (incremental update)
+message VfpDeltaMessage {
+    uint64 tick = 1;
+    repeated VfpNodeDelta nodes = 2;
+}
+
+message VfpNodeDelta {
+    string path = 1;
+    string op = 2;                      // create, update, delete
+    repeated VfpFieldDelta fields = 3;
+}
+
+message VfpFieldDelta {
+    string field = 1;
+    bytes value = 2;
+}
+
+// Server: CORRECTION (rejected input)
+message VfpCorrectionMessage {
+    uint64 tick = 1;
+    string path = 2;
+    string field = 3;
+    bytes value = 4;                    // Corrected value
+    uint32 rejected_seq = 5;            // Rejected input sequence
+    string reason = 6;
+}
+
+// =============================================================================
+// HTTP HEADERS
+// =============================================================================
+//
+// Request Headers:
+//   X-Vfp-Branch: main              Current branch
+//   X-Vfp-Tick: 1234                At specific tick
+//   X-Vfp-Message: "commit msg"     Commit message for write ops
+//   If-Match: "etag"                Optimistic locking
+//   If-None-Match: "etag"           Conditional GET
+//
+// Response Headers:
+//   X-Vfp-Tick: 1234                Current tick
+//   X-Vfp-Branch: main              Current branch
+//   X-Vfp-Hash: abc123              Content hash
+//   ETag: "abc123"                  For caching/locking
+//   X-Vfp-Total: 100                Total count for list ops
+//   X-Vfp-Cursor: xyz               Pagination cursor
+//
+// =============================================================================

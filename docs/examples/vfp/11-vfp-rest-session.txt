@@ -1,0 +1,573 @@
+================================================================================
+VFP REST API SESSION
+================================================================================
+
+VFP Semantik über Standard HTTP REST und WebSocket.
+Alle Features, volle Kompatibilität mit existierender Infrastruktur.
+
+================================================================================
+HTTP REST ENDPOINTS
+================================================================================
+
+FILE OPERATIONS
+  GET     /vfp/{path}              Lese Resource
+  PUT     /vfp/{path}              Schreibe Resource
+  DELETE  /vfp/{path}              Lösche Resource
+  GET     /vfp/{path}?list=true    Liste Verzeichnis
+  HEAD    /vfp/{path}              Nur Metadaten
+  POST    /vfp/{path}/_move        Verschiebe
+  POST    /vfp/{path}/_copy        Kopiere
+
+VERSION OPERATIONS
+  POST    /vfp/{path}/_commit      Commit erstellen
+  POST    /vfp/{path}/_diff        Versionen vergleichen
+  GET     /vfp/{path}/_log         Versionshistorie
+  POST    /vfp/{path}/_revert      Zurücksetzen
+  POST    /vfp/_branch             Branch verwalten
+  POST    /vfp/_checkout           Branch wechseln
+  POST    /vfp/_merge              Branches mergen
+
+QUERY OPERATIONS
+  GET     /vfp/{path}/_select      Suchen/Filtern
+  POST    /vfp/_batch              Mehrere Operationen
+
+REALTIME (WebSocket)
+  ws://host/vfp/realtime           Bidirektionaler Stream
+
+
+================================================================================
+FILE OPERATIONS
+================================================================================
+
+-- READ --
+GET /vfp/scenes/level_01/config.json HTTP/1.1
+Host: api.example.com
+Accept: application/json
+X-Vfp-Branch: main
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+ETag: "abc123"
+X-Vfp-Tick: 42
+X-Vfp-Branch: main
+X-Vfp-Hash: sha256:def456
+
+{
+  "name": "Level 01",
+  "gravity": 9.81,
+  "spawn_point": [0, 10, 0]
+}
+
+
+-- WRITE (Create) --
+PUT /vfp/scenes/level_01/enemies.json HTTP/1.1
+Host: api.example.com
+Content-Type: application/json
+X-Vfp-Message: Add enemy configuration
+
+{
+  "max_enemies": 50,
+  "spawn_rate": 2.5
+}
+
+HTTP/1.1 201 Created
+Location: /vfp/scenes/level_01/enemies.json
+ETag: "xyz789"
+X-Vfp-Tick: 43
+
+{
+  "version": { "tick": 43, "hash": "xyz789" }
+}
+
+
+-- WRITE (Update with Optimistic Locking) --
+PUT /vfp/scenes/level_01/config.json HTTP/1.1
+Host: api.example.com
+Content-Type: application/json
+If-Match: "abc123"
+X-Vfp-Message: Update gravity
+
+{
+  "name": "Level 01",
+  "gravity": 10.0,
+  "spawn_point": [0, 10, 0]
+}
+
+HTTP/1.1 200 OK
+ETag: "newetag"
+X-Vfp-Tick: 44
+
+
+-- WRITE (Conflict) --
+PUT /vfp/scenes/level_01/config.json HTTP/1.1
+If-Match: "old_etag"
+
+HTTP/1.1 409 Conflict
+Content-Type: application/json
+
+{
+  "code": "CONFLICT",
+  "message": "Resource was modified",
+  "version": { "tick": 44, "hash": "newetag" }
+}
+
+
+-- DELETE --
+DELETE /vfp/scenes/level_01/temp.json HTTP/1.1
+X-Vfp-Message: Remove temporary file
+
+HTTP/1.1 204 No Content
+X-Vfp-Tick: 45
+
+
+-- SCAN (List Directory) --
+GET /vfp/scenes/level_01/?list=true&pattern=*.json&recursive=true HTTP/1.1
+
+HTTP/1.1 200 OK
+X-Vfp-Total: 5
+
+{
+  "entries": [
+    { "name": "config.json", "path": "/scenes/level_01/config.json", "type": "file", "meta": { "size": 128 } },
+    { "name": "enemies.json", "path": "/scenes/level_01/enemies.json", "type": "file", "meta": { "size": 64 } },
+    { "name": "nodes", "path": "/scenes/level_01/nodes", "type": "directory" }
+  ],
+  "total": 5,
+  "next_cursor": null
+}
+
+
+-- META (HEAD Request) --
+HEAD /vfp/scenes/level_01/config.json HTTP/1.1
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Length: 128
+ETag: "newetag"
+X-Vfp-Tick: 44
+X-Vfp-Modified: 2024-01-15T10:30:00Z
+
+
+-- MOVE --
+POST /vfp/scenes/old_level/_move HTTP/1.1
+Content-Type: application/json
+
+{
+  "destination": "/scenes/archive/old_level",
+  "message": "Archive old level"
+}
+
+HTTP/1.1 200 OK
+X-Vfp-Tick: 46
+
+
+-- COPY --
+POST /vfp/scenes/level_01/_copy HTTP/1.1
+Content-Type: application/json
+
+{
+  "destination": "/scenes/level_01_backup"
+}
+
+HTTP/1.1 201 Created
+Location: /vfp/scenes/level_01_backup
+
+
+================================================================================
+VERSION OPERATIONS
+================================================================================
+
+-- COMMIT --
+POST /vfp/scenes/level_01/_commit HTTP/1.1
+Content-Type: application/json
+
+{
+  "message": "Level 01 complete",
+  "paths": ["/scenes/level_01/config.json", "/scenes/level_01/enemies.json"]
+}
+
+HTTP/1.1 200 OK
+
+{
+  "version": { "tick": 50, "hash": "commit123", "branch": "main" },
+  "changes": 2
+}
+
+
+-- DIFF --
+POST /vfp/scenes/level_01/_diff HTTP/1.1
+Content-Type: application/json
+
+{
+  "from_tick": 40,
+  "to_tick": 50,
+  "content": true
+}
+
+HTTP/1.1 200 OK
+
+{
+  "changes": [
+    { "path": "/scenes/level_01/config.json", "op": "modify" },
+    { "path": "/scenes/level_01/enemies.json", "op": "add" }
+  ],
+  "additions": 1,
+  "modifications": 1,
+  "deletions": 0
+}
+
+
+-- LOG --
+GET /vfp/scenes/level_01/_log?limit=10 HTTP/1.1
+
+HTTP/1.1 200 OK
+
+{
+  "entries": [
+    { "version": { "tick": 50, "hash": "commit123" }, "message": "Level 01 complete", "changes": 2 },
+    { "version": { "tick": 42, "hash": "abc123" }, "message": "Initial config", "changes": 1 }
+  ],
+  "next_cursor": null
+}
+
+
+-- REVERT --
+POST /vfp/scenes/level_01/_revert HTTP/1.1
+Content-Type: application/json
+
+{
+  "to_tick": 42,
+  "message": "Revert to initial config"
+}
+
+HTTP/1.1 200 OK
+
+{
+  "version": { "tick": 51, "hash": "revert456" }
+}
+
+
+-- BRANCH (Create) --
+POST /vfp/_branch HTTP/1.1
+Content-Type: application/json
+
+{
+  "op": "create",
+  "name": "feature/new-physics",
+  "from": "main"
+}
+
+HTTP/1.1 201 Created
+
+{
+  "branches": [
+    { "name": "feature/new-physics", "tick": 51 }
+  ]
+}
+
+
+-- BRANCH (List) --
+POST /vfp/_branch HTTP/1.1
+Content-Type: application/json
+
+{
+  "op": "list"
+}
+
+HTTP/1.1 200 OK
+
+{
+  "branches": [
+    { "name": "main", "tick": 51 },
+    { "name": "feature/new-physics", "tick": 51 }
+  ]
+}
+
+
+-- CHECKOUT --
+POST /vfp/_checkout HTTP/1.1
+Content-Type: application/json
+
+{
+  "branch": "feature/new-physics"
+}
+
+HTTP/1.1 200 OK
+X-Vfp-Branch: feature/new-physics
+X-Vfp-Tick: 51
+
+
+-- MERGE --
+POST /vfp/_merge HTTP/1.1
+Content-Type: application/json
+
+{
+  "source": "feature/new-physics",
+  "target": "main",
+  "strategy": "auto",
+  "message": "Merge new physics"
+}
+
+HTTP/1.1 200 OK
+
+{
+  "version": { "tick": 60, "branch": "main" },
+  "conflicts": false
+}
+
+
+================================================================================
+QUERY OPERATIONS
+================================================================================
+
+-- SELECT (Filter) --
+GET /vfp/entities/_select?filter=type%3Dplayer&sort=score:desc&limit=10 HTTP/1.1
+
+HTTP/1.1 200 OK
+
+{
+  "results": [
+    { "path": "/entities/player_001", "data": { "type": "player", "score": 1500 } },
+    { "path": "/entities/player_042", "data": { "type": "player", "score": 1200 } }
+  ],
+  "total": 2,
+  "has_more": false
+}
+
+
+-- BATCH --
+POST /vfp/_batch HTTP/1.1
+Content-Type: application/json
+
+{
+  "atomic": true,
+  "operations": [
+    { "id": "op1", "method": "PUT", "path": "/config/a.json", "body": "{\"key\": 1}" },
+    { "id": "op2", "method": "PUT", "path": "/config/b.json", "body": "{\"key\": 2}" },
+    { "id": "op3", "method": "DELETE", "path": "/config/old.json" }
+  ]
+}
+
+HTTP/1.1 200 OK
+
+{
+  "results": [
+    { "id": "op1", "status": 201 },
+    { "id": "op2", "status": 201 },
+    { "id": "op3", "status": 204 }
+  ],
+  "all_ok": true
+}
+
+
+================================================================================
+REALTIME (WebSocket)
+================================================================================
+
+WebSocket URL: ws://api.example.com/vfp/realtime
+
+Alle Nachrichten sind JSON mit folgendem Format:
+{
+  "id": "request-id",
+  "op": "OPERATION",
+  "payload": { ... }
+}
+
+
+-- CONNECT --
+Client connects to ws://api.example.com/vfp/realtime
+
+Server:
+{
+  "op": "CONNECTED",
+  "payload": { "tick": 60, "branch": "main" }
+}
+
+
+-- WATCH --
+Client:
+{
+  "id": "req-001",
+  "op": "WATCH",
+  "payload": {
+    "patterns": ["/scenes/level_01/nodes/*"],
+    "initial": true,
+    "from_tick": 0
+  }
+}
+
+Server:
+{
+  "id": "req-001",
+  "op": "WATCH_OK",
+  "payload": {
+    "subscription_id": "sub-abc123",
+    "tick": 60,
+    "matched": 15
+  }
+}
+
+
+-- DELTA (Server Push) --
+Server:
+{
+  "op": "DELTA",
+  "payload": {
+    "tick": 61,
+    "nodes": [
+      {
+        "path": "/scenes/level_01/nodes/player_001",
+        "op": "update",
+        "fields": [
+          { "field": "position", "value": [10.5, 2.0, 15.3] }
+        ]
+      }
+    ]
+  }
+}
+
+
+-- PUSH (Client Input) --
+Client:
+{
+  "id": "req-002",
+  "op": "PUSH",
+  "payload": {
+    "path": "/scenes/level_01/nodes/player_001",
+    "field": "position",
+    "value": [11.0, 2.0, 15.5],
+    "seq": 1001,
+    "predicted": true
+  }
+}
+
+Server (ACK):
+{
+  "id": "req-002",
+  "op": "ACK",
+  "payload": { "tick": 62, "seq": 1001 }
+}
+
+
+-- CORRECTION (Server rejects input) --
+Server:
+{
+  "op": "CORRECTION",
+  "payload": {
+    "tick": 62,
+    "path": "/scenes/level_01/nodes/player_001",
+    "field": "position",
+    "value": [10.8, 2.0, 15.4],
+    "rejected_seq": 1001,
+    "reason": "Collision detected"
+  }
+}
+
+
+-- PULL (Full Snapshot) --
+Client:
+{
+  "id": "req-003",
+  "op": "PULL",
+  "payload": {
+    "path": "/scenes/level_01",
+    "format": "json"
+  }
+}
+
+Server:
+{
+  "id": "req-003",
+  "op": "PULL_OK",
+  "payload": {
+    "tick": 62,
+    "count": 250,
+    "data": { ... full scene state ... }
+  }
+}
+
+
+-- UNWATCH --
+Client:
+{
+  "id": "req-004",
+  "op": "UNWATCH",
+  "payload": { "subscription_id": "sub-abc123" }
+}
+
+Server:
+{
+  "id": "req-004",
+  "op": "UNWATCH_OK"
+}
+
+
+-- PING/PONG --
+Client:
+{
+  "id": "req-005",
+  "op": "PING",
+  "payload": { "timestamp": 1705312200000 }
+}
+
+Server:
+{
+  "id": "req-005",
+  "op": "PONG",
+  "payload": {
+    "client_timestamp": 1705312200000,
+    "server_timestamp": 1705312200005
+  }
+}
+
+
+================================================================================
+HTTP HEADERS REFERENZ
+================================================================================
+
+REQUEST HEADERS:
+  X-Vfp-Branch       Current branch (default: main)
+  X-Vfp-Tick         Read at specific tick
+  X-Vfp-Message      Commit message for write operations
+  If-Match           ETag for optimistic locking
+  If-None-Match      Conditional GET (304 Not Modified)
+
+RESPONSE HEADERS:
+  X-Vfp-Tick         Current server tick
+  X-Vfp-Branch       Current branch
+  X-Vfp-Hash         Content hash
+  ETag               For caching and locking
+  X-Vfp-Total        Total count for list operations
+  X-Vfp-Cursor       Pagination cursor
+  X-Vfp-Modified     Last modification timestamp
+
+
+================================================================================
+ERROR RESPONSES
+================================================================================
+
+400 Bad Request
+{
+  "code": "INVALID_REQUEST",
+  "message": "Invalid filter syntax"
+}
+
+404 Not Found
+{
+  "code": "NOT_FOUND",
+  "message": "Resource not found",
+  "path": "/scenes/unknown"
+}
+
+409 Conflict
+{
+  "code": "CONFLICT",
+  "message": "Resource was modified by another client",
+  "version": { "tick": 65, "hash": "current123" }
+}
+
+423 Locked
+{
+  "code": "LOCKED",
+  "message": "Resource is locked by another session"
+}

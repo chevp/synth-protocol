@@ -1,0 +1,1021 @@
+syntax = "proto3";
+
+package synth.wire;
+
+option java_package = "io.synth.protocol.wire";
+option java_multiple_files = true;
+option csharp_namespace = "Synth.Wire";
+option go_package = "synth/wire";
+
+// =============================================================================
+// SYNTH VIRTUAL FILE PROTOCOL (VFP)
+// =============================================================================
+//
+// Ein hybrides Protokoll das 5 Paradigmen in einem unified Command Set
+// kombiniert - jedes Command ist einzigartig und nicht dupliziert.
+//
+// PARADIGMEN:
+//
+//   FILE        Hierarchische Ressourcen (Storage)
+//               READ, WRITE, REMOVE, SCAN, META, MOVE, COPY, LINK
+//
+//   VERSION     Versionierte History (Git-like)
+//               COMMIT, BRANCH, CHECKOUT, DIFF, LOG, REVERT, MERGE, TAG
+//
+//   QUERY       Strukturierte Abfragen (SQL-like)
+//               SELECT, INSERT, UPDATE, DELETE, COUNT, JOIN, INDEX, AGGREGATE
+//
+//   REALTIME    Live State Synchronisation
+//               WATCH, UNWATCH, PUSH, PULL, SYNC, ACK, PING
+//
+//   LOCAL       SQLite/Lokale Datenbank (only for local storage)
+//               EXEC, BEGIN, COMMIT_TX, ABORT, SCHEMA, VACUUM, ATTACH, DETACH
+//
+// =============================================================================
+
+// =============================================================================
+// VFP COMMAND
+// =============================================================================
+//
+// The unified command structure. Every operation is a VfpCommand.
+//
+// =============================================================================
+
+message VfpCommand {
+    // Command header
+    string command_id = 1;
+    VfpOp op = 2;
+    string path = 3;                    // Virtual path: /scenes/level_01/nodes/player_01
+
+    // Version context (Git-like)
+    VfpVersion version = 4;
+
+    // Command-specific payload
+    oneof payload {
+        // FILE Paradigm
+        VfpGetRequest read_req = 10;
+        VfpPutRequest write_req = 11;
+        VfpListRequest scan_req = 12;
+        VfpDeleteRequest remove_req = 13;
+        VfpHeadRequest meta_req = 14;
+
+        // VERSION Paradigm
+        VfpCommitRequest commit_req = 20;
+        VfpDiffRequest diff_req = 21;
+        VfpLogRequest log_req = 22;
+        VfpRevertRequest revert_req = 23;
+        VfpMergeRequest merge_req = 24;
+
+        // QUERY Paradigm
+        VfpQueryRequest select_req = 30;
+        VfpBatchRequest batch_req = 31;
+
+        // REALTIME Paradigm
+        VfpWatchRequest watch_req = 40;
+        VfpInputRequest push_req = 41;
+        VfpSnapshotRequest pull_req = 42;
+
+        // LOCAL Paradigm (SQLite)
+        VfpExecRequest exec_req = 50;
+        VfpBeginRequest begin_req = 51;
+        VfpCommitTxRequest commit_tx_req = 52;
+        VfpAbortRequest abort_req = 53;
+        VfpSchemaRequest schema_req = 54;
+        VfpVacuumRequest vacuum_req = 55;
+        VfpAttachRequest attach_req = 56;
+        VfpDetachRequest detach_req = 57;
+    }
+
+    // Binary data (for PUT, INPUT, etc.)
+    bytes data = 100;
+}
+
+message VfpResponse {
+    // Response header
+    string command_id = 1;              // Correlates with VfpCommand
+    VfpStatus status = 2;
+    string message = 3;
+
+    // Response-specific payload
+    oneof payload {
+        // FILE Paradigm
+        VfpGetResponse read_resp = 10;
+        VfpListResponse scan_resp = 11;
+        VfpHeadResponse meta_resp = 12;
+
+        // VERSION Paradigm
+        VfpDiffResponse diff_resp = 20;
+        VfpLogResponse log_resp = 21;
+        VfpVersionResponse version_resp = 22;
+
+        // QUERY Paradigm
+        VfpQueryResponse select_resp = 30;
+        VfpBatchResponse batch_resp = 31;
+
+        // REALTIME Paradigm
+        VfpWatchResponse watch_resp = 40;
+        VfpSnapshotResponse pull_resp = 41;
+
+        // LOCAL Paradigm (SQLite)
+        VfpExecResponse exec_resp = 50;
+        VfpBeginResponse begin_resp = 51;
+        VfpSchemaResponse schema_resp = 52;
+    }
+
+    // Binary data (for READ responses)
+    bytes data = 100;
+}
+
+// Server-initiated push (for WATCH subscriptions)
+message VfpPush {
+    string subscription_id = 1;
+    VfpPushType type = 2;
+    string path = 3;
+    VfpVersion version = 4;
+
+    oneof payload {
+        VfpDelta delta = 10;
+        VfpCorrection correction = 11;
+        VfpNotification notification = 12;
+    }
+
+    bytes data = 100;
+}
+
+// =============================================================================
+// UNIFIED OPERATIONS
+// =============================================================================
+//
+// Jede Operation ist einzigartig - keine Duplikate zwischen Paradigmen.
+// Die Operationen sind nach ihrer primären Funktion gruppiert.
+//
+// =============================================================================
+
+enum VfpOp {
+    VFP_OP_UNSPECIFIED = 0;
+
+    // -------------------------------------------------------------------------
+    // FILE PARADIGM - Hierarchische Ressourcen-Operationen
+    // -------------------------------------------------------------------------
+    VFP_OP_READ = 1;                    // Lese Ressource (Binary oder JSON)
+    VFP_OP_WRITE = 2;                   // Schreibe Ressource (Create oder Update)
+    VFP_OP_REMOVE = 3;                  // Lösche Ressource
+    VFP_OP_SCAN = 4;                    // Liste/Durchsuche Verzeichnis
+    VFP_OP_META = 5;                    // Hole nur Metadaten (HEAD)
+    VFP_OP_MOVE = 6;                    // Verschiebe/Benenne um
+    VFP_OP_COPY = 7;                    // Kopiere Ressource
+    VFP_OP_LINK = 8;                    // Erstelle Symlink/Referenz
+
+    // -------------------------------------------------------------------------
+    // VERSION PARADIGM - Versionierungs-Operationen (Git-ähnlich)
+    // -------------------------------------------------------------------------
+    VFP_OP_COMMIT = 10;                 // Erstelle Version-Checkpoint
+    VFP_OP_BRANCH = 11;                 // Branch erstellen/listen/löschen
+    VFP_OP_CHECKOUT = 12;               // Wechsle Branch oder Version
+    VFP_OP_DIFF = 13;                   // Vergleiche Versionen
+    VFP_OP_LOG = 14;                    // Versionshistorie
+    VFP_OP_REVERT = 15;                 // Zurücksetzen auf Version
+    VFP_OP_MERGE = 16;                  // Branches zusammenführen
+    VFP_OP_TAG = 17;                    // Benannte Version erstellen
+    VFP_OP_CHERRY = 18;                 // Cherry-Pick spezifische Änderung
+    VFP_OP_STASH = 19;                  // Temporär speichern
+
+    // -------------------------------------------------------------------------
+    // QUERY PARADIGM - Strukturierte Abfragen (SQL-ähnlich)
+    // -------------------------------------------------------------------------
+    VFP_OP_SELECT = 20;                 // Abfrage mit Filter/Sort/Pagination
+    VFP_OP_INSERT = 21;                 // Strukturiertes Einfügen (mit Schema)
+    VFP_OP_UPDATE = 22;                 // Strukturiertes Update (WHERE clause)
+    VFP_OP_DELETE = 23;                 // Strukturiertes Löschen (WHERE clause)
+    VFP_OP_COUNT = 24;                  // Zähle passende Einträge
+    VFP_OP_JOIN = 25;                   // Verknüpfe Tabellen/Collections
+    VFP_OP_INDEX = 26;                  // Index erstellen/verwalten
+    VFP_OP_AGGREGATE = 27;              // Aggregationen (SUM, AVG, GROUP BY)
+
+    // -------------------------------------------------------------------------
+    // REALTIME PARADIGM - Live State Synchronisation
+    // -------------------------------------------------------------------------
+    VFP_OP_WATCH = 30;                  // Abonniere Änderungen
+    VFP_OP_UNWATCH = 31;                // Beende Abonnement
+    VFP_OP_PUSH = 32;                   // Sende Client-Input an Server
+    VFP_OP_PULL = 33;                   // Hole kompletten State-Snapshot
+    VFP_OP_SYNC = 34;                   // Bidirektionale Synchronisation
+    VFP_OP_ACK = 35;                    // Bestätige Empfang (tick)
+    VFP_OP_PING = 36;                   // Keep-alive / Latenz-Messung
+
+    // -------------------------------------------------------------------------
+    // LOCAL PARADIGM - SQLite/Lokale Datenbank-Operationen
+    // -------------------------------------------------------------------------
+    VFP_OP_EXEC = 40;                   // Führe SQL direkt aus
+    VFP_OP_BEGIN = 41;                  // Starte Transaction
+    VFP_OP_COMMIT_TX = 42;              // Commit Transaction
+    VFP_OP_ABORT = 43;                  // Rollback Transaction
+    VFP_OP_SCHEMA = 44;                 // Schema Definition/Migration
+    VFP_OP_VACUUM = 45;                 // Database Optimierung
+    VFP_OP_ATTACH = 46;                 // Datenbank anhängen
+    VFP_OP_DETACH = 47;                 // Datenbank trennen
+
+    // -------------------------------------------------------------------------
+    // SYSTEM OPERATIONS
+    // -------------------------------------------------------------------------
+    VFP_OP_STATUS = 50;                 // Server/Connection Status
+    VFP_OP_AUTH = 51;                   // Authentifizierung
+    VFP_OP_CAPS = 52;                   // Server Capabilities abfragen
+    VFP_OP_BATCH = 53;                  // Mehrere Operationen atomar
+}
+
+enum VfpStatus {
+    VFP_STATUS_OK = 0;                  // 200 - Success
+    VFP_STATUS_CREATED = 1;             // 201 - Resource created
+    VFP_STATUS_ACCEPTED = 2;            // 202 - Accepted for processing
+    VFP_STATUS_NO_CONTENT = 3;          // 204 - Success, no data
+
+    VFP_STATUS_NOT_FOUND = 10;          // 404 - Resource not found
+    VFP_STATUS_CONFLICT = 11;           // 409 - Version conflict
+    VFP_STATUS_FORBIDDEN = 12;          // 403 - Permission denied
+    VFP_STATUS_LOCKED = 13;             // 423 - Resource locked
+    VFP_STATUS_INVALID = 14;            // 400 - Invalid request
+
+    VFP_STATUS_ERROR = 20;              // 500 - Server error
+    VFP_STATUS_UNAVAILABLE = 21;        // 503 - Service unavailable
+}
+
+enum VfpPushType {
+    VFP_PUSH_DELTA = 0;                 // Incremental change
+    VFP_PUSH_CORRECTION = 1;            // Server correction
+    VFP_PUSH_NOTIFICATION = 2;          // Event notification
+    VFP_PUSH_FULL = 3;                  // Full state update
+}
+
+// =============================================================================
+// VERSION (Git-like)
+// =============================================================================
+
+message VfpVersion {
+    // Tick-based versioning (for realtime)
+    uint64 tick = 1;
+
+    // Hash-based versioning (for content-addressable)
+    string hash = 2;
+
+    // Branch
+    string branch = 3;
+
+    // Timestamp
+    int64 timestamp = 4;
+
+    // Author
+    string author = 5;
+
+    // Parent versions (for merge tracking)
+    repeated string parents = 6;
+}
+
+message VfpVersionRange {
+    VfpVersion from = 1;                // Start (exclusive)
+    VfpVersion to = 2;                  // End (inclusive)
+}
+
+// =============================================================================
+// FTP-LIKE OPERATIONS
+// =============================================================================
+
+message VfpGetRequest {
+    // Partial read
+    int64 offset = 1;
+    int64 length = 2;                   // 0 = all
+
+    // Version to read (optional, default = latest)
+    VfpVersion at_version = 3;
+
+    // Include metadata?
+    bool include_meta = 4;
+}
+
+message VfpGetResponse {
+    VfpResourceMeta meta = 1;
+    VfpVersion version = 2;
+    int64 total_size = 3;
+    string content_type = 4;
+    string checksum = 5;
+}
+
+message VfpPutRequest {
+    // Create or update
+    bool create_only = 1;               // Fail if exists
+    bool update_only = 2;               // Fail if not exists
+
+    // Optimistic locking
+    VfpVersion expected_version = 3;    // Fail if version mismatch
+
+    // Metadata
+    string content_type = 4;
+    map<string, string> attributes = 5;
+
+    // Commit message (creates version)
+    string message = 6;
+}
+
+message VfpListRequest {
+    // Pagination
+    int32 limit = 1;
+    string cursor = 2;
+
+    // Filters
+    string pattern = 3;                 // Glob pattern: *.glb
+    bool recursive = 4;
+    bool include_hidden = 5;
+
+    // Include metadata
+    bool include_meta = 6;
+
+    // At specific version
+    VfpVersion at_version = 7;
+}
+
+message VfpListResponse {
+    repeated VfpResourceEntry entries = 1;
+    string next_cursor = 2;
+    int32 total_count = 3;
+}
+
+message VfpResourceEntry {
+    string name = 1;
+    string path = 2;
+    VfpResourceType type = 3;
+    int64 size = 4;
+    int64 modified = 5;
+    VfpVersion version = 6;
+    VfpResourceMeta meta = 7;
+}
+
+message VfpResourceMeta {
+    string content_type = 1;
+    string checksum = 2;
+    int64 created = 3;
+    int64 modified = 4;
+    string owner = 5;
+    map<string, string> attributes = 6;
+}
+
+enum VfpResourceType {
+    VFP_RESOURCE_FILE = 0;
+    VFP_RESOURCE_DIRECTORY = 1;
+    VFP_RESOURCE_SYMLINK = 2;
+    VFP_RESOURCE_NODE = 3;              // Scene node (realtime)
+}
+
+message VfpDeleteRequest {
+    bool recursive = 1;                 // Delete directory contents
+    VfpVersion expected_version = 2;    // Optimistic locking
+    string message = 3;                 // Commit message
+}
+
+// =============================================================================
+// GIT-LIKE OPERATIONS
+// =============================================================================
+
+message VfpFetchRequest {
+    // What to fetch
+    string branch = 1;
+    VfpVersionRange range = 2;          // Specific range
+
+    // Options
+    bool shallow = 3;                   // Only latest
+    int32 depth = 4;                    // History depth
+}
+
+message VfpFetchResponse {
+    repeated VfpVersionEntry versions = 1;
+    string remote_head = 2;
+    string local_head = 3;
+    int32 behind = 4;                   // Commits behind remote
+    int32 ahead = 5;                    // Commits ahead of remote
+}
+
+message VfpPushRequest {
+    string branch = 1;
+    bool force = 2;                     // Force push (dangerous!)
+    VfpVersion local_head = 3;
+}
+
+message VfpPullRequest {
+    string branch = 1;
+    VfpMergeStrategy strategy = 2;
+}
+
+message VfpDiffRequest {
+    VfpVersionRange range = 1;
+
+    // Options
+    bool include_content = 2;           // Include actual changes
+    bool stat_only = 3;                 // Only file stats
+}
+
+message VfpDiffResponse {
+    repeated VfpChange changes = 1;
+    int32 additions = 2;
+    int32 deletions = 3;
+    int32 modifications = 4;
+}
+
+message VfpChange {
+    string path = 1;
+    VfpChangeType type = 2;
+    bytes old_value = 3;
+    bytes new_value = 4;
+    string field = 5;                   // For node changes: which field
+}
+
+enum VfpChangeType {
+    VFP_CHANGE_ADD = 0;
+    VFP_CHANGE_MODIFY = 1;
+    VFP_CHANGE_DELETE = 2;
+    VFP_CHANGE_RENAME = 3;
+}
+
+message VfpLogRequest {
+    int32 limit = 1;
+    string cursor = 2;
+    string path = 3;                    // Filter by path
+    string author = 4;                  // Filter by author
+    VfpVersionRange range = 5;
+}
+
+message VfpLogResponse {
+    repeated VfpVersionEntry entries = 1;
+    string next_cursor = 2;
+}
+
+message VfpVersionEntry {
+    VfpVersion version = 1;
+    string message = 2;
+    repeated VfpChange changes = 3;
+    int32 change_count = 4;
+}
+
+message VfpCommitRequest {
+    string message = 1;
+    repeated string paths = 2;          // Specific paths to commit
+    bool amend = 3;                     // Amend last commit
+}
+
+message VfpRevertRequest {
+    VfpVersion to_version = 1;
+    bool hard = 2;                      // Discard all changes
+    string message = 3;
+}
+
+message VfpMergeRequest {
+    string source_branch = 1;
+    VfpMergeStrategy strategy = 2;
+    string message = 3;
+}
+
+enum VfpMergeStrategy {
+    VFP_MERGE_AUTO = 0;                 // Try automatic merge
+    VFP_MERGE_OURS = 1;                 // Prefer local on conflict
+    VFP_MERGE_THEIRS = 2;               // Prefer remote on conflict
+    VFP_MERGE_MANUAL = 3;               // Require manual resolution
+}
+
+// =============================================================================
+// REALTIME OPERATIONS
+// =============================================================================
+
+message VfpWatchRequest {
+    // What to watch
+    repeated string patterns = 1;        // Path patterns: /scenes/*/nodes/*
+
+    // Options
+    bool include_initial = 2;            // Send current state first
+    uint64 from_tick = 3;                // Resume from tick
+
+    // Filters
+    repeated string node_types = 4;      // Filter by node type
+    repeated string fields = 5;          // Only specific fields
+}
+
+message VfpWatchResponse {
+    string subscription_id = 1;
+    uint64 current_tick = 2;
+    int32 matched_paths = 3;
+}
+
+message VfpInputRequest {
+    // Input metadata
+    uint32 sequence = 1;                 // Client sequence number
+    string input_type = 2;               // "transform", "action", "command"
+
+    // Target
+    string target_node = 3;
+    string target_field = 4;
+
+    // Prediction
+    bool predicted = 5;                  // Client already applied prediction
+    VfpVersion predicted_at = 6;
+}
+
+message VfpSnapshotRequest {
+    // What to snapshot
+    string path = 1;
+
+    // Options
+    bool compressed = 2;
+    VfpSnapshotFormat format = 3;
+}
+
+message VfpSnapshotResponse {
+    VfpVersion version = 1;
+    int32 node_count = 2;
+    int64 uncompressed_size = 3;
+    string format = 4;
+}
+
+enum VfpSnapshotFormat {
+    VFP_SNAPSHOT_BINARY = 0;
+    VFP_SNAPSHOT_JSON = 1;
+    VFP_SNAPSHOT_MSGPACK = 2;
+}
+
+// Server push messages
+message VfpDelta {
+    uint64 tick = 1;
+    repeated VfpNodeDelta nodes = 2;
+}
+
+message VfpNodeDelta {
+    string node_id = 1;
+    string path = 2;
+    VfpNodeOp op = 3;
+    repeated VfpFieldDelta fields = 4;
+}
+
+enum VfpNodeOp {
+    VFP_NODE_UPDATE = 0;
+    VFP_NODE_CREATE = 1;
+    VFP_NODE_DELETE = 2;
+}
+
+message VfpFieldDelta {
+    string field = 1;
+    bytes old_value = 2;
+    bytes new_value = 3;
+}
+
+message VfpCorrection {
+    uint64 tick = 1;
+    string node_id = 2;
+    string field = 3;
+    bytes corrected_value = 4;
+    uint32 rejected_input_seq = 5;
+    string reason = 6;
+}
+
+message VfpNotification {
+    string event_type = 1;
+    string path = 2;
+    map<string, string> data = 3;
+}
+
+message VfpVersionResponse {
+    VfpVersion version = 1;
+    string hash = 2;
+}
+
+// =============================================================================
+// REST CRUD OPERATIONS
+// =============================================================================
+//
+// Standard REST semantics for simple API servers.
+// Maps HTTP verbs to VFP operations.
+//
+// =============================================================================
+
+// CREATE (POST) - Create a new resource
+message VfpCreateRequest {
+    // Resource type hint
+    string resource_type = 1;
+
+    // Content type of the data
+    string content_type = 2;
+
+    // Custom attributes
+    map<string, string> attributes = 3;
+
+    // Return created resource?
+    bool return_resource = 4;
+}
+
+message VfpCreateResponse {
+    // Created resource ID/path
+    string resource_id = 1;
+    string path = 2;
+
+    // Created resource (if return_resource=true)
+    bytes resource = 3;
+
+    // Metadata
+    VfpResourceMeta meta = 4;
+    VfpVersion version = 5;
+}
+
+// UPDATE (PUT) - Replace entire resource
+message VfpUpdateRequest {
+    // Optimistic locking
+    VfpVersion expected_version = 1;
+
+    // Content type
+    string content_type = 2;
+
+    // Attributes (replaces all)
+    map<string, string> attributes = 3;
+
+    // Return updated resource?
+    bool return_resource = 4;
+}
+
+message VfpUpdateResponse {
+    VfpResourceMeta meta = 1;
+    VfpVersion version = 2;
+    bytes resource = 3;
+}
+
+// PATCH - Partial update
+message VfpPatchRequest {
+    // Patch format
+    VfpPatchFormat format = 1;
+
+    // Optimistic locking
+    VfpVersion expected_version = 2;
+
+    // Return updated resource?
+    bool return_resource = 3;
+
+    // Specific fields to patch (for structured updates)
+    repeated VfpPatchOperation operations = 4;
+}
+
+message VfpPatchResponse {
+    VfpResourceMeta meta = 1;
+    VfpVersion version = 2;
+    bytes resource = 3;
+}
+
+enum VfpPatchFormat {
+    VFP_PATCH_JSON_PATCH = 0;       // RFC 6902 JSON Patch
+    VFP_PATCH_JSON_MERGE = 1;       // RFC 7386 JSON Merge Patch
+    VFP_PATCH_FIELD_MASK = 2;       // Protocol Buffers FieldMask style
+    VFP_PATCH_OPERATIONS = 3;       // VfpPatchOperation list
+}
+
+message VfpPatchOperation {
+    VfpPatchOp op = 1;
+    string path = 2;               // JSON Pointer path: /field/subfield
+    bytes value = 3;               // New value (for add, replace)
+    string from = 4;               // Source path (for move, copy)
+}
+
+enum VfpPatchOp {
+    VFP_PATCH_OP_ADD = 0;
+    VFP_PATCH_OP_REMOVE = 1;
+    VFP_PATCH_OP_REPLACE = 2;
+    VFP_PATCH_OP_MOVE = 3;
+    VFP_PATCH_OP_COPY = 4;
+    VFP_PATCH_OP_TEST = 5;         // RFC 6902 test operation
+}
+
+// QUERY - Search/filter resources
+message VfpQueryRequest {
+    // Query type
+    VfpQueryType type = 1;
+
+    // Filter expression
+    string filter = 2;             // e.g., "status=active AND created > 2024-01-01"
+
+    // Full-text search
+    string search = 3;
+
+    // Sorting
+    repeated VfpSortField sort = 4;
+
+    // Pagination
+    int32 limit = 5;
+    int32 offset = 6;
+    string cursor = 7;
+
+    // Field projection
+    repeated string fields = 8;    // Only return these fields
+    repeated string exclude = 9;   // Exclude these fields
+
+    // Include related resources
+    repeated string include = 10;  // e.g., ["author", "comments"]
+}
+
+message VfpQueryResponse {
+    repeated VfpQueryResult results = 1;
+
+    // Pagination info
+    int32 total_count = 2;
+    int32 returned_count = 3;
+    string next_cursor = 4;
+    bool has_more = 5;
+
+    // Facets/aggregations
+    map<string, VfpFacet> facets = 6;
+}
+
+message VfpQueryResult {
+    string path = 1;
+    string resource_id = 2;
+    bytes resource = 3;
+    VfpResourceMeta meta = 4;
+    float score = 5;               // Search relevance score
+}
+
+enum VfpQueryType {
+    VFP_QUERY_FILTER = 0;          // Structured filter
+    VFP_QUERY_SEARCH = 1;          // Full-text search
+    VFP_QUERY_AGGREGATE = 2;       // Aggregation/analytics
+    VFP_QUERY_SQL = 3;             // SQL-like query (if supported)
+}
+
+message VfpSortField {
+    string field = 1;
+    bool descending = 2;
+}
+
+message VfpFacet {
+    repeated VfpFacetValue values = 1;
+}
+
+message VfpFacetValue {
+    string value = 1;
+    int32 count = 2;
+}
+
+// BATCH - Multiple operations in one request
+message VfpBatchRequest {
+    repeated VfpBatchOperation operations = 1;
+
+    // Transaction semantics
+    bool atomic = 2;               // All or nothing
+    bool stop_on_error = 3;        // Stop at first error
+    bool parallel = 4;             // Allow parallel execution
+}
+
+message VfpBatchResponse {
+    repeated VfpBatchResult results = 1;
+    bool all_succeeded = 2;
+    int32 succeeded_count = 3;
+    int32 failed_count = 4;
+}
+
+message VfpBatchOperation {
+    string operation_id = 1;       // Client-provided ID
+    VfpOp op = 2;
+    string path = 3;
+    bytes data = 4;
+    map<string, string> params = 5;
+}
+
+message VfpBatchResult {
+    string operation_id = 1;
+    VfpStatus status = 2;
+    string message = 3;
+    bytes result = 4;
+}
+
+// HEAD - Get metadata only (no body)
+message VfpHeadRequest {
+    VfpVersion at_version = 1;     // At specific version
+}
+
+message VfpHeadResponse {
+    bool exists = 1;
+    VfpResourceMeta meta = 2;
+    VfpVersion version = 3;
+    int64 content_length = 4;
+    string content_type = 5;
+    string etag = 6;
+}
+
+// OPTIONS - Get allowed operations and metadata
+message VfpOptionsRequest {
+    // Empty - just asks what operations are allowed
+}
+
+message VfpOptionsResponse {
+    // Allowed operations on this path
+    repeated VfpOp allowed_ops = 1;
+
+    // CORS-like headers
+    repeated string allowed_methods = 2;    // ["GET", "PUT", "DELETE"]
+    repeated string allowed_headers = 3;
+
+    // Schema information
+    string schema_url = 4;
+    bytes schema = 5;              // Inline schema (JSON Schema, etc.)
+
+    // Rate limiting info
+    int32 rate_limit = 6;
+    int32 rate_remaining = 7;
+}
+
+// =============================================================================
+// VFP SERVICE
+// =============================================================================
+
+service VfpService {
+    // Single command (request/response)
+    rpc Execute(VfpCommand) returns (VfpResponse);
+
+    // Bidirectional stream (for realtime)
+    rpc Stream(stream VfpCommand) returns (stream VfpPush);
+
+    // Batch commands
+    rpc Batch(VfpBatch) returns (VfpBatchResponse);
+}
+
+message VfpBatch {
+    repeated VfpCommand commands = 1;
+    bool atomic = 2;                    // All or nothing
+}
+
+message VfpBatchResponse {
+    repeated VfpResponse responses = 1;
+    bool all_succeeded = 2;
+}
+
+// =============================================================================
+// VFP SESSION
+// =============================================================================
+
+message VfpSession {
+    string session_id = 1;
+    string client_id = 2;
+
+    // Current context (like FTP CWD)
+    string working_path = 3;
+    string current_branch = 4;
+
+    // Subscriptions
+    repeated VfpSubscription subscriptions = 5;
+
+    // State
+    uint64 last_tick = 6;
+    int64 connected_at = 7;
+}
+
+message VfpSubscription {
+    string subscription_id = 1;
+    repeated string patterns = 2;
+    uint64 from_tick = 3;
+}
+
+// =============================================================================
+// LOCAL PARADIGM - SQLite/Lokale Datenbank
+// =============================================================================
+//
+// Operationen für lokale Datenhaltung mit SQLite-Semantik.
+// Nur für lokale Verwendung gedacht, nicht für Remote-Protokoll.
+//
+// =============================================================================
+
+// EXEC - Direkte SQL-Ausführung
+message VfpExecRequest {
+    string sql = 1;                     // SQL Statement
+    repeated VfpSqlParam params = 2;    // Prepared statement parameters
+    bool readonly = 3;                  // Nur SELECT erlaubt
+}
+
+message VfpExecResponse {
+    int64 rows_affected = 1;
+    int64 last_insert_id = 2;
+    repeated VfpRow rows = 3;           // Für SELECT
+    repeated VfpColumn columns = 4;     // Column metadata
+}
+
+message VfpSqlParam {
+    string name = 1;                    // Named parameter: :name oder $name
+    oneof value {
+        string text = 2;
+        int64 integer = 3;
+        double real = 4;
+        bytes blob = 5;
+        bool null = 6;
+    }
+}
+
+message VfpRow {
+    repeated VfpValue values = 1;
+}
+
+message VfpColumn {
+    string name = 1;
+    string type = 2;                    // TEXT, INTEGER, REAL, BLOB, NULL
+    bool not_null = 3;
+    bool primary_key = 4;
+}
+
+message VfpValue {
+    oneof value {
+        string text = 1;
+        int64 integer = 2;
+        double real = 3;
+        bytes blob = 4;
+        bool null = 5;
+    }
+}
+
+// BEGIN - Transaction starten
+message VfpBeginRequest {
+    VfpTransactionMode mode = 1;
+    string savepoint = 2;               // Optional: Savepoint Name
+}
+
+enum VfpTransactionMode {
+    VFP_TX_DEFERRED = 0;                // Default SQLite behavior
+    VFP_TX_IMMEDIATE = 1;               // Acquire RESERVED lock
+    VFP_TX_EXCLUSIVE = 2;               // Acquire EXCLUSIVE lock
+}
+
+message VfpBeginResponse {
+    string transaction_id = 1;
+}
+
+// COMMIT_TX - Transaction commit
+message VfpCommitTxRequest {
+    string transaction_id = 1;
+    string savepoint = 2;               // Optional: Release to savepoint
+}
+
+// ABORT - Transaction rollback
+message VfpAbortRequest {
+    string transaction_id = 1;
+    string savepoint = 2;               // Optional: Rollback to savepoint
+}
+
+// SCHEMA - Schema Definition/Migration
+message VfpSchemaRequest {
+    VfpSchemaOp op = 1;
+    string table = 2;
+    repeated VfpColumnDef columns = 3;
+    repeated VfpIndexDef indexes = 4;
+    string sql = 5;                     // Raw DDL (alternative)
+}
+
+enum VfpSchemaOp {
+    VFP_SCHEMA_CREATE = 0;
+    VFP_SCHEMA_ALTER = 1;
+    VFP_SCHEMA_DROP = 2;
+    VFP_SCHEMA_DESCRIBE = 3;            // Get table info
+    VFP_SCHEMA_LIST = 4;                // List all tables
+}
+
+message VfpColumnDef {
+    string name = 1;
+    string type = 2;
+    bool not_null = 3;
+    string default_value = 4;
+    bool primary_key = 5;
+    bool unique = 6;
+    string foreign_key = 7;             // Reference: table(column)
+}
+
+message VfpIndexDef {
+    string name = 1;
+    repeated string columns = 2;
+    bool unique = 3;
+    string where_clause = 4;            // Partial index
+}
+
+message VfpSchemaResponse {
+    bool success = 1;
+    repeated VfpTableInfo tables = 2;   // For DESCRIBE/LIST
+}
+
+message VfpTableInfo {
+    string name = 1;
+    repeated VfpColumn columns = 2;
+    repeated VfpIndexDef indexes = 3;
+    int64 row_count = 4;
+}
+
+// VACUUM - Database Optimierung
+message VfpVacuumRequest {
+    bool full = 1;                      // VACUUM vs VACUUM INTO
+    string into_path = 2;               // VACUUM INTO path
+    bool analyze = 3;                   // Run ANALYZE after
+}
+
+// ATTACH/DETACH - Multiple Databases
+message VfpAttachRequest {
+    string path = 1;                    // Database file path
+    string alias = 2;                   // Schema name
+    string key = 3;                     // Encryption key (optional)
+}
+
+message VfpDetachRequest {
+    string alias = 1;
+}

@@ -1,0 +1,432 @@
+================================================================================
+VFP UNIFIED SESSION EXAMPLE
+================================================================================
+
+Dieses Beispiel zeigt eine komplette VFP Session mit allen 5 Paradigmen.
+Jede Operation ist einzigartig - keine Duplikate zwischen den Paradigmen.
+
+================================================================================
+PARADIGMEN ÜBERSICHT
+================================================================================
+
+FILE        READ, WRITE, REMOVE, SCAN, META, MOVE, COPY, LINK
+VERSION     COMMIT, BRANCH, CHECKOUT, DIFF, LOG, REVERT, MERGE, TAG
+QUERY       SELECT, INSERT, UPDATE, DELETE, COUNT, JOIN, INDEX, AGGREGATE
+REALTIME    WATCH, UNWATCH, PUSH, PULL, SYNC, ACK, PING
+LOCAL       EXEC, BEGIN, COMMIT_TX, ABORT, SCHEMA, VACUUM, ATTACH, DETACH
+
+================================================================================
+SESSION START
+================================================================================
+
+CLIENT: Connect to vfp://localhost:7890
+
+SERVER: 220 Synth VFP Server v1.0
+SERVER: Capabilities: FILE, VERSION, QUERY, REALTIME, LOCAL
+
+
+================================================================================
+FILE PARADIGM - Hierarchische Ressourcen
+================================================================================
+
+// WRITE - Ressource erstellen/aktualisieren
+CLIENT: WRITE /scenes/level_01/config.json
+        content_type: application/json
+        data: { "name": "Level 01", "gravity": 9.81 }
+
+SERVER: 201 Created
+        tick: 1
+        path: /scenes/level_01/config.json
+
+
+// READ - Ressource lesen
+CLIENT: READ /scenes/level_01/config.json
+
+SERVER: 200 OK
+        content_type: application/json
+        size: 42
+        data: { "name": "Level 01", "gravity": 9.81 }
+
+
+// SCAN - Verzeichnis durchsuchen
+CLIENT: SCAN /scenes/
+        pattern: *.json
+        recursive: true
+
+SERVER: 200 OK
+        entries:
+          - /scenes/level_01/config.json (42 bytes, tick:1)
+          - /scenes/level_02/config.json (45 bytes, tick:3)
+        total: 2
+
+
+// META - Nur Metadaten abrufen
+CLIENT: META /scenes/level_01/config.json
+
+SERVER: 200 OK
+        exists: true
+        size: 42
+        content_type: application/json
+        modified: 2024-01-15T10:30:00Z
+        tick: 1
+
+
+// MOVE - Ressource verschieben
+CLIENT: MOVE /scenes/old/level.json /scenes/archive/level.json
+
+SERVER: 200 OK
+        from: /scenes/old/level.json
+        to: /scenes/archive/level.json
+        tick: 5
+
+
+// REMOVE - Ressource löschen
+CLIENT: REMOVE /scenes/temp/draft.json
+
+SERVER: 204 No Content
+        tick: 6
+
+
+================================================================================
+VERSION PARADIGM - Versionskontrolle
+================================================================================
+
+// COMMIT - Änderungen committen
+CLIENT: COMMIT
+        message: "Add gravity settings"
+        paths: ["/scenes/level_01/config.json"]
+
+SERVER: 200 OK
+        tick: 10
+        hash: abc123def456
+        author: user@example.com
+
+
+// LOG - Versionshistorie
+CLIENT: LOG
+        path: /scenes/level_01/
+        limit: 5
+
+SERVER: 200 OK
+        entries:
+          - tick:10, hash:abc123def456, "Add gravity settings"
+          - tick:8, hash:789xyz012abc, "Initial level setup"
+          - tick:5, hash:345mno678pqr, "Create level directory"
+
+
+// BRANCH - Branch erstellen
+CLIENT: BRANCH feature/new-physics
+        from: main
+
+SERVER: 201 Created
+        branch: feature/new-physics
+        base_tick: 10
+
+
+// CHECKOUT - Branch wechseln
+CLIENT: CHECKOUT feature/new-physics
+
+SERVER: 200 OK
+        branch: feature/new-physics
+        tick: 10
+
+
+// DIFF - Versionen vergleichen
+CLIENT: DIFF
+        from: main
+        to: feature/new-physics
+
+SERVER: 200 OK
+        changes:
+          - MODIFY /scenes/level_01/config.json
+            field: gravity
+            old: 9.81
+            new: 10.0
+        additions: 0
+        deletions: 0
+        modifications: 1
+
+
+// REVERT - Zurücksetzen
+CLIENT: REVERT
+        to_tick: 8
+        message: "Revert physics changes"
+
+SERVER: 200 OK
+        tick: 15
+        reverted_to: 8
+
+
+// MERGE - Branches zusammenführen
+CLIENT: MERGE feature/new-physics
+        into: main
+        strategy: AUTO
+
+SERVER: 200 OK
+        tick: 20
+        merged_from: feature/new-physics
+        conflicts: 0
+
+
+================================================================================
+QUERY PARADIGM - Strukturierte Abfragen
+================================================================================
+
+// SELECT - Abfrage mit Filter
+CLIENT: SELECT /entities/
+        filter: "type=player AND health > 50"
+        sort: [{ field: "score", descending: true }]
+        limit: 10
+
+SERVER: 200 OK
+        results:
+          - path: /entities/player_001, score: 1500, health: 100
+          - path: /entities/player_042, score: 1200, health: 75
+        total: 2
+        has_more: false
+
+
+// COUNT - Einträge zählen
+CLIENT: COUNT /entities/
+        filter: "type=enemy"
+
+SERVER: 200 OK
+        count: 47
+
+
+// AGGREGATE - Aggregationen
+CLIENT: AGGREGATE /entities/
+        group_by: "type"
+        aggregate: [
+          { field: "score", function: "AVG" },
+          { field: "health", function: "SUM" }
+        ]
+
+SERVER: 200 OK
+        results:
+          - type: player, avg_score: 850, sum_health: 3500
+          - type: enemy, avg_score: 100, sum_health: 4700
+
+
+// INDEX - Index erstellen
+CLIENT: INDEX /entities/
+        name: idx_type_score
+        fields: ["type", "score"]
+        unique: false
+
+SERVER: 201 Created
+        index: idx_type_score
+
+
+================================================================================
+REALTIME PARADIGM - Live Synchronisation
+================================================================================
+
+// WATCH - Änderungen abonnieren
+CLIENT: WATCH /scenes/level_01/nodes/*
+        include_initial: true
+        from_tick: 0
+
+SERVER: 200 OK
+        subscription_id: sub_abc123
+        current_tick: 25
+        matched_paths: 15
+
+
+// Server sendet Delta-Updates
+SERVER: PUSH sub_abc123
+        type: DELTA
+        tick: 26
+        nodes:
+          - node_id: player_001
+            op: UPDATE
+            fields:
+              - field: position
+                new: [10.5, 2.0, 15.3]
+
+
+// PUSH - Client sendet Input
+CLIENT: PUSH /scenes/level_01/nodes/player_001
+        sequence: 1001
+        input_type: transform
+        target_field: position
+        data: [11.0, 2.0, 15.5]
+        predicted: true
+
+SERVER: ACK
+        tick: 27
+        sequence: 1001
+
+
+// Server Correction bei Konflikt
+SERVER: PUSH sub_abc123
+        type: CORRECTION
+        tick: 27
+        node_id: player_001
+        field: position
+        corrected_value: [10.8, 2.0, 15.4]
+        rejected_input_seq: 1001
+        reason: "Collision detected"
+
+
+// PULL - Kompletten Snapshot holen
+CLIENT: PULL /scenes/level_01/
+        format: JSON
+
+SERVER: 200 OK
+        tick: 30
+        node_count: 250
+        data: { ... full scene state ... }
+
+
+// UNWATCH - Abonnement beenden
+CLIENT: UNWATCH sub_abc123
+
+SERVER: 200 OK
+
+
+================================================================================
+LOCAL PARADIGM - SQLite Datenbank
+================================================================================
+
+// SCHEMA - Tabelle erstellen
+CLIENT: SCHEMA
+        op: CREATE
+        table: player_stats
+        columns:
+          - name: id, type: INTEGER, primary_key: true
+          - name: name, type: TEXT, not_null: true
+          - name: score, type: INTEGER, default: 0
+          - name: created, type: TEXT
+        indexes:
+          - name: idx_score, columns: [score]
+
+SERVER: 200 OK
+        table: player_stats
+
+
+// BEGIN - Transaction starten
+CLIENT: BEGIN
+        mode: IMMEDIATE
+
+SERVER: 200 OK
+        transaction_id: tx_001
+
+
+// EXEC - SQL ausführen
+CLIENT: EXEC
+        sql: "INSERT INTO player_stats (name, score) VALUES (:name, :score)"
+        params:
+          - name: ":name", value: "Player1"
+          - name: ":score", value: 100
+
+SERVER: 200 OK
+        rows_affected: 1
+        last_insert_id: 1
+
+
+// EXEC - SELECT Abfrage
+CLIENT: EXEC
+        sql: "SELECT * FROM player_stats WHERE score > :min ORDER BY score DESC"
+        params:
+          - name: ":min", value: 50
+        readonly: true
+
+SERVER: 200 OK
+        columns: [id, name, score, created]
+        rows:
+          - [1, "Player1", 100, null]
+          - [2, "Player2", 75, null]
+
+
+// COMMIT_TX - Transaction commit
+CLIENT: COMMIT_TX
+        transaction_id: tx_001
+
+SERVER: 200 OK
+
+
+// VACUUM - Datenbank optimieren
+CLIENT: VACUUM
+        analyze: true
+
+SERVER: 200 OK
+
+
+// ATTACH - Zusätzliche Datenbank anhängen
+CLIENT: ATTACH
+        path: /data/archive.db
+        alias: archive
+
+SERVER: 200 OK
+        alias: archive
+
+
+// EXEC - Cross-Database Query
+CLIENT: EXEC
+        sql: "SELECT * FROM main.player_stats ps
+              JOIN archive.old_stats os ON ps.name = os.name"
+
+SERVER: 200 OK
+        rows: [...]
+
+
+// DETACH - Datenbank trennen
+CLIENT: DETACH
+        alias: archive
+
+SERVER: 200 OK
+
+
+================================================================================
+SYSTEM OPERATIONS
+================================================================================
+
+// STATUS - Server Status
+CLIENT: STATUS
+
+SERVER: 200 OK
+        server: Synth VFP Server
+        version: 1.0.0
+        uptime: 3600
+        connections: 42
+        current_tick: 150
+
+
+// CAPS - Capabilities abfragen
+CLIENT: CAPS
+
+SERVER: 200 OK
+        paradigms: [FILE, VERSION, QUERY, REALTIME, LOCAL]
+        operations: [READ, WRITE, SCAN, META, MOVE, COPY, LINK, REMOVE,
+                     COMMIT, BRANCH, CHECKOUT, DIFF, LOG, REVERT, MERGE, TAG,
+                     SELECT, COUNT, AGGREGATE, INDEX,
+                     WATCH, UNWATCH, PUSH, PULL, SYNC, ACK, PING,
+                     EXEC, BEGIN, COMMIT_TX, ABORT, SCHEMA, VACUUM, ATTACH, DETACH]
+        max_batch_size: 100
+        max_message_size: 16777216
+
+
+// BATCH - Mehrere Operationen atomar
+CLIENT: BATCH
+        atomic: true
+        operations:
+          - op: WRITE, path: /a.json, data: {...}
+          - op: WRITE, path: /b.json, data: {...}
+          - op: REMOVE, path: /c.json
+
+SERVER: 200 OK
+        all_succeeded: true
+        results:
+          - status: OK
+          - status: OK
+          - status: OK
+
+
+================================================================================
+SESSION END
+================================================================================
+
+CLIENT: QUIT
+
+SERVER: 221 Goodbye

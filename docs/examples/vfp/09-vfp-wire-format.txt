@@ -1,0 +1,460 @@
+# =============================================================================
+# SYNTH VFP - Wire Format Specification
+# =============================================================================
+#
+# Das VFP-Protokoll kann über verschiedene Transports übertragen werden.
+# Hier die Wire-Format Spezifikation für raw TCP.
+#
+# =============================================================================
+
+# =============================================================================
+# FRAME FORMAT
+# =============================================================================
+#
+#   ┌────────────────────────────────────────────────────────────────────────┐
+#   │                         VFP FRAME FORMAT                               │
+#   ├────────────────────────────────────────────────────────────────────────┤
+#   │                                                                        │
+#   │   Offset   Size    Field           Description                         │
+#   │   ──────   ────    ─────           ───────────                         │
+#   │   0        4       Magic           "VFP\x01" (0x56465001)               │
+#   │   4        4       Length          Total frame length (big-endian)     │
+#   │   8        2       Flags           Frame flags                         │
+#   │   10       2       Op              Operation code                      │
+#   │   12       4       Sequence        Request/response sequence           │
+#   │   16       4       PayloadLen      Protobuf payload length             │
+#   │   20       4       DataLen         Binary data length                  │
+#   │   24       N       Payload         Protobuf VfpCommand/VfpResponse     │
+#   │   24+N     M       Data            Binary data (optional)              │
+#   │                                                                        │
+#   └────────────────────────────────────────────────────────────────────────┘
+#
+# Flags (bit field):
+#   Bit 0: HAS_DATA        - Frame contains binary data section
+#   Bit 1: COMPRESSED      - Payload/data is compressed
+#   Bit 2: RESPONSE        - This is a response frame
+#   Bit 3: PUSH            - Server-initiated push
+#   Bit 4: FINAL           - Last frame in sequence
+#   Bit 5: ERROR           - Error response
+#   Bit 6: KEEPALIVE       - Keep-alive ping/pong
+#   Bit 7: ENCRYPTED       - Data is encrypted
+#
+# =============================================================================
+
+# =============================================================================
+# EXAMPLE: GET REQUEST
+# =============================================================================
+
+# Command:
+#   GET /scenes/level_01/nodes/player_01.state
+
+# Wire bytes:
+#
+#   0000: 56 46 50 01                      # Magic: "VFP\x01"
+#   0004: 00 00 00 3C                      # Length: 60 bytes
+#   0008: 00 00                            # Flags: none
+#   000A: 00 01                            # Op: GET (1)
+#   000C: 00 00 00 01                      # Sequence: 1
+#   0010: 00 00 00 28                      # PayloadLen: 40
+#   0014: 00 00 00 00                      # DataLen: 0
+#   0018: [40 bytes protobuf VfpCommand]   # Payload
+#
+# VfpCommand protobuf:
+#   {
+#     command_id: "cmd_001",
+#     op: VFP_OP_GET,
+#     path: "/scenes/level_01/nodes/player_01.state"
+#   }
+
+# =============================================================================
+# EXAMPLE: GET RESPONSE
+# =============================================================================
+
+# Response with binary data (JSON state file)
+
+# Wire bytes:
+#
+#   0000: 56 46 50 01                      # Magic
+#   0004: 00 00 02 2C                      # Length: 556 bytes
+#   0008: 00 05                            # Flags: HAS_DATA | RESPONSE
+#   000A: 00 01                            # Op: GET
+#   000C: 00 00 00 01                      # Sequence: 1 (matches request)
+#   0010: 00 00 00 1C                      # PayloadLen: 28
+#   0014: 00 00 02 00                      # DataLen: 512
+#   0018: [28 bytes VfpResponse protobuf]  # Payload
+#   0034: [512 bytes JSON data]            # Binary data
+#
+# VfpResponse protobuf:
+#   {
+#     command_id: "cmd_001",
+#     status: VFP_STATUS_OK,
+#     get: {
+#       meta: { content_type: "application/json" },
+#       version: { tick: 1000 },
+#       total_size: 512,
+#       checksum: "sha256:abc123..."
+#     }
+#   }
+#
+# Binary data (JSON):
+#   {
+#     "id": "player_01",
+#     "type": "Character",
+#     "transform": { "position": [10, 0, 5], ... },
+#     ...
+#   }
+
+# =============================================================================
+# EXAMPLE: WATCH REQUEST + PUSH STREAM
+# =============================================================================
+
+# Client subscribes:
+#
+#   0000: 56 46 50 01                      # Magic
+#   0004: 00 00 00 48                      # Length: 72
+#   0008: 00 00                            # Flags: none
+#   000A: 00 1E                            # Op: WATCH (30)
+#   000C: 00 00 00 02                      # Sequence: 2
+#   0010: 00 00 00 34                      # PayloadLen: 52
+#   0014: 00 00 00 00                      # DataLen: 0
+#   0018: [52 bytes VfpCommand]
+#
+# VfpCommand:
+#   {
+#     command_id: "cmd_002",
+#     op: VFP_OP_WATCH,
+#     path: "/scenes/level_01/nodes/*",
+#     watch: {
+#       patterns: ["/scenes/level_01/nodes/*"],
+#       include_initial: true,
+#       from_tick: 1000
+#     }
+#   }
+
+# Server response (subscription confirmed):
+#
+#   0000: 56 46 50 01
+#   0004: 00 00 00 38
+#   0008: 00 04                            # Flags: RESPONSE
+#   000A: 00 1E                            # Op: WATCH
+#   000C: 00 00 00 02                      # Sequence: 2
+#   0010: 00 00 00 24
+#   0014: 00 00 00 00
+#   0018: [36 bytes VfpResponse]
+#
+# VfpResponse:
+#   {
+#     command_id: "cmd_002",
+#     status: VFP_STATUS_OK,
+#     watch: {
+#       subscription_id: "sub_001",
+#       current_tick: 1000,
+#       matched_paths: 5
+#     }
+#   }
+
+# Server pushes delta (unsolicited):
+#
+#   0000: 56 46 50 01
+#   0004: 00 00 00 5C
+#   0008: 00 09                            # Flags: HAS_DATA | PUSH
+#   000A: 00 00                            # Op: (not used for push)
+#   000C: 00 00 00 00                      # Sequence: 0 (push has no sequence)
+#   0010: 00 00 00 2C
+#   0014: 00 00 00 20
+#   0018: [44 bytes VfpPush protobuf]
+#   0044: [32 bytes delta data]
+#
+# VfpPush:
+#   {
+#     subscription_id: "sub_001",
+#     type: VFP_PUSH_DELTA,
+#     path: "/scenes/level_01/nodes/player_01",
+#     version: { tick: 1001 },
+#     delta: {
+#       tick: 1001,
+#       nodes: [{
+#         node_id: "player_01",
+#         path: "nodes/player_01.state",
+#         op: VFP_NODE_UPDATE,
+#         fields: [{
+#           field: "transform.position",
+#           old_value: [10, 0, 5],
+#           new_value: [11, 0, 5]
+#         }]
+#       }]
+#     }
+#   }
+
+# =============================================================================
+# EXAMPLE: INPUT (Client → Server)
+# =============================================================================
+
+# Client sends player input:
+#
+#   0000: 56 46 50 01
+#   0004: 00 00 00 54
+#   0008: 00 01                            # Flags: HAS_DATA
+#   000A: 00 20                            # Op: INPUT (32)
+#   000C: 00 00 00 03                      # Sequence: 3
+#   0010: 00 00 00 30
+#   0014: 00 00 00 10                      # DataLen: 16 (input JSON)
+#   0018: [48 bytes VfpCommand]
+#   0048: [16 bytes input data]
+#
+# VfpCommand:
+#   {
+#     command_id: "cmd_003",
+#     op: VFP_OP_INPUT,
+#     path: "/scenes/level_01/nodes/player_01",
+#     input: {
+#       sequence: 1,
+#       input_type: "move",
+#       target_node: "player_01",
+#       predicted: true,
+#       predicted_at: { tick: 1001 }
+#     }
+#   }
+#
+# Input data (JSON):
+#   {"direction": [1,0,0], "speed": 5}
+
+# Server acknowledges:
+#
+#   0000: 56 46 50 01
+#   0004: 00 00 00 24
+#   0008: 00 04                            # Flags: RESPONSE
+#   000A: 00 20                            # Op: INPUT
+#   000C: 00 00 00 03                      # Sequence: 3
+#   0010: 00 00 00 10
+#   0014: 00 00 00 00
+#   0018: [16 bytes VfpResponse]
+#
+# VfpResponse:
+#   {
+#     command_id: "cmd_003",
+#     status: VFP_STATUS_ACCEPTED
+#   }
+
+# =============================================================================
+# EXAMPLE: CORRECTION (Server → Client)
+# =============================================================================
+
+# Server sends correction (client prediction was wrong):
+#
+#   0000: 56 46 50 01
+#   0004: 00 00 00 68
+#   0008: 00 09                            # Flags: HAS_DATA | PUSH
+#   000A: 00 00
+#   000C: 00 00 00 00
+#   0010: 00 00 00 40
+#   0014: 00 00 00 18
+#   0018: [64 bytes VfpPush]
+#   0058: [24 bytes correction data]
+#
+# VfpPush:
+#   {
+#     subscription_id: "sub_001",
+#     type: VFP_PUSH_CORRECTION,
+#     path: "/scenes/level_01/nodes/player_01",
+#     version: { tick: 1002 },
+#     correction: {
+#       tick: 1002,
+#       node_id: "player_01",
+#       field: "transform.position",
+#       corrected_value: [11.5, 0, 5],  # Server says position is here
+#       rejected_input_seq: 2,           # Client input #2 was rejected
+#       reason: "collision_detected"
+#     }
+#   }
+
+# =============================================================================
+# EXAMPLE: COMMIT (Git-like)
+# =============================================================================
+
+# Client commits changes:
+#
+#   0000: 56 46 50 01
+#   0004: 00 00 00 4C
+#   0008: 00 00
+#   000A: 00 0F                            # Op: COMMIT (15)
+#   000C: 00 00 00 04
+#   0010: 00 00 00 38
+#   0014: 00 00 00 00
+#   0018: [56 bytes VfpCommand]
+#
+# VfpCommand:
+#   {
+#     command_id: "cmd_004",
+#     op: VFP_OP_COMMIT,
+#     path: "/scenes/level_01",
+#     commit: {
+#       message: "Added treasure pickup",
+#       paths: ["nodes/treasure_01.state"]
+#     }
+#   }
+
+# Server response with new version:
+#
+#   0000: 56 46 50 01
+#   0004: 00 00 00 40
+#   0008: 00 04
+#   000A: 00 0F
+#   000C: 00 00 00 04
+#   0010: 00 00 00 2C
+#   0014: 00 00 00 00
+#   0018: [44 bytes VfpResponse]
+#
+# VfpResponse:
+#   {
+#     command_id: "cmd_004",
+#     status: VFP_STATUS_CREATED,
+#     message: "Committed as tick:1003",
+#     version: {
+#       version: { tick: 1003, hash: "abc123", branch: "main" }
+#     }
+#   }
+
+# =============================================================================
+# COMPRESSION
+# =============================================================================
+
+# When COMPRESSED flag is set, payload and data are compressed with zstd.
+#
+# Frame with compression:
+#
+#   0000: 56 46 50 01
+#   0004: 00 00 01 00                      # Length: 256 (compressed)
+#   0008: 00 03                            # Flags: HAS_DATA | COMPRESSED
+#   000A: 00 21                            # Op: SNAPSHOT (33)
+#   000C: 00 00 00 05
+#   0010: 00 00 00 40                      # PayloadLen (compressed)
+#   0014: 00 00 00 B0                      # DataLen (compressed)
+#   0018: [64 bytes compressed payload]
+#   0058: [176 bytes compressed data]
+#
+# Decompressed payload size would be in VfpSnapshotResponse.uncompressed_size
+
+# =============================================================================
+# KEEPALIVE
+# =============================================================================
+
+# Ping (client → server):
+#
+#   0000: 56 46 50 01
+#   0004: 00 00 00 1C
+#   0008: 00 40                            # Flags: KEEPALIVE
+#   000A: 00 23                            # Op: PING (35)
+#   000C: 00 00 00 00
+#   0010: 00 00 00 08
+#   0014: 00 00 00 00
+#   0018: [8 bytes: timestamp]
+
+# Pong (server → client):
+#
+#   0000: 56 46 50 01
+#   0004: 00 00 00 1C
+#   0008: 00 44                            # Flags: KEEPALIVE | RESPONSE
+#   000A: 00 23                            # Op: PING
+#   000C: 00 00 00 00
+#   0010: 00 00 00 08
+#   0014: 00 00 00 00
+#   0018: [8 bytes: timestamp]
+
+# =============================================================================
+# ERROR RESPONSE
+# =============================================================================
+
+# Error response (e.g., file not found):
+#
+#   0000: 56 46 50 01
+#   0004: 00 00 00 48
+#   0008: 00 24                            # Flags: RESPONSE | ERROR
+#   000A: 00 01                            # Op: GET
+#   000C: 00 00 00 01                      # Sequence: 1
+#   0010: 00 00 00 34
+#   0014: 00 00 00 00
+#   0018: [52 bytes VfpResponse]
+#
+# VfpResponse:
+#   {
+#     command_id: "cmd_001",
+#     status: VFP_STATUS_NOT_FOUND,
+#     message: "Resource not found: /scenes/level_99/nodes/player_01.state"
+#   }
+
+# =============================================================================
+# TRANSPORT BINDINGS
+# =============================================================================
+#
+# VFP kann über verschiedene Transports laufen:
+#
+#   ┌────────────────────────────────────────────────────────────────────────┐
+#   │                      VFP TRANSPORT BINDINGS                            │
+#   ├────────────────────────────────────────────────────────────────────────┤
+#   │                                                                        │
+#   │   TCP (Port 2121)                                                      │
+#   │   ───────────────                                                      │
+#   │   Raw frames as specified above                                        │
+#   │   Persistent connection                                                │
+#   │   Bidirectional streaming                                              │
+#   │                                                                        │
+#   │   WebSocket                                                            │
+#   │   ─────────                                                            │
+#   │   Binary frames containing VFP frames                                  │
+#   │   URL: wss://server/vfp                                                │
+#   │                                                                        │
+#   │   gRPC                                                                 │
+#   │   ────                                                                 │
+#   │   service VfpService { ... }                                           │
+#   │   Native protobuf streaming                                            │
+#   │                                                                        │
+#   │   HTTP/2                                                               │
+#   │   ──────                                                               │
+#   │   POST /vfp/execute  - Single command                                  │
+#   │   POST /vfp/stream   - Server-Sent Events for push                     │
+#   │                                                                        │
+#   └────────────────────────────────────────────────────────────────────────┘
+#
+# =============================================================================
+
+# =============================================================================
+# OP CODES REFERENCE
+# =============================================================================
+#
+#   Code   Name        Description
+#   ────   ────        ───────────
+#   0x00   -           Unspecified
+#
+#   # FTP-like
+#   0x01   GET         Read resource
+#   0x02   PUT         Write resource
+#   0x03   LIST        List directory
+#   0x04   DELETE      Delete resource
+#   0x05   MKDIR       Create directory
+#   0x06   RENAME      Rename/move
+#   0x07   STAT        Get metadata
+#
+#   # Git-like
+#   0x0A   FETCH       Fetch remote
+#   0x0B   PUSH        Push local
+#   0x0C   PULL        Pull and merge
+#   0x0D   DIFF        Compare versions
+#   0x0E   LOG         Version history
+#   0x0F   COMMIT      Create checkpoint
+#   0x10   REVERT      Revert to version
+#   0x11   MERGE       Merge branches
+#   0x12   BRANCH      Create/list branches
+#   0x13   CHECKOUT    Switch branch
+#   0x14   STASH       Stash changes
+#   0x15   CHERRY_PICK Apply change
+#
+#   # Realtime
+#   0x1E   WATCH       Subscribe
+#   0x1F   UNWATCH     Unsubscribe
+#   0x20   INPUT       Send input
+#   0x21   SNAPSHOT    Request full state
+#   0x22   ACK         Acknowledge
+#   0x23   PING        Keep-alive
+#
+# =============================================================================
