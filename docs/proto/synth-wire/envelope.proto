@@ -1,0 +1,430 @@
+syntax = "proto3";
+
+package synth.wire;
+
+option java_package = "io.synth.protocol.wire";
+option java_multiple_files = true;
+option csharp_namespace = "Synth.Wire";
+option go_package = "synth/wire";
+
+// =============================================================================
+// SYNTH WIRE PROTOCOL - Unified Message Envelope
+// =============================================================================
+//
+// This is the single protocol for ALL communication in the Synth ecosystem.
+// Every message - regardless of transport - uses this envelope.
+//
+// =============================================================================
+// DESIGN PRINCIPLES
+// =============================================================================
+//
+//   1. TRANSPORT-AGNOSTIC
+//      Same bytes work over HTTP, WebSocket, gRPC, Kafka, TCP, UDP
+//
+//   2. SELF-DESCRIBING
+//      Envelope contains all metadata needed for routing and processing
+//
+//   3. UNIFIED PAYLOAD
+//      All payload types (events, state, assets, RPC) in one oneof
+//
+//   4. STREAMING-READY
+//      Built-in support for chunked transfers and multiplexing
+//
+// =============================================================================
+// ARCHITECTURE OVERVIEW
+// =============================================================================
+//
+//   ┌─────────────────────────────────────────────────────────────────────┐
+//   │                     SYNTH WIRE PROTOCOL                             │
+//   ├─────────────────────────────────────────────────────────────────────┤
+//   │                                                                     │
+//   │                    ┌─────────────────────┐                          │
+//   │                    │   SynthEnvelope     │                          │
+//   │                    │   ───────────────   │                          │
+//   │                    │   header            │                          │
+//   │                    │   payload_type      │                          │
+//   │                    │   payload (oneof)   │                          │
+//   │                    └──────────┬──────────┘                          │
+//   │                               │                                     │
+//   │         ┌─────────┬──────────┼──────────┬─────────┐                 │
+//   │         │         │          │          │         │                 │
+//   │         ▼         ▼          ▼          ▼         ▼                 │
+//   │    ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐           │
+//   │    │ Event  │ │ State  │ │ Asset  │ │  RPC   │ │ Binary │           │
+//   │    │        │ │ Sync   │ │ Data   │ │ Call   │ │ Chunk  │           │
+//   │    └────────┘ └────────┘ └────────┘ └────────┘ └────────┘           │
+//   │                                                                     │
+//   │    ═══════════════════════════════════════════════════════════      │
+//   │                          TRANSPORT LAYER                            │
+//   │    ═══════════════════════════════════════════════════════════      │
+//   │                                                                     │
+//   │    ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐           │
+//   │    │  HTTP  │ │WebSocket││  gRPC  │ │ Kafka  │ │  TCP   │           │
+//   │    │  REST  │ │ Binary │ │ Stream │ │ Topic  │ │  Raw   │           │
+//   │    └────────┘ └────────┘ └────────┘ └────────┘ └────────┘           │
+//   │                                                                     │
+//   └─────────────────────────────────────────────────────────────────────┘
+//
+// =============================================================================
+
+// =============================================================================
+// MESSAGE ENVELOPE
+// =============================================================================
+
+// SynthEnvelope - The universal message container
+// Every message in the Synth ecosystem is wrapped in this envelope
+message SynthEnvelope {
+    // Header with routing and metadata
+    EnvelopeHeader header = 1;
+
+    // Payload type discriminator
+    PayloadType payload_type = 2;
+
+    // The actual payload
+    oneof payload {
+        // Events (synth-events)
+        EventPayload event = 10;
+
+        // State synchronization (synth-state-sync)
+        StatePayload state = 11;
+
+        // Asset data transfer
+        AssetPayload asset = 12;
+
+        // RPC calls (request/response)
+        RpcPayload rpc = 13;
+
+        // Raw binary chunks (for large transfers)
+        BinaryPayload binary = 14;
+
+        // Control messages (ping, ack, flow control)
+        ControlPayload control = 15;
+
+        // Batch of multiple envelopes
+        BatchPayload batch = 16;
+    }
+}
+
+// =============================================================================
+// ENVELOPE HEADER
+// =============================================================================
+
+message EnvelopeHeader {
+    // Unique message identifier (for deduplication, correlation)
+    string message_id = 1;
+
+    // Timestamps
+    int64 timestamp = 2;              // Unix ms when created
+    int64 expires_at = 3;             // Optional: message TTL
+
+    // Routing
+    string source = 4;                // Sender identifier
+    string target = 5;                // Recipient identifier (empty = broadcast)
+    string channel = 6;               // Logical channel/topic
+
+    // Correlation (for request/response)
+    string correlation_id = 7;        // Links response to request
+    string causation_id = 8;          // Links to triggering message
+
+    // Sequence (for ordering, streaming)
+    uint64 sequence = 9;              // Monotonic sequence number
+    string stream_id = 10;            // Groups related messages
+
+    // Quality of Service
+    QoS qos = 11;
+    Priority priority = 12;
+
+    // Compression (for payload)
+    Compression compression = 13;
+
+    // Authentication (optional, transport may handle)
+    string auth_token = 14;
+
+    // Tracing
+    string trace_id = 15;
+    string span_id = 16;
+
+    // Schema version for forward compatibility
+    uint32 protocol_version = 17;
+}
+
+enum QoS {
+    QOS_AT_MOST_ONCE = 0;             // Fire and forget
+    QOS_AT_LEAST_ONCE = 1;            // Retry until ack
+    QOS_EXACTLY_ONCE = 2;             // Dedup + ack
+}
+
+enum Priority {
+    PRIORITY_LOW = 0;
+    PRIORITY_NORMAL = 1;
+    PRIORITY_HIGH = 2;
+    PRIORITY_CRITICAL = 3;
+}
+
+enum Compression {
+    COMPRESSION_NONE = 0;
+    COMPRESSION_ZSTD = 1;
+    COMPRESSION_LZ4 = 2;
+    COMPRESSION_GZIP = 3;
+}
+
+// =============================================================================
+// PAYLOAD TYPES
+// =============================================================================
+
+enum PayloadType {
+    PAYLOAD_TYPE_UNSPECIFIED = 0;
+
+    // Core payload types
+    PAYLOAD_TYPE_EVENT = 1;           // Notification events
+    PAYLOAD_TYPE_STATE = 2;           // State synchronization
+    PAYLOAD_TYPE_ASSET = 3;           // Asset data
+    PAYLOAD_TYPE_RPC = 4;             // Remote procedure call
+    PAYLOAD_TYPE_BINARY = 5;          // Raw binary data
+    PAYLOAD_TYPE_CONTROL = 6;         // Protocol control
+    PAYLOAD_TYPE_BATCH = 7;           // Multiple messages
+}
+
+// =============================================================================
+// EVENT PAYLOAD (synth-events)
+// =============================================================================
+
+message EventPayload {
+    // Event URI (e.g., "synth://cluster/node/created#node_01")
+    string uri = 1;
+
+    // Event data as structured fields
+    map<string, string> fields = 2;
+
+    // Or as raw bytes (for complex nested data)
+    bytes data = 3;
+    string data_schema = 4;           // Schema reference for data
+
+    // Event metadata
+    EventSeverity severity = 5;
+    bool persistent = 6;              // Should be stored in event log?
+}
+
+enum EventSeverity {
+    EVENT_SEVERITY_INFO = 0;
+    EVENT_SEVERITY_WARNING = 1;
+    EVENT_SEVERITY_ERROR = 2;
+    EVENT_SEVERITY_CRITICAL = 3;
+}
+
+// =============================================================================
+// STATE PAYLOAD (synth-state-sync)
+// =============================================================================
+
+message StatePayload {
+    // What kind of state update
+    StateUpdateType update_type = 1;
+
+    // Scene identifier
+    string scene_id = 2;
+
+    // Server tick for ordering
+    uint64 tick = 3;
+
+    // The state data (matches synth-state-sync messages)
+    oneof state_data {
+        bytes snapshot = 10;          // Full SceneSnapshot
+        bytes delta = 11;             // SceneDelta
+        bytes correction = 12;        // NodeCorrection
+    }
+
+    // Acknowledgement info
+    uint64 ack_tick = 20;             // Client's last processed tick
+    repeated uint32 ack_inputs = 21;  // Acknowledged input sequences
+}
+
+enum StateUpdateType {
+    STATE_UPDATE_SNAPSHOT = 0;        // Full state
+    STATE_UPDATE_DELTA = 1;           // Incremental update
+    STATE_UPDATE_CORRECTION = 2;      // Server correction
+    STATE_UPDATE_REQUEST = 3;         // Client requests state
+}
+
+// =============================================================================
+// ASSET PAYLOAD
+// =============================================================================
+
+message AssetPayload {
+    // Asset identifier
+    string asset_id = 1;
+    string uri = 2;
+
+    // Operation
+    AssetOperation operation = 3;
+
+    // For data transfer
+    bytes data = 10;
+    int64 offset = 11;                // For chunked transfer
+    int64 total_size = 12;
+    string checksum = 13;
+    string mime_type = 14;
+
+    // Metadata
+    map<string, string> metadata = 20;
+}
+
+enum AssetOperation {
+    ASSET_OP_RESOLVE = 0;             // Resolve ID to URI
+    ASSET_OP_LOAD = 1;                // Request asset data
+    ASSET_OP_DATA = 2;                // Asset data response
+    ASSET_OP_REGISTER = 3;            // Register new asset
+    ASSET_OP_UPDATE = 4;              // Update existing asset
+    ASSET_OP_DELETE = 5;              // Delete asset
+}
+
+// =============================================================================
+// RPC PAYLOAD
+// =============================================================================
+
+message RpcPayload {
+    // RPC identification
+    string method = 1;                // Method name (e.g., "asset/resolve")
+    string request_id = 2;            // For matching response
+
+    // Request or response
+    bool is_request = 3;
+
+    // Request data
+    bytes request = 10;
+    string request_schema = 11;
+
+    // Response data
+    bytes response = 20;
+    string response_schema = 21;
+
+    // Error (if failed)
+    RpcError error = 30;
+
+    // Streaming
+    bool is_stream = 40;
+    bool stream_end = 41;
+}
+
+message RpcError {
+    int32 code = 1;
+    string message = 2;
+    map<string, string> details = 3;
+}
+
+// =============================================================================
+// BINARY PAYLOAD (for large transfers)
+// =============================================================================
+
+message BinaryPayload {
+    // Transfer identification
+    string transfer_id = 1;
+
+    // Chunk info
+    int32 chunk_index = 2;
+    int32 total_chunks = 3;
+    int64 total_size = 4;
+
+    // The data
+    bytes data = 5;
+
+    // Integrity
+    string chunk_checksum = 6;        // Checksum of this chunk
+    string total_checksum = 7;        // Checksum of complete data (in last chunk)
+
+    // Content info
+    string content_type = 8;
+    string filename = 9;
+}
+
+// =============================================================================
+// CONTROL PAYLOAD
+// =============================================================================
+
+message ControlPayload {
+    ControlType type = 1;
+
+    oneof control_data {
+        PingControl ping = 10;
+        PongControl pong = 11;
+        AckControl ack = 12;
+        NackControl nack = 13;
+        FlowControl flow = 14;
+        HandshakeControl handshake = 15;
+        DisconnectControl disconnect = 16;
+    }
+}
+
+enum ControlType {
+    CONTROL_PING = 0;
+    CONTROL_PONG = 1;
+    CONTROL_ACK = 2;
+    CONTROL_NACK = 3;
+    CONTROL_FLOW = 4;
+    CONTROL_HANDSHAKE = 5;
+    CONTROL_DISCONNECT = 6;
+}
+
+message PingControl {
+    int64 timestamp = 1;
+}
+
+message PongControl {
+    int64 ping_timestamp = 1;
+    int64 pong_timestamp = 2;
+}
+
+message AckControl {
+    repeated string message_ids = 1;
+    uint64 sequence_up_to = 2;        // Ack all messages up to this sequence
+}
+
+message NackControl {
+    string message_id = 1;
+    string reason = 2;
+    bool retriable = 3;
+}
+
+message FlowControl {
+    bool pause = 1;                   // Pause sending
+    int32 window_size = 2;            // Max outstanding messages
+    repeated string channels = 3;     // Affected channels (empty = all)
+}
+
+message HandshakeControl {
+    string client_id = 1;
+    uint32 protocol_version = 2;
+    repeated string supported_compressions = 3;
+    repeated string subscriptions = 4;  // Channels to subscribe
+    map<string, string> capabilities = 5;
+}
+
+message DisconnectControl {
+    string reason = 1;
+    bool reconnect = 2;               // Should client reconnect?
+    int32 retry_after_seconds = 3;
+}
+
+// =============================================================================
+// BATCH PAYLOAD
+// =============================================================================
+
+message BatchPayload {
+    repeated SynthEnvelope messages = 1;
+    bool ordered = 2;                 // Must process in order?
+    bool atomic = 3;                  // All or nothing?
+}
+
+// =============================================================================
+// CHANNEL SUBSCRIPTION
+// =============================================================================
+
+message ChannelSubscription {
+    string channel = 1;               // Channel pattern (supports wildcards)
+    SubscriptionType type = 2;
+    map<string, string> filters = 3;  // Additional filters
+}
+
+enum SubscriptionType {
+    SUBSCRIPTION_SUBSCRIBE = 0;
+    SUBSCRIPTION_UNSUBSCRIBE = 1;
+}

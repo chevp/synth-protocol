@@ -1,0 +1,292 @@
+# =============================================================================
+# SYNTH WIRE EVENTS - Transport Layer Events
+# =============================================================================
+#
+# Events that flow through wires. Each event can be transported over any wire
+# (gRPC, WebSocket, HTTP, TCP, etc.). The wire is TRANSPARENT to the event.
+#
+# Format:
+#   synth <domain> <resource> <action> <id> [--options] [--wire=<wire_id>]
+#
+# =============================================================================
+
+# =============================================================================
+# ASSET EVENTS (synth/assets/*)
+# =============================================================================
+#
+# Asset lifecycle events - from request to binary delivery
+#
+# -----------------------------------------------------------------------------
+
+# Request to load an asset (client → server)
+synth asset load asset_car_model --priority=high
+synth asset load asset_texture_diffuse --priority=low --defer
+
+# Request to resolve asset ID to URI (client → server)
+synth asset resolve asset_car_model
+synth asset resolve asset_texture_diffuse --include-metadata
+
+# Asset data arriving (server → client) - can be chunked
+synth asset data asset_car_model --chunk=0 --total=5 --size=1048576
+synth asset data asset_car_model --chunk=1 --total=5 --size=1048576
+synth asset data asset_car_model --chunk=2 --total=5 --size=1048576
+synth asset data asset_car_model --chunk=3 --total=5 --size=1048576
+synth asset data asset_car_model --chunk=4 --total=5 --size=1048576 --final
+
+# Asset ready notification (internal event)
+synth asset ready asset_car_model --uri=synth://assets/models/car.glb --size=5242880 --cached
+synth asset ready asset_texture_diffuse --uri=synth://assets/textures/diffuse.png --size=2097152
+
+# Asset error (server → client)
+synth asset error asset_missing --code=not_found --retriable=false
+synth asset error asset_large --code=timeout --retriable=true --retry-after=5
+
+# Asset eviction (client internal)
+synth asset evict asset_old_texture --reason=memory_pressure
+synth asset evict asset_unused --reason=ttl_expired
+
+# Asset preload request (batch)
+synth asset preload --ids=asset_01,asset_02,asset_03 --priority=background
+
+# =============================================================================
+# BINARY TRANSFER EVENTS (synth/binary/*)
+# =============================================================================
+#
+# Large binary transfers - images, videos, models
+#
+# -----------------------------------------------------------------------------
+
+# Start binary transfer
+synth binary start transfer_001 --asset=asset_large_video --size=104857600 --chunks=100
+
+# Binary chunk received
+synth binary chunk transfer_001 --index=0 --checksum=abc123
+synth binary chunk transfer_001 --index=1 --checksum=def456
+synth binary chunk transfer_001 --index=99 --checksum=xyz789 --final
+
+# Binary transfer complete
+synth binary complete transfer_001 --total-size=104857600 --checksum=final_hash --duration=5000
+
+# Binary transfer failed
+synth binary fail transfer_001 --error=connection_lost --at-chunk=50 --resumable
+
+# Resume binary transfer
+synth binary resume transfer_001 --from-chunk=50
+
+# =============================================================================
+# WIRE CONTROL EVENTS (synth/wire/*)
+# =============================================================================
+#
+# Wire management and health
+#
+# -----------------------------------------------------------------------------
+
+# Wire discovery (during handshake)
+synth wire discover --client=cpp_client_01
+
+# Wire available (server → client)
+synth wire available wire_grpc --url=grpc://server:50051 --latency=5 --bandwidth=100000
+synth wire available wire_wss --url=wss://server/ws --latency=20 --bandwidth=50000
+synth wire available wire_tcp --url=tcp://server:9000 --latency=2 --bandwidth=200000
+
+# Wire selected (client decision)
+synth wire select wire_grpc --for=state_sync
+synth wire select wire_wss --for=events
+synth wire select wire_tcp --for=binary_transfer
+
+# Wire connected
+synth wire connect wire_grpc --status=connected --latency=5
+synth wire connect wire_wss --status=connected --latency=18
+
+# Wire health check
+synth wire ping wire_grpc --timestamp=1699999999999
+synth wire pong wire_grpc --latency=4 --server-time=1699999999999
+
+# Wire degraded
+synth wire degraded wire_grpc --latency=500 --packet-loss=5
+
+# Wire failed - trigger fallback
+synth wire fail wire_grpc --error=connection_reset
+synth wire fallback wire_grpc --to=wire_wss --reason=primary_failed
+
+# Wire reconnecting
+synth wire reconnect wire_grpc --attempt=1 --max=5 --backoff=1000
+
+# Wire recovered
+synth wire recover wire_grpc --downtime=5000
+
+# =============================================================================
+# STATE SYNC EVENTS (synth/state/*)
+# =============================================================================
+#
+# Real-time state synchronization
+#
+# -----------------------------------------------------------------------------
+
+# Request full state snapshot
+synth state snapshot scene_001 --request
+
+# State snapshot received
+synth state snapshot scene_001 --tick=1000 --nodes=150 --size=524288
+
+# State delta (incremental update)
+synth state delta scene_001 --tick=1001 --changes=5
+synth state delta scene_001 --tick=1002 --changes=2
+
+# Client input (for prediction)
+synth state input scene_001 --seq=100 --type=transform --node=player_01
+
+# Server correction (client was wrong)
+synth state correct scene_001 --tick=1000 --node=player_01 --field=position
+
+# State acknowledgement
+synth state ack scene_001 --tick=1002 --inputs=100,101,102
+
+# =============================================================================
+# RPC EVENTS (synth/rpc/*)
+# =============================================================================
+#
+# Request/Response calls
+#
+# -----------------------------------------------------------------------------
+
+# RPC request
+synth rpc call asset/resolve --id=req_001 --args='{"id":"car_model"}'
+synth rpc call storage/list --id=req_002 --args='{"bucket":"textures"}'
+
+# RPC response
+synth rpc result req_001 --success --duration=15
+synth rpc result req_002 --success --duration=45 --items=25
+
+# RPC error
+synth rpc error req_003 --code=not_found --message="Asset not found"
+synth rpc error req_004 --code=timeout --retriable
+
+# RPC stream start
+synth rpc stream-start stream_001 --method=asset/load
+
+# RPC stream data
+synth rpc stream-data stream_001 --seq=0 --size=65536
+synth rpc stream-data stream_001 --seq=1 --size=65536
+
+# RPC stream end
+synth rpc stream-end stream_001 --total=10 --size=655360
+
+# =============================================================================
+# EVENT ROUTING BY WIRE
+# =============================================================================
+#
+# Different events prefer different wires based on characteristics:
+#
+#   ┌─────────────────────────────────────────────────────────────────────┐
+#   │                    EVENT → WIRE ROUTING                             │
+#   ├─────────────────────────────────────────────────────────────────────┤
+#   │                                                                     │
+#   │   EVENT TYPE              PREFERRED WIRE       REASON               │
+#   │   ──────────              ──────────────       ──────               │
+#   │                                                                     │
+#   │   synth state delta       gRPC/TCP             lowest latency       │
+#   │   synth state snapshot    TCP                  large payload        │
+#   │   synth state input       gRPC/UDP             realtime input       │
+#   │                                                                     │
+#   │   synth asset load        HTTP/gRPC            request/response     │
+#   │   synth asset data        TCP                  high bandwidth       │
+#   │   synth asset ready       WebSocket            push notification    │
+#   │                                                                     │
+#   │   synth binary chunk      TCP                  streaming binary     │
+#   │   synth binary complete   WebSocket            notification         │
+#   │                                                                     │
+#   │   synth rpc call          HTTP/gRPC            standard RPC         │
+#   │   synth rpc stream-data   gRPC                 streaming RPC        │
+#   │                                                                     │
+#   │   synth wire ping         WebSocket            always connected     │
+#   │   synth cluster node *    WebSocket            push events          │
+#   │   synth mcp tool *        WebSocket/gRPC       tool invocation      │
+#   │                                                                     │
+#   └─────────────────────────────────────────────────────────────────────┘
+#
+# =============================================================================
+
+# =============================================================================
+# COMPLETE ASSET LOADING SEQUENCE
+# =============================================================================
+#
+# Example: Loading "car_model" asset with all events
+#
+#   Time   Wire        Event
+#   ────   ────        ─────
+#   0ms    HTTP        synth asset resolve car_model
+#   15ms   HTTP        synth rpc result req_001 --uri=synth://assets/car.glb
+#   16ms   HTTP        synth asset load car_model --priority=high
+#   20ms   TCP         synth binary start transfer_001 --size=5242880
+#   25ms   TCP         synth binary chunk transfer_001 --index=0
+#   30ms   TCP         synth binary chunk transfer_001 --index=1
+#   ...
+#   500ms  TCP         synth binary chunk transfer_001 --index=99 --final
+#   501ms  TCP         synth binary complete transfer_001
+#   502ms  WebSocket   synth asset ready car_model --size=5242880
+#
+# =============================================================================
+
+# =============================================================================
+# MAPPING TO PROTOBUF
+# =============================================================================
+#
+#   CLI Event:
+#     synth asset load asset_car_model --priority=high
+#
+#   SynthEnvelope:
+#     {
+#       header: { message_id: "...", channel: "synth/assets/load" },
+#       payload_type: PAYLOAD_TYPE_EVENT,
+#       event: {
+#         uri: "synth://asset/load#asset_car_model",
+#         fields: { "priority": "high" }
+#       }
+#     }
+#
+#   CLI Event:
+#     synth binary chunk transfer_001 --index=5 --checksum=abc123
+#
+#   SynthEnvelope:
+#     {
+#       header: { message_id: "...", stream_id: "transfer_001" },
+#       payload_type: PAYLOAD_TYPE_BINARY,
+#       binary: {
+#         transfer_id: "transfer_001",
+#         chunk_index: 5,
+#         chunk_checksum: "abc123",
+#         data: <bytes>
+#       }
+#     }
+#
+# =============================================================================
+
+# =============================================================================
+# WIRE TRANSPARENT PRINCIPLE
+# =============================================================================
+#
+# The same event can flow over ANY wire. The wire is just transport:
+#
+#   synth asset load car_model
+#
+#   Over HTTP:
+#     POST /synth/v1/rpc
+#     Body: <SynthEnvelope bytes>
+#
+#   Over WebSocket:
+#     Binary frame: [length][SynthEnvelope bytes]
+#
+#   Over gRPC:
+#     SynthWire.Call(SynthEnvelope) → SynthEnvelope
+#
+#   Over TCP:
+#     [SYNT][length][flags][SynthEnvelope bytes]
+#
+#   Over Kafka:
+#     Topic: synth.assets.load
+#     Value: <SynthEnvelope bytes>
+#
+# The EVENT is the same. Only the FRAMING differs.
+#
+# =============================================================================

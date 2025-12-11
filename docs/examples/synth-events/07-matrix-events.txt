@@ -1,0 +1,364 @@
+# =============================================================================
+# SYNTH MATRIX EVENTS - Mehrdimensionale Event-Struktur
+# =============================================================================
+#
+# Ein Matrix-Event kombiniert Event-Metadaten mit Binary-Daten in einer
+# einheitlichen Struktur. Nicht linear, sondern als Matrix:
+#
+#   ┌─────────────────────────────────────────────────────────────────────┐
+#   │                     MATRIX EVENT STRUCTURE                          │
+#   ├─────────────────────────────────────────────────────────────────────┤
+#   │                                                                     │
+#   │   EVENT = [ HEADER | PAYLOAD | BINARY ]                             │
+#   │                                                                     │
+#   │   ┌──────────┬──────────────────────────┬──────────────────────┐    │
+#   │   │  HEADER  │        PAYLOAD           │      BINARY          │    │
+#   │   │  (meta)  │        (typed)           │      (raw)           │    │
+#   │   ├──────────┼──────────────────────────┼──────────────────────┤    │
+#   │   │ id       │ asset_id: "car_model"    │ [PNG bytes...]       │    │
+#   │   │ uri      │ type: TEXTURE            │ [GLB bytes...]       │    │
+#   │   │ time     │ size: 5242880            │ [WAV bytes...]       │    │
+#   │   │ source   │ checksum: "abc123"       │                      │    │
+#   │   │ wire     │ ...                      │                      │    │
+#   │   └──────────┴──────────────────────────┴──────────────────────┘    │
+#   │                                                                     │
+#   │   ALLES IN EINEM EVENT!                                             │
+#   │                                                                     │
+#   └─────────────────────────────────────────────────────────────────────┘
+#
+# =============================================================================
+
+# =============================================================================
+# MATRIX EVENT FORMAT (Binary Wire Format)
+# =============================================================================
+#
+#   Byte Offset   Size    Field
+#   ───────────   ────    ─────
+#   0             4       Magic: "SYNT" (0x53594E54)
+#   4             4       Total Length (big-endian)
+#   8             2       Header Length
+#   10            2       Payload Length
+#   12            4       Binary Length
+#   16            2       Flags
+#   18            N       Header (protobuf)
+#   18+N          M       Payload (protobuf)
+#   18+N+M        B       Binary Data (raw bytes)
+#
+#   ┌────────────────────────────────────────────────────────────────────┐
+#   │ SYNT │ LEN  │ H.LEN│P.LEN │B.LEN │FLAGS │HEADER│PAYLOAD│ BINARY   │
+#   │ 4B   │ 4B   │ 2B   │ 2B   │ 4B   │ 2B   │ N B  │ M B   │ B Bytes  │
+#   └────────────────────────────────────────────────────────────────────┘
+#
+# =============================================================================
+
+# =============================================================================
+# BEISPIEL 1: Asset Load mit Binary Data
+# =============================================================================
+#
+# CLI Command:
+#   synth asset data car_texture --chunk=0 --binary=<PNG_DATA>
+#
+# Matrix Event (hex dump):
+#
+# 00000000: 5359 4E54 0000 1234 0020 0040 0001 1CD4  SYNT...4. .@....
+# 00000010: 0001                                      ..
+#
+# Header (20 bytes):
+# 00000012: 0A10 6576 745F 3031 3233 3435 3637 3839  ..evt_0123456789
+# 00000022: 1208 6361 725F 7465 7874 7572 65         ..car_texture
+#
+# Payload (64 bytes):
+# 0000002E: 0801 1000 1801 2005 2800 3010 6361 725F  ...... .(.0.car_
+# 0000003E: 7465 7874 7572 652E 706E 67              texture.png
+#
+# Binary (73428 bytes = PNG image):
+# 00000048: 8950 4E47 0D0A 1A0A 0000 000D 4948 4452  .PNG........IHDR
+# 00000058: 0000 0400 0000 0400 0806 0000 00F6 D91A  ................
+# ...
+# 00012000: 0000 0000 4945 4E44 AE42 6082            ....IEND.B`.
+#
+# =============================================================================
+
+# =============================================================================
+# BEISPIEL 2: Model Upload mit GLB Binary
+# =============================================================================
+#
+# CLI Command:
+#   synth binary upload car_model.glb --type=model/gltf-binary
+#
+# Matrix Event Struktur:
+#
+#   ┌──────────────────────────────────────────────────────────────────┐
+#   │ HEADER                                                           │
+#   ├──────────────────────────────────────────────────────────────────┤
+#   │ event_id:      "evt_model_upload_001"                            │
+#   │ uri:           "synth://binary/upload#car_model"                 │
+#   │ timestamp:     1699999999999                                     │
+#   │ source_id:     "client_cpp_01"                                   │
+#   │ wire_id:       "wire_tcp_01"                                     │
+#   │ correlation:   "transfer_001"                                    │
+#   └──────────────────────────────────────────────────────────────────┘
+#   ┌──────────────────────────────────────────────────────────────────┐
+#   │ PAYLOAD                                                          │
+#   ├──────────────────────────────────────────────────────────────────┤
+#   │ asset_id:      "car_model"                                       │
+#   │ filename:      "car_model.glb"                                   │
+#   │ content_type:  "model/gltf-binary"                               │
+#   │ total_size:    15728640                                          │
+#   │ chunk_index:   0                                                 │
+#   │ total_chunks:  15                                                │
+#   │ checksum:      "sha256:abc123..."                                │
+#   └──────────────────────────────────────────────────────────────────┘
+#   ┌──────────────────────────────────────────────────────────────────┐
+#   │ BINARY (1048576 bytes = 1MB chunk)                               │
+#   ├──────────────────────────────────────────────────────────────────┤
+#   │ 67 6C 54 46 02 00 00 00 ... (glTF magic + data)                  │
+#   │ ... binary mesh data ...                                         │
+#   │ ... texture data embedded ...                                    │
+#   └──────────────────────────────────────────────────────────────────┘
+#
+# =============================================================================
+
+# =============================================================================
+# BEISPIEL 3: Audio Asset mit WAV Binary
+# =============================================================================
+#
+# Matrix Event (annotated hex):
+#
+# MAGIC + LENGTH:
+# 00: 53 59 4E 54    ; "SYNT"
+# 04: 00 00 B0 04    ; Total: 45060 bytes
+# 08: 00 18          ; Header: 24 bytes
+# 0A: 00 30          ; Payload: 48 bytes
+# 0C: 00 00 AF C8    ; Binary: 44992 bytes (WAV)
+# 10: 00 02          ; Flags: has_binary, compressed=false
+#
+# HEADER (24 bytes protobuf):
+# 12: 0A 14 65 76 74 5F 61 75 64 69 6F 5F 30 30 31  ; event_id
+# 20: 12 08 77 61 76 5F 64 61 74 61                  ; uri
+#
+# PAYLOAD (48 bytes protobuf):
+# 2A: 0A 0C 65 6E 67 69 6E 65 5F 73 6F 75 6E 64    ; asset_id: "engine_sound"
+# 38: 12 10 61 75 64 69 6F 2F 78 2D 77 61 76        ; content_type: "audio/x-wav"
+# 48: 18 C0 DF 02                                   ; size: 44992
+# 4C: 20 01                                         ; channels: 1 (mono)
+# 4E: 28 80 BB 01                                   ; sample_rate: 22050
+#
+# BINARY (44992 bytes WAV):
+# 52: 52 49 46 46    ; "RIFF"
+# 56: C4 AF 00 00    ; chunk size
+# 5A: 57 41 56 45    ; "WAVE"
+# 5E: 66 6D 74 20    ; "fmt "
+# 62: 10 00 00 00    ; subchunk size
+# 66: 01 00          ; audio format (PCM)
+# 68: 01 00          ; num channels
+# 6A: 22 56 00 00    ; sample rate (22050)
+# 6E: 44 AC 00 00    ; byte rate
+# 72: 02 00          ; block align
+# 74: 10 00          ; bits per sample
+# 76: 64 61 74 61    ; "data"
+# 7A: A0 AF 00 00    ; data size
+# 7E: ... PCM samples ...
+#
+# =============================================================================
+
+# =============================================================================
+# MATRIX EVENT TYPEN
+# =============================================================================
+#
+#   ┌─────────────────────────────────────────────────────────────────────┐
+#   │                    MATRIX EVENT TYPES                               │
+#   ├───────────────────┬─────────────────┬───────────────────────────────┤
+#   │ EVENT TYPE        │ PAYLOAD         │ BINARY                        │
+#   ├───────────────────┼─────────────────┼───────────────────────────────┤
+#   │ asset/texture     │ AssetMeta       │ PNG/JPG/DDS bytes             │
+#   │ asset/model       │ AssetMeta       │ GLB/FBX/OBJ bytes             │
+#   │ asset/audio       │ AssetMeta       │ WAV/OGG/MP3 bytes             │
+#   │ asset/video       │ AssetMeta       │ MP4/WEBM bytes                │
+#   │ asset/scene       │ SceneMeta       │ Synth XML/Binary              │
+#   │ state/snapshot    │ StateMeta       │ Compressed state bytes        │
+#   │ state/delta       │ DeltaMeta       │ Delta patch bytes             │
+#   │ rpc/response      │ RpcMeta         │ Result bytes (optional)       │
+#   │ binary/chunk      │ ChunkMeta       │ Raw chunk bytes               │
+#   └───────────────────┴─────────────────┴───────────────────────────────┘
+#
+# =============================================================================
+
+# =============================================================================
+# BEISPIEL 4: State Snapshot mit komprimierten Binärdaten
+# =============================================================================
+#
+# Matrix Event für kompletten Scene-State:
+#
+#   ┌────────────────────────────────────────────────────────────────┐
+#   │ HEADER                                                         │
+#   │ ──────                                                         │
+#   │ event_id:    "evt_snapshot_scene_001"                          │
+#   │ uri:         "synth://state/snapshot#scene_outdoor"            │
+#   │ timestamp:   1699999999999                                     │
+#   │ source_id:   "server_php_01"                                   │
+#   │ compression: ZSTD                                              │
+#   └────────────────────────────────────────────────────────────────┘
+#   ┌────────────────────────────────────────────────────────────────┐
+#   │ PAYLOAD (StateMeta)                                            │
+#   │ ───────                                                        │
+#   │ scene_id:        "scene_outdoor"                               │
+#   │ tick:            1000                                          │
+#   │ node_count:      150                                           │
+#   │ uncompressed:    524288                                        │
+#   │ compressed:      131072                                        │
+#   │ checksum:        "sha256:def456..."                            │
+#   └────────────────────────────────────────────────────────────────┘
+#   ┌────────────────────────────────────────────────────────────────┐
+#   │ BINARY (131072 bytes = 128KB ZSTD compressed)                  │
+#   │ ──────                                                         │
+#   │ 28 B5 2F FD ...  ; ZSTD magic                                  │
+#   │ ... compressed SceneSnapshot protobuf ...                      │
+#   │                                                                │
+#   │ Decompressed content (524288 bytes):                           │
+#   │ - 150 NodeState messages                                       │
+#   │ - Transform, Material, Script components                       │
+#   │ - Asset references                                             │
+#   └────────────────────────────────────────────────────────────────┘
+#
+# =============================================================================
+
+# =============================================================================
+# WIRE TRANSPORT: MATRIX EVENTS ÜBER VERSCHIEDENE WIRES
+# =============================================================================
+#
+# Das gleiche Matrix-Event kann über jeden Wire transportiert werden:
+#
+#   ┌─────────────────────────────────────────────────────────────────────┐
+#   │                                                                     │
+#   │   MATRIX EVENT                                                      │
+#   │   ════════════                                                      │
+#   │   [HEADER|PAYLOAD|BINARY]                                           │
+#   │            │                                                        │
+#   │            ▼                                                        │
+#   │   ┌─────────────────────────────────────────────────────────┐       │
+#   │   │                    WIRE LAYER                           │       │
+#   │   │                                                         │       │
+#   │   │   HTTP:     POST /synth/v1/matrix                       │       │
+#   │   │             Content-Type: application/x-synth-matrix    │       │
+#   │   │             Body: [SYNT...matrix bytes...]              │       │
+#   │   │                                                         │       │
+#   │   │   WebSocket: Binary Frame                               │       │
+#   │   │             [length][SYNT...matrix bytes...]            │       │
+#   │   │                                                         │       │
+#   │   │   gRPC:     SynthWire.Exchange(stream)                  │       │
+#   │   │             MatrixEnvelope { bytes matrix_data }        │       │
+#   │   │                                                         │       │
+#   │   │   TCP:      Length-prefixed                             │       │
+#   │   │             [4B length][SYNT...matrix bytes...]         │       │
+#   │   │                                                         │       │
+#   │   │   Kafka:    Topic: synth.matrix                         │       │
+#   │   │             Value: [SYNT...matrix bytes...]             │       │
+#   │   │                                                         │       │
+#   │   └─────────────────────────────────────────────────────────┘       │
+#   │                                                                     │
+#   └─────────────────────────────────────────────────────────────────────┘
+#
+# =============================================================================
+
+# =============================================================================
+# BEISPIEL 5: Kompletter Asset-Load Flow als Matrix Events
+# =============================================================================
+#
+# Sequenz für "synth asset load car_model":
+#
+# EVENT 1: Request (Client → Server)
+# ─────────────────────────────────
+#   HEADER:  { id: "req_001", uri: "synth://asset/load#car_model" }
+#   PAYLOAD: { asset_id: "car_model", priority: HIGH }
+#   BINARY:  <empty>
+#
+# EVENT 2: Response Start (Server → Client)
+# ─────────────────────────────────────────
+#   HEADER:  { id: "res_001", correlation: "req_001" }
+#   PAYLOAD: { total_size: 5242880, chunks: 5, type: "model/gltf-binary" }
+#   BINARY:  <empty>
+#
+# EVENT 3-7: Data Chunks (Server → Client)
+# ────────────────────────────────────────
+#   HEADER:  { id: "chunk_001", stream: "transfer_001" }
+#   PAYLOAD: { index: 0, checksum: "abc123" }
+#   BINARY:  [1048576 bytes GLB data]
+#
+#   HEADER:  { id: "chunk_002", stream: "transfer_001" }
+#   PAYLOAD: { index: 1, checksum: "def456" }
+#   BINARY:  [1048576 bytes GLB data]
+#
+#   ... (chunks 2-4) ...
+#
+#   HEADER:  { id: "chunk_005", stream: "transfer_001", flags: END_STREAM }
+#   PAYLOAD: { index: 4, checksum: "xyz789", final: true }
+#   BINARY:  [1048576 bytes GLB data]
+#
+# EVENT 8: Complete (internal notification)
+# ─────────────────────────────────────────
+#   HEADER:  { id: "complete_001", uri: "synth://asset/ready#car_model" }
+#   PAYLOAD: { total_checksum: "final_hash", duration_ms: 500 }
+#   BINARY:  <empty>
+#
+# =============================================================================
+
+# =============================================================================
+# PROTOBUF DEFINITION (Referenz)
+# =============================================================================
+#
+# message MatrixEvent {
+#     // Fixed header
+#     MatrixHeader header = 1;
+#
+#     // Typed payload (one of many)
+#     oneof payload {
+#         AssetPayload asset = 10;
+#         StatePayload state = 11;
+#         RpcPayload rpc = 12;
+#         BinaryPayload binary = 13;
+#     }
+#
+#     // Raw binary data (optional, can be large)
+#     bytes data = 100;
+# }
+#
+# message MatrixHeader {
+#     string event_id = 1;
+#     string uri = 2;
+#     int64 timestamp = 3;
+#     string source_id = 4;
+#     string wire_id = 5;
+#     string correlation_id = 6;
+#     string stream_id = 7;
+#     Compression compression = 8;
+#     uint32 flags = 9;
+# }
+#
+# =============================================================================
+
+# =============================================================================
+# ZUSAMMENFASSUNG: MATRIX vs LINEAR
+# =============================================================================
+#
+#   LINEAR (alt):
+#   ─────────────
+#   Event 1: { type: "load", id: "car" }
+#   Event 2: { type: "data", chunk: 0, data: <ref> }  ← Daten separat!
+#   Event 3: { type: "data", chunk: 1, data: <ref> }
+#   ... N separate Events ...
+#
+#   MATRIX (neu):
+#   ─────────────
+#   MatrixEvent 1: [HEADER: load][PAYLOAD: meta][BINARY: <empty>]
+#   MatrixEvent 2: [HEADER: data][PAYLOAD: chunk_0][BINARY: 1MB GLB]
+#   MatrixEvent 3: [HEADER: data][PAYLOAD: chunk_1][BINARY: 1MB GLB]
+#   ... Alles in einem Event! ...
+#
+#   VORTEILE:
+#   • Event + Binärdaten atomar (kein Referenz-Problem)
+#   • Ein Paket = komplett (kein Reassembly nötig)
+#   • Wire-transparent (gleiches Format über alle Wires)
+#   • Selbstbeschreibend (Header enthält Längen)
+#
+# =============================================================================

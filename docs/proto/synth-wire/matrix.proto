@@ -1,0 +1,419 @@
+syntax = "proto3";
+
+package synth.wire;
+
+option java_package = "io.synth.protocol.wire";
+option java_multiple_files = true;
+option csharp_namespace = "Synth.Wire";
+option go_package = "synth/wire";
+
+// =============================================================================
+// SYNTH MATRIX EVENTS
+// =============================================================================
+//
+// A Matrix Event combines event metadata with binary data in a single atomic
+// structure. Not linear, but as a matrix:
+//
+//   EVENT = [ HEADER | PAYLOAD | BINARY ]
+//
+//   ┌──────────┬──────────────────────────┬──────────────────────┐
+//   │  HEADER  │        PAYLOAD           │      BINARY          │
+//   │  (meta)  │        (typed)           │      (raw)           │
+//   ├──────────┼──────────────────────────┼──────────────────────┤
+//   │ id       │ asset_id: "car_model"    │ [PNG bytes...]       │
+//   │ uri      │ type: TEXTURE            │ [GLB bytes...]       │
+//   │ time     │ size: 5242880            │ [WAV bytes...]       │
+//   │ source   │ checksum: "abc123"       │                      │
+//   │ wire     │ ...                      │                      │
+//   └──────────┴──────────────────────────┴──────────────────────┘
+//
+// =============================================================================
+
+// =============================================================================
+// MATRIX EVENT
+// =============================================================================
+//
+// The unified event structure that carries EVERYTHING in one message:
+// - Event metadata (who, when, where)
+// - Typed payload (what kind of event)
+// - Binary data (the actual bytes - textures, models, audio, etc.)
+//
+// =============================================================================
+
+message MatrixEvent {
+    // Fixed header - always present
+    MatrixHeader header = 1;
+
+    // Typed payload - describes the event
+    oneof payload {
+        AssetMatrixPayload asset = 10;
+        StateMatrixPayload state = 11;
+        RpcMatrixPayload rpc = 12;
+        BinaryMatrixPayload binary = 13;
+        ControlMatrixPayload control = 14;
+    }
+
+    // Raw binary data - the actual bytes (textures, models, audio, etc.)
+    // This field carries the binary payload that the event describes
+    bytes data = 100;
+}
+
+// =============================================================================
+// MATRIX HEADER
+// =============================================================================
+
+message MatrixHeader {
+    // Unique event identifier
+    string event_id = 1;
+
+    // Event URI for routing (e.g., "synth://asset/data#car_model")
+    string uri = 2;
+
+    // Timestamp when event was created (Unix ms)
+    int64 timestamp = 3;
+
+    // Source of the event
+    string source_id = 4;
+    string source_type = 5;       // "client", "server", "agent"
+
+    // Wire this event is traveling on
+    string wire_id = 6;
+
+    // Correlation for request/response matching
+    string correlation_id = 7;
+
+    // Stream ID for chunked transfers
+    string stream_id = 8;
+    uint32 stream_sequence = 9;
+
+    // Compression of binary data
+    MatrixCompression compression = 10;
+
+    // Flags
+    uint32 flags = 11;
+
+    // Binary data info (for fast access without parsing payload)
+    uint32 binary_length = 12;
+    string binary_checksum = 13;
+    string binary_content_type = 14;
+}
+
+enum MatrixCompression {
+    MATRIX_COMPRESSION_NONE = 0;
+    MATRIX_COMPRESSION_ZSTD = 1;
+    MATRIX_COMPRESSION_LZ4 = 2;
+    MATRIX_COMPRESSION_GZIP = 3;
+}
+
+// Matrix flags (bit field)
+// Bit 0: HAS_BINARY       - Event contains binary data
+// Bit 1: COMPRESSED       - Binary data is compressed
+// Bit 2: END_STREAM       - Last event in stream
+// Bit 3: REQUIRES_ACK     - Requires acknowledgement
+// Bit 4: ENCRYPTED        - Data is encrypted
+// Bit 5: CHUNKED          - Part of chunked transfer
+
+// =============================================================================
+// ASSET MATRIX PAYLOAD
+// =============================================================================
+//
+// For asset events where binary = actual asset data (PNG, GLB, WAV, etc.)
+//
+// Examples:
+//   synth asset load car_texture   → binary = <PNG bytes>
+//   synth asset data car_model     → binary = <GLB chunk>
+//
+// =============================================================================
+
+message AssetMatrixPayload {
+    string asset_id = 1;
+    AssetMatrixType type = 2;
+
+    // For load requests
+    AssetMatrixPriority priority = 3;
+    bool include_metadata = 4;
+
+    // For data events
+    int32 chunk_index = 5;
+    int32 total_chunks = 6;
+    bool is_final_chunk = 7;
+
+    // Asset metadata
+    string filename = 10;
+    string content_type = 11;       // MIME type: "image/png", "model/gltf-binary"
+    int64 total_size = 12;
+    string total_checksum = 13;
+
+    // For ready/complete events
+    string resolved_uri = 20;
+    int64 duration_ms = 21;
+    bool from_cache = 22;
+
+    // For error events
+    string error_code = 30;
+    string error_message = 31;
+    bool retriable = 32;
+}
+
+enum AssetMatrixType {
+    ASSET_MATRIX_UNSPECIFIED = 0;
+    ASSET_MATRIX_LOAD = 1;          // Request to load
+    ASSET_MATRIX_RESOLVE = 2;       // Request to resolve ID → URI
+    ASSET_MATRIX_DATA = 3;          // Asset data (binary in event.data)
+    ASSET_MATRIX_READY = 4;         // Asset loaded and ready
+    ASSET_MATRIX_ERROR = 5;         // Load failed
+    ASSET_MATRIX_EVICT = 6;         // Evicted from memory
+}
+
+enum AssetMatrixPriority {
+    ASSET_MATRIX_PRIORITY_BACKGROUND = 0;
+    ASSET_MATRIX_PRIORITY_LOW = 1;
+    ASSET_MATRIX_PRIORITY_NORMAL = 2;
+    ASSET_MATRIX_PRIORITY_HIGH = 3;
+    ASSET_MATRIX_PRIORITY_CRITICAL = 4;
+}
+
+// =============================================================================
+// STATE MATRIX PAYLOAD
+// =============================================================================
+//
+// For state sync events where binary = serialized state data
+//
+// Examples:
+//   synth state snapshot scene_01  → binary = <compressed SceneSnapshot>
+//   synth state delta scene_01     → binary = <delta patch>
+//
+// =============================================================================
+
+message StateMatrixPayload {
+    string scene_id = 1;
+    StateMatrixType type = 2;
+
+    // Server tick for ordering
+    uint64 tick = 3;
+
+    // For snapshot
+    int32 node_count = 4;
+    int64 uncompressed_size = 5;
+
+    // For delta
+    int32 change_count = 6;
+
+    // For input (client → server)
+    uint32 input_sequence = 10;
+    string input_type = 11;
+    string target_node_id = 12;
+
+    // For correction (server → client)
+    string corrected_node_id = 20;
+    string corrected_field = 21;
+
+    // For ack
+    uint64 ack_tick = 30;
+    repeated uint32 ack_inputs = 31;
+}
+
+enum StateMatrixType {
+    STATE_MATRIX_UNSPECIFIED = 0;
+    STATE_MATRIX_SNAPSHOT_REQUEST = 1;
+    STATE_MATRIX_SNAPSHOT = 2;        // binary = compressed SceneSnapshot
+    STATE_MATRIX_DELTA = 3;           // binary = delta patch
+    STATE_MATRIX_INPUT = 4;           // binary = input data
+    STATE_MATRIX_CORRECT = 5;         // binary = corrected value
+    STATE_MATRIX_ACK = 6;
+}
+
+// =============================================================================
+// RPC MATRIX PAYLOAD
+// =============================================================================
+//
+// For RPC events where binary = request/response data
+//
+// Examples:
+//   synth rpc call asset/resolve   → binary = <request params>
+//   synth rpc result req_001       → binary = <response data>
+//
+// =============================================================================
+
+message RpcMatrixPayload {
+    string request_id = 1;
+    RpcMatrixType type = 2;
+
+    // For call
+    string method = 3;
+
+    // For result
+    bool success = 10;
+    int64 duration_ms = 11;
+    int32 item_count = 12;
+
+    // For error
+    string error_code = 20;
+    string error_message = 21;
+    bool retriable = 22;
+
+    // For streaming
+    int32 stream_sequence = 30;
+    int32 total_chunks = 31;
+    bool is_final = 32;
+}
+
+enum RpcMatrixType {
+    RPC_MATRIX_UNSPECIFIED = 0;
+    RPC_MATRIX_CALL = 1;              // binary = request arguments
+    RPC_MATRIX_RESULT = 2;            // binary = response data
+    RPC_MATRIX_ERROR = 3;             // binary = error details
+    RPC_MATRIX_STREAM_START = 4;
+    RPC_MATRIX_STREAM_DATA = 5;       // binary = stream chunk
+    RPC_MATRIX_STREAM_END = 6;
+}
+
+// =============================================================================
+// BINARY MATRIX PAYLOAD
+// =============================================================================
+//
+// For large binary transfers (generic)
+//
+// Examples:
+//   synth binary chunk transfer_001  → binary = <chunk data>
+//
+// =============================================================================
+
+message BinaryMatrixPayload {
+    string transfer_id = 1;
+    BinaryMatrixType type = 2;
+
+    // Associated asset (optional)
+    string asset_id = 3;
+
+    // Transfer info
+    string filename = 4;
+    string content_type = 5;
+    int64 total_size = 6;
+    int32 total_chunks = 7;
+
+    // Chunk info
+    int32 chunk_index = 10;
+    int64 chunk_offset = 11;
+    string chunk_checksum = 12;
+
+    // Complete info
+    string total_checksum = 20;
+    int64 duration_ms = 21;
+
+    // Error info
+    string error_code = 30;
+    string error_message = 31;
+    int32 failed_at_chunk = 32;
+    bool resumable = 33;
+}
+
+enum BinaryMatrixType {
+    BINARY_MATRIX_UNSPECIFIED = 0;
+    BINARY_MATRIX_START = 1;
+    BINARY_MATRIX_CHUNK = 2;          // binary = chunk data
+    BINARY_MATRIX_COMPLETE = 3;
+    BINARY_MATRIX_FAIL = 4;
+    BINARY_MATRIX_RESUME = 5;
+}
+
+// =============================================================================
+// CONTROL MATRIX PAYLOAD
+// =============================================================================
+//
+// For control events (ping, wire management, etc.)
+//
+// =============================================================================
+
+message ControlMatrixPayload {
+    ControlMatrixType type = 1;
+
+    // For ping/pong
+    int64 ping_timestamp = 2;
+    int64 pong_timestamp = 3;
+    int32 measured_latency_ms = 4;
+
+    // For wire events
+    string wire_id = 10;
+    string wire_url = 11;
+    string wire_status = 12;
+    int32 latency_hint_ms = 13;
+    int32 bandwidth_hint_kbps = 14;
+
+    // For fallback
+    string fallback_to = 20;
+    string fallback_reason = 21;
+
+    // For reconnect
+    int32 attempt = 30;
+    int32 max_attempts = 31;
+    int32 backoff_ms = 32;
+}
+
+enum ControlMatrixType {
+    CONTROL_MATRIX_UNSPECIFIED = 0;
+    CONTROL_MATRIX_PING = 1;
+    CONTROL_MATRIX_PONG = 2;
+    CONTROL_MATRIX_WIRE_DISCOVER = 3;
+    CONTROL_MATRIX_WIRE_AVAILABLE = 4;
+    CONTROL_MATRIX_WIRE_SELECT = 5;
+    CONTROL_MATRIX_WIRE_CONNECT = 6;
+    CONTROL_MATRIX_WIRE_FAIL = 7;
+    CONTROL_MATRIX_WIRE_FALLBACK = 8;
+    CONTROL_MATRIX_WIRE_RECONNECT = 9;
+}
+
+// =============================================================================
+// WIRE FORMAT (Binary Serialization)
+// =============================================================================
+//
+// On the wire, MatrixEvent is serialized as:
+//
+//   Offset   Size    Field
+//   ──────   ────    ─────
+//   0        4       Magic: "SYNT" (0x53594E54)
+//   4        4       Total Length (big-endian)
+//   8        2       Header Length
+//   10       2       Payload Length
+//   12       4       Binary Length
+//   16       2       Flags
+//   18       N       Header (protobuf MatrixHeader)
+//   18+N     M       Payload (protobuf, type from header)
+//   18+N+M   B       Binary Data (raw bytes)
+//
+// =============================================================================
+
+message MatrixFrame {
+    fixed32 magic = 1;              // 0x53594E54 ("SYNT")
+    fixed32 total_length = 2;
+    uint32 header_length = 3;
+    uint32 payload_length = 4;
+    fixed32 binary_length = 5;
+    uint32 flags = 6;
+}
+
+// =============================================================================
+// MATRIX EVENT SERVICE
+// =============================================================================
+
+service MatrixWire {
+    // Exchange matrix events bidirectionally
+    rpc Exchange(stream MatrixEvent) returns (stream MatrixEvent);
+
+    // Single matrix event call
+    rpc Send(MatrixEvent) returns (MatrixEvent);
+
+    // Subscribe to matrix events
+    rpc Subscribe(MatrixSubscription) returns (stream MatrixEvent);
+}
+
+message MatrixSubscription {
+    // URI patterns to subscribe to
+    repeated string patterns = 1;
+
+    // Filter by payload type
+    repeated string payload_types = 2;
+
+    // Only receive events with binary data?
+    bool binary_only = 3;
+}

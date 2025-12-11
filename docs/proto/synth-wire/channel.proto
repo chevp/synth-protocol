@@ -1,0 +1,792 @@
+syntax = "proto3";
+
+package synth.wire;
+
+option java_package = "io.synth.protocol.wire";
+option java_multiple_files = true;
+option csharp_namespace = "Synth.Wire";
+option go_package = "synth/wire";
+
+import "synth-wire/envelope.proto";
+
+// =============================================================================
+// SYNTH WIRE PROTOCOL - Channel Definitions
+// =============================================================================
+//
+// Defines the communication patterns and channels for PHP ↔ C++ interaction.
+//
+// =============================================================================
+// COMMUNICATION PATTERNS
+// =============================================================================
+//
+//   ┌─────────────────────────────────────────────────────────────────────┐
+//   │                    COMMUNICATION PATTERNS                           │
+//   ├─────────────────────────────────────────────────────────────────────┤
+//   │                                                                     │
+//   │   1. REQUEST/RESPONSE (RPC)                                         │
+//   │   ──────────────────────────                                        │
+//   │   Client ────request────► Server                                    │
+//   │   Client ◄───response──── Server                                    │
+//   │                                                                     │
+//   │   2. SERVER PUSH (Events)                                           │
+//   │   ────────────────────────                                          │
+//   │   Server ────event────► Client                                      │
+//   │   Server ────event────► Client                                      │
+//   │                                                                     │
+//   │   3. BIDIRECTIONAL STREAM (State Sync)                              │
+//   │   ─────────────────────────────────────                             │
+//   │   Client ◄───delta────► Server                                      │
+//   │   Client ────input────► Server                                      │
+//   │   Client ◄───correction─ Server                                     │
+//   │                                                                     │
+//   │   4. CHUNKED TRANSFER (Assets/Binaries)                             │
+//   │   ─────────────────────────────────────                             │
+//   │   Client ────request────► Server                                    │
+//   │   Client ◄───chunk[0]──── Server                                    │
+//   │   Client ◄───chunk[1]──── Server                                    │
+//   │   Client ◄───chunk[n]──── Server                                    │
+//   │   Client ────ack────────► Server                                    │
+//   │                                                                     │
+//   └─────────────────────────────────────────────────────────────────────┘
+//
+// =============================================================================
+
+// =============================================================================
+// WELL-KNOWN CHANNELS
+// =============================================================================
+//
+// Channel naming convention: synth/<domain>/<resource>
+//
+// System channels:
+//   synth/control          - Handshake, ping, flow control
+//   synth/rpc              - Request/response calls
+//
+// Event channels:
+//   synth/events/scene     - Scene events (node created, updated, deleted)
+//   synth/events/component - Component events
+//   synth/events/mcp       - MCP server/tool events
+//   synth/events/agent     - Agent task events
+//
+// State channels:
+//   synth/state/<scene_id> - State sync for specific scene
+//
+// Asset channels:
+//   synth/assets/resolve   - ID → URI resolution
+//   synth/assets/data      - Asset data transfer
+//
+// =============================================================================
+
+// Channel definition
+message Channel {
+    string name = 1;                  // Channel identifier
+    ChannelType type = 2;
+    ChannelDirection direction = 3;
+
+    // QoS defaults for this channel
+    QoS default_qos = 4;
+    Priority default_priority = 5;
+
+    // Persistence
+    bool persistent = 6;              // Messages stored for replay?
+    int64 retention_ms = 7;           // How long to keep messages
+
+    // Rate limiting
+    int32 max_messages_per_second = 8;
+    int32 max_message_size = 9;
+}
+
+enum ChannelType {
+    CHANNEL_TYPE_UNSPECIFIED = 0;
+    CHANNEL_TYPE_RPC = 1;             // Request/response
+    CHANNEL_TYPE_PUBSUB = 2;          // Publish/subscribe
+    CHANNEL_TYPE_STREAM = 3;          // Bidirectional stream
+    CHANNEL_TYPE_TRANSFER = 4;        // Chunked data transfer
+}
+
+enum ChannelDirection {
+    CHANNEL_DIRECTION_BIDIRECTIONAL = 0;
+    CHANNEL_DIRECTION_SERVER_TO_CLIENT = 1;
+    CHANNEL_DIRECTION_CLIENT_TO_SERVER = 2;
+}
+
+// =============================================================================
+// PHP ↔ C++ SPECIFIC CHANNELS
+// =============================================================================
+//
+//   ┌─────────────────────────────────────────────────────────────────────┐
+//   │              PHP SERVER ←→ C++ CLIENT ARCHITECTURE                  │
+//   ├─────────────────────────────────────────────────────────────────────┤
+//   │                                                                     │
+//   │   C++ CLIENT                              PHP SERVER                │
+//   │   ══════════                              ══════════                │
+//   │                                                                     │
+//   │   ┌─────────────┐                        ┌─────────────┐           │
+//   │   │ SynthClient │                        │ SynthServer │           │
+//   │   │             │                        │             │           │
+//   │   │ ┌─────────┐ │    synth/control       │ ┌─────────┐ │           │
+//   │   │ │ Control │◄├────────────────────────┤►│ Control │ │           │
+//   │   │ └─────────┘ │                        │ └─────────┘ │           │
+//   │   │             │                        │             │           │
+//   │   │ ┌─────────┐ │    synth/rpc           │ ┌─────────┐ │           │
+//   │   │ │   RPC   │◄├────────────────────────┤►│MCP Tools│ │           │
+//   │   │ └─────────┘ │                        │ └─────────┘ │           │
+//   │   │             │                        │             │           │
+//   │   │ ┌─────────┐ │    synth/events/*      │ ┌─────────┐ │           │
+//   │   │ │ Events  │◄├────────────────────────┤─│EventBus │ │           │
+//   │   │ └─────────┘ │                        │ └─────────┘ │           │
+//   │   │             │                        │             │           │
+//   │   │ ┌─────────┐ │    synth/state/<id>    │ ┌─────────┐ │           │
+//   │   │ │  State  │◄├────────────────────────┤►│  State  │ │           │
+//   │   │ │  Sync   │ │                        │ │ Manager │ │           │
+//   │   │ └─────────┘ │                        │ └─────────┘ │           │
+//   │   │             │                        │             │           │
+//   │   │ ┌─────────┐ │    synth/assets/*      │ ┌─────────┐ │           │
+//   │   │ │ Assets  │◄├────────────────────────┤►│ Storage │ │           │
+//   │   │ └─────────┘ │                        │ └─────────┘ │           │
+//   │   │             │                        │             │           │
+//   │   └─────────────┘                        └─────────────┘           │
+//   │                                                                     │
+//   └─────────────────────────────────────────────────────────────────────┘
+//
+// =============================================================================
+
+// Client session
+message Session {
+    string session_id = 1;
+    string client_id = 2;
+    string client_type = 3;           // "cpp", "web", "electron", etc.
+
+    // Connection info
+    int64 connected_at = 4;
+    int64 last_activity = 5;
+    string remote_address = 6;
+
+    // Subscriptions
+    repeated string subscribed_channels = 7;
+
+    // Capabilities
+    map<string, string> capabilities = 8;
+
+    // State
+    SessionState state = 9;
+}
+
+enum SessionState {
+    SESSION_STATE_CONNECTING = 0;
+    SESSION_STATE_HANDSHAKING = 1;
+    SESSION_STATE_ACTIVE = 2;
+    SESSION_STATE_PAUSED = 3;
+    SESSION_STATE_DISCONNECTING = 4;
+    SESSION_STATE_DISCONNECTED = 5;
+}
+
+// =============================================================================
+// MESSAGE ROUTING
+// =============================================================================
+
+// Route definition for server-side routing
+message Route {
+    string pattern = 1;               // Channel pattern (supports wildcards)
+    string handler = 2;               // Handler identifier
+    map<string, string> config = 3;
+}
+
+// Routing table
+message RoutingTable {
+    repeated Route routes = 1;
+}
+
+// =============================================================================
+// MULTIPLEXING
+// =============================================================================
+//
+// Multiple logical channels over single connection
+//
+//   Physical Connection
+//   ┌─────────────────────────────────────────┐
+//   │                                         │
+//   │   ┌─────────┐ ┌─────────┐ ┌─────────┐  │
+//   │   │Channel 1│ │Channel 2│ │Channel 3│  │
+//   │   │ (RPC)   │ │(Events) │ │(State)  │  │
+//   │   └────┬────┘ └────┬────┘ └────┬────┘  │
+//   │        │           │           │        │
+//   │        └───────────┼───────────┘        │
+//   │                    │                    │
+//   │              Multiplexer                │
+//   │                    │                    │
+//   │              ┌─────┴─────┐              │
+//   │              │   Wire    │              │
+//   │              └───────────┘              │
+//   │                                         │
+//   └─────────────────────────────────────────┘
+//
+// =============================================================================
+
+// Multiplexed frame header
+message FrameHeader {
+    uint32 channel_id = 1;            // Logical channel number
+    uint32 length = 2;                // Payload length
+    FrameType type = 3;
+    FrameFlags flags = 4;
+}
+
+enum FrameType {
+    FRAME_TYPE_DATA = 0;              // Regular data
+    FRAME_TYPE_HEADERS = 1;           // Channel metadata
+    FRAME_TYPE_RST = 2;               // Reset channel
+    FRAME_TYPE_SETTINGS = 3;          // Connection settings
+    FRAME_TYPE_WINDOW = 4;            // Flow control window update
+}
+
+message FrameFlags {
+    bool end_stream = 1;
+    bool end_headers = 2;
+    bool padded = 3;
+    bool priority = 4;
+}
+
+// =============================================================================
+// CONNECTION LIFECYCLE
+// =============================================================================
+//
+//   ┌─────────────────────────────────────────────────────────────────────┐
+//   │                    CONNECTION LIFECYCLE                             │
+//   ├─────────────────────────────────────────────────────────────────────┤
+//   │                                                                     │
+//   │   Client                                  Server                    │
+//   │   ──────                                  ──────                    │
+//   │     │                                        │                      │
+//   │     │ ──────── CONNECT ────────────────────► │                      │
+//   │     │                                        │                      │
+//   │     │ ◄─────── HANDSHAKE(capabilities) ───── │                      │
+//   │     │                                        │                      │
+//   │     │ ──────── HANDSHAKE(capabilities) ────► │                      │
+//   │     │                                        │                      │
+//   │     │ ◄─────── HANDSHAKE_ACK ─────────────── │                      │
+//   │     │                                        │                      │
+//   │     │ ════════ SESSION ACTIVE ═══════════════│                      │
+//   │     │                                        │                      │
+//   │     │ ──────── SUBSCRIBE(channels) ────────► │                      │
+//   │     │                                        │                      │
+//   │     │ ◄─────── SUBSCRIBE_ACK ─────────────── │                      │
+//   │     │                                        │                      │
+//   │     │ ◄──────── DATA ────────────────────────│                      │
+//   │     │ ────────► DATA ────────────────────────│                      │
+//   │     │                                        │                      │
+//   │     │ ──────── PING ────────────────────────►│                      │
+//   │     │ ◄─────── PONG ─────────────────────────│                      │
+//   │     │                                        │                      │
+//   │     │ ──────── DISCONNECT(reason) ─────────► │                      │
+//   │     │ ◄─────── DISCONNECT_ACK ───────────────│                      │
+//   │     │                                        │                      │
+//   │     X                                        X                      │
+//   │                                                                     │
+//   └─────────────────────────────────────────────────────────────────────┘
+//
+// =============================================================================
+
+// Handshake request
+message HandshakeRequest {
+    string client_id = 1;
+    string client_type = 2;           // "cpp", "web", etc.
+    string client_version = 3;
+
+    uint32 protocol_version = 4;
+    repeated Compression supported_compressions = 5;
+
+    // Initial subscriptions
+    repeated string subscribe_channels = 6;
+
+    // Authentication
+    string auth_token = 7;
+    map<string, string> auth_metadata = 8;
+
+    // Client capabilities
+    map<string, string> capabilities = 9;
+}
+
+// Handshake response
+message HandshakeResponse {
+    bool accepted = 1;
+    string session_id = 2;
+
+    // Negotiated settings
+    uint32 protocol_version = 3;
+    Compression compression = 4;
+
+    // Server info
+    string server_id = 5;
+    string server_version = 6;
+
+    // Error if not accepted
+    string error_code = 10;
+    string error_message = 11;
+
+    // Server capabilities
+    map<string, string> capabilities = 12;
+
+    // Available wires (NEW)
+    repeated WireEndpoint available_wires = 20;
+}
+
+// =============================================================================
+// WIRE NEGOTIATION
+// =============================================================================
+//
+// Client and Server negotiate which "wires" (transports) are available.
+// Like plugging in multiple cables - each wire serves different purposes.
+//
+//   ┌─────────────────────────────────────────────────────────────────────┐
+//   │                      WIRE NEGOTIATION                               │
+//   ├─────────────────────────────────────────────────────────────────────┤
+//   │                                                                     │
+//   │   CLIENT                                         SERVER             │
+//   │   ══════                                         ══════             │
+//   │                                                                     │
+//   │   ┌─────────────────────────────────────────────────────────┐       │
+//   │   │                    WIRE DISCOVERY                       │       │
+//   │   │                                                         │       │
+//   │   │   Client ──── "What wires are available?" ────► Server  │       │
+//   │   │                                                         │       │
+//   │   │   Server ──── "I have these wires:" ────────► Client    │       │
+//   │   │               • grpc://server:50051  (realtime)         │       │
+//   │   │               • wss://server/ws      (events)           │       │
+//   │   │               • https://server/api   (rpc)              │       │
+//   │   │               • tcp://server:9000    (binary)           │       │
+//   │   │                                                         │       │
+//   │   └─────────────────────────────────────────────────────────┘       │
+//   │                                                                     │
+//   │   ┌─────────────────────────────────────────────────────────┐       │
+//   │   │                    WIRE SELECTION                       │       │
+//   │   │                                                         │       │
+//   │   │   Client chooses best wire per use case:                │       │
+//   │   │                                                         │       │
+//   │   │   ┌─────────┐  ──grpc──►   State Sync (low latency)     │       │
+//   │   │   │         │  ──wss───►   Events (push)                │       │
+//   │   │   │ Client  │  ──https─►   RPC calls                    │       │
+//   │   │   │         │  ──tcp───►   Binary transfers             │       │
+//   │   │   └─────────┘                                           │       │
+//   │   │                                                         │       │
+//   │   └─────────────────────────────────────────────────────────┘       │
+//   │                                                                     │
+//   │   ┌─────────────────────────────────────────────────────────┐       │
+//   │   │                    WIRE FAILOVER                        │       │
+//   │   │                                                         │       │
+//   │   │   If primary wire fails:                                │       │
+//   │   │     grpc ──X──► fallback to wss                         │       │
+//   │   │     wss ───X──► fallback to https (polling)             │       │
+//   │   │                                                         │       │
+//   │   └─────────────────────────────────────────────────────────┘       │
+//   │                                                                     │
+//   └─────────────────────────────────────────────────────────────────────┘
+//
+// =============================================================================
+
+// A single wire endpoint
+message WireEndpoint {
+    string wire_id = 1;               // Unique identifier
+    WireType type = 2;                // Transport type
+    string url = 3;                   // Connection URL
+
+    // Capabilities
+    repeated WireCapability capabilities = 4;
+
+    // Preferred use cases
+    repeated WireUseCase preferred_for = 5;
+
+    // Performance hints
+    int32 latency_hint_ms = 6;        // Expected latency
+    int32 bandwidth_hint_kbps = 7;    // Expected bandwidth
+    int32 priority = 8;               // Higher = preferred
+
+    // Health
+    WireStatus status = 9;
+    int64 last_health_check = 10;
+
+    // Authentication
+    bool requires_auth = 11;
+    string auth_method = 12;          // "token", "basic", "mtls"
+}
+
+enum WireType {
+    WIRE_TYPE_UNSPECIFIED = 0;
+    WIRE_TYPE_GRPC = 1;               // gRPC over HTTP/2
+    WIRE_TYPE_WEBSOCKET = 2;          // WebSocket
+    WIRE_TYPE_HTTP = 3;               // HTTP/HTTPS REST
+    WIRE_TYPE_TCP = 4;                // Raw TCP
+    WIRE_TYPE_UDP = 5;                // UDP (for realtime)
+    WIRE_TYPE_QUIC = 6;               // QUIC/HTTP3
+    WIRE_TYPE_KAFKA = 7;              // Kafka (async events)
+    WIRE_TYPE_UNIX = 8;               // Unix domain socket
+}
+
+enum WireCapability {
+    WIRE_CAP_UNSPECIFIED = 0;
+    WIRE_CAP_BIDIRECTIONAL = 1;       // Can send and receive
+    WIRE_CAP_STREAMING = 2;           // Supports streaming
+    WIRE_CAP_MULTIPLEXING = 3;        // Multiple channels over one connection
+    WIRE_CAP_COMPRESSION = 4;         // Supports compression
+    WIRE_CAP_ENCRYPTION = 5;          // TLS/SSL
+    WIRE_CAP_RESUMABLE = 6;           // Can resume after disconnect
+    WIRE_CAP_ORDERED = 7;             // Guaranteed message ordering
+    WIRE_CAP_RELIABLE = 8;            // Guaranteed delivery
+}
+
+enum WireUseCase {
+    WIRE_USE_UNSPECIFIED = 0;
+    WIRE_USE_STATE_SYNC = 1;          // Real-time state synchronization
+    WIRE_USE_EVENTS = 2;              // Event pub/sub
+    WIRE_USE_RPC = 3;                 // Request/response calls
+    WIRE_USE_BINARY_TRANSFER = 4;     // Large file transfers
+    WIRE_USE_CONTROL = 5;             // Ping/pong, session management
+}
+
+enum WireStatus {
+    WIRE_STATUS_UNKNOWN = 0;
+    WIRE_STATUS_AVAILABLE = 1;
+    WIRE_STATUS_DEGRADED = 2;
+    WIRE_STATUS_UNAVAILABLE = 3;
+}
+
+// =============================================================================
+// WIRE REGISTRY (Client-side)
+// =============================================================================
+//
+// Client maintains a registry of available wires and selects the best one.
+//
+// =============================================================================
+
+message WireRegistry {
+    repeated WireConnection wires = 1;
+
+    // Default wire mappings
+    map<string, string> use_case_mapping = 2;  // use_case → wire_id
+
+    // Fallback chain
+    repeated WireFallback fallbacks = 3;
+}
+
+message WireConnection {
+    WireEndpoint endpoint = 1;
+    WireConnectionState state = 2;
+
+    // Connection stats
+    int64 connected_at = 3;
+    int64 bytes_sent = 4;
+    int64 bytes_received = 5;
+    int64 messages_sent = 6;
+    int64 messages_received = 7;
+
+    // Latency tracking
+    int32 avg_latency_ms = 8;
+    int32 min_latency_ms = 9;
+    int32 max_latency_ms = 10;
+}
+
+enum WireConnectionState {
+    WIRE_CONN_DISCONNECTED = 0;
+    WIRE_CONN_CONNECTING = 1;
+    WIRE_CONN_CONNECTED = 2;
+    WIRE_CONN_RECONNECTING = 3;
+    WIRE_CONN_FAILED = 4;
+}
+
+message WireFallback {
+    string primary_wire_id = 1;
+    repeated string fallback_wire_ids = 2;
+    int32 failover_timeout_ms = 3;
+}
+
+// =============================================================================
+// WIRE SELECTION
+// =============================================================================
+//
+// How client selects which wire to use for each operation.
+//
+// =============================================================================
+
+message WireSelection {
+    // What to select for
+    oneof selector {
+        WireUseCase use_case = 1;
+        string channel = 2;           // Channel name pattern
+        PayloadType payload_type = 3;
+    }
+
+    // Selection criteria
+    WireSelectionStrategy strategy = 4;
+
+    // Constraints
+    int32 max_latency_ms = 5;
+    int32 min_bandwidth_kbps = 6;
+    repeated WireCapability required_capabilities = 7;
+}
+
+enum WireSelectionStrategy {
+    WIRE_SELECT_BEST_FIT = 0;         // Match use case preferences
+    WIRE_SELECT_LOWEST_LATENCY = 1;   // Minimize latency
+    WIRE_SELECT_HIGHEST_BANDWIDTH = 2;// Maximize throughput
+    WIRE_SELECT_MOST_RELIABLE = 3;    // Prefer reliable transports
+    WIRE_SELECT_ROUND_ROBIN = 4;      // Load balance
+}
+
+// =============================================================================
+// WIRE ROUTING
+// =============================================================================
+//
+// Route different message types over different wires automatically.
+//
+//   ┌─────────────────────────────────────────────────────────────────────┐
+//   │                      WIRE ROUTING EXAMPLE                           │
+//   ├─────────────────────────────────────────────────────────────────────┤
+//   │                                                                     │
+//   │   MESSAGE TYPE          WIRE SELECTED           REASON              │
+//   │   ────────────          ────────────            ──────              │
+//   │                                                                     │
+//   │   State Delta     ───►  gRPC/TCP        (lowest latency)            │
+//   │   Event Push      ───►  WebSocket       (server push)               │
+//   │   RPC Call        ───►  HTTP/gRPC       (request/response)          │
+//   │   Asset Load      ───►  TCP             (high bandwidth)            │
+//   │   Large Binary    ───►  TCP             (chunked transfer)          │
+//   │   Control/Ping    ───►  WebSocket       (always connected)          │
+//   │                                                                     │
+//   └─────────────────────────────────────────────────────────────────────┘
+//
+// =============================================================================
+
+message WireRoutingTable {
+    repeated WireRoutingRule rules = 1;
+    string default_wire_id = 2;
+}
+
+message WireRoutingRule {
+    // Match conditions
+    string channel_pattern = 1;       // e.g., "synth/state/*"
+    PayloadType payload_type = 2;
+    int64 min_size = 3;               // Route large messages differently
+    int64 max_size = 4;
+
+    // Route to
+    string wire_id = 5;
+    repeated string fallback_wire_ids = 6;
+
+    // Rule metadata
+    int32 priority = 7;               // Higher = evaluated first
+    bool enabled = 8;
+}
+
+// =============================================================================
+// SERVER AS RELAIS (Gateway Pattern)
+// =============================================================================
+//
+// The PHP Server acts as a RELAIS (gateway) between clients and backends.
+// Clients speak ONLY synth-wire protocol. Server translates to backends.
+//
+//   ┌─────────────────────────────────────────────────────────────────────┐
+//   │                    SERVER AS RELAIS                                 │
+//   ├─────────────────────────────────────────────────────────────────────┤
+//   │                                                                     │
+//   │   CLIENT                     RELAIS (PHP)              BACKENDS     │
+//   │   ══════                     ════════════              ════════     │
+//   │                                                                     │
+//   │                         ┌─────────────────┐                         │
+//   │                         │                 │                         │
+//   │   ┌─────────┐           │  ┌───────────┐  │           ┌─────────┐  │
+//   │   │         │           │  │  Backend  │  │           │   FTP   │  │
+//   │   │         │ synth-wire│  │  Adapter  │──┼──────────►│  Server │  │
+//   │   │         │═══════════│► │           │  │           └─────────┘  │
+//   │   │         │           │  └───────────┘  │                         │
+//   │   │         │           │                 │           ┌─────────┐  │
+//   │   │ C++     │           │  ┌───────────┐  │           │  MySQL  │  │
+//   │   │ Client  │           │  │  Backend  │──┼──────────►│   DB    │  │
+//   │   │         │           │  │  Adapter  │  │           └─────────┘  │
+//   │   │         │           │  └───────────┘  │                         │
+//   │   │         │           │                 │           ┌─────────┐  │
+//   │   │         │           │  ┌───────────┐  │           │ SQLite  │  │
+//   │   │         │◄══════════│  │  Backend  │──┼──────────►│  File   │  │
+//   │   │         │ synth-wire│  │  Adapter  │  │           └─────────┘  │
+//   │   │         │           │  └───────────┘  │                         │
+//   │   └─────────┘           │                 │           ┌─────────┐  │
+//   │                         │  ┌───────────┐  │           │   S3    │  │
+//   │                         │  │  Backend  │──┼──────────►│ Bucket  │  │
+//   │                         │  │  Adapter  │  │           └─────────┘  │
+//   │                         │  └───────────┘  │                         │
+//   │                         │                 │           ┌─────────┐  │
+//   │                         │  ┌───────────┐  │           │  Redis  │  │
+//   │                         │  │  Backend  │──┼──────────►│  Cache  │  │
+//   │                         │  │  Adapter  │  │           └─────────┘  │
+//   │                         │  └───────────┘  │                         │
+//   │                         │                 │                         │
+//   │                         └─────────────────┘                         │
+//   │                                                                     │
+//   │   KEY INSIGHT:                                                      │
+//   │   ────────────                                                      │
+//   │   • Client knows ONLY synth-wire (one protocol)                     │
+//   │   • Server handles ALL backend complexity                           │
+//   │   • Backend choice is SERVER-INTERNAL (not in protocol)             │
+//   │   • Same request works regardless of backend                        │
+//   │                                                                     │
+//   └─────────────────────────────────────────────────────────────────────┘
+//
+// =============================================================================
+
+// =============================================================================
+// EXAMPLE: GET ASSET "car_model"
+// =============================================================================
+//
+//   The client sends the SAME request regardless of where data is stored:
+//
+//   ┌─────────────────────────────────────────────────────────────────────┐
+//   │                                                                     │
+//   │   CLIENT REQUEST (always the same):                                 │
+//   │   ─────────────────────────────────                                 │
+//   │                                                                     │
+//   │   SynthEnvelope {                                                   │
+//   │     payload_type: RPC                                               │
+//   │     rpc: {                                                          │
+//   │       method: "asset/load"                                          │
+//   │       request: { id: "car_model" }                                  │
+//   │     }                                                               │
+//   │   }                                                                 │
+//   │                                                                     │
+//   │   SERVER DECIDES BACKEND (invisible to client):                     │
+//   │   ─────────────────────────────────────────────                     │
+//   │                                                                     │
+//   │   Scenario A: FTP Backend                                           │
+//   │   ┌──────────┐     ┌──────────┐     ┌──────────┐                    │
+//   │   │  Client  │────►│  Server  │────►│   FTP    │                    │
+//   │   │          │◄────│          │◄────│ /assets/ │                    │
+//   │   └──────────┘     └──────────┘     └──────────┘                    │
+//   │                         │                                           │
+//   │                         │ ftp_get("ftp://server/assets/car.glb")    │
+//   │                                                                     │
+//   │   Scenario B: MySQL Backend                                         │
+//   │   ┌──────────┐     ┌──────────┐     ┌──────────┐                    │
+//   │   │  Client  │────►│  Server  │────►│  MySQL   │                    │
+//   │   │          │◄────│          │◄────│  assets  │                    │
+//   │   └──────────┘     └──────────┘     └──────────┘                    │
+//   │                         │                                           │
+//   │                         │ SELECT data FROM assets WHERE id='car'    │
+//   │                                                                     │
+//   │   Scenario C: SQLite + S3 (hybrid)                                  │
+//   │   ┌──────────┐     ┌──────────┐     ┌──────────┐                    │
+//   │   │  Client  │────►│  Server  │────►│  SQLite  │ (metadata)         │
+//   │   │          │◄───���│          │◄────│    +     │                    │
+//   │   └──────────┘     └──────────┘     │    S3    │ (binary)           │
+//   │                         │           └──────────┘                    │
+//   │                         │                                           │
+//   │                         │ 1. SELECT uri FROM assets WHERE id='car'  │
+//   │                         │ 2. s3_get(uri)                            │
+//   │                                                                     │
+//   │   CLIENT RESPONSE (always the same format):                         │
+//   │   ─────────────────────────────────────────                         │
+//   │                                                                     │
+//   │   SynthEnvelope {                                                   │
+//   │     payload_type: RPC                                               │
+//   │     rpc: {                                                          │
+//   │       response: { data: <bytes>, checksum: "..." }                  │
+//   │     }                                                               │
+//   │   }                                                                 │
+//   │                                                                     │
+//   └─────────────────────────────────────────────────────────────────────┘
+//
+// =============================================================================
+
+// =============================================================================
+// BACKEND TYPES (Server-internal, not exposed to clients)
+// =============================================================================
+//
+// These are for SERVER CONFIGURATION ONLY.
+// Clients never see or interact with these directly.
+//
+// =============================================================================
+
+enum BackendType {
+    BACKEND_TYPE_UNSPECIFIED = 0;
+
+    // File-based
+    BACKEND_TYPE_FILESYSTEM = 1;      // Local filesystem
+    BACKEND_TYPE_FTP = 2;             // FTP/SFTP server
+    BACKEND_TYPE_S3 = 3;              // S3-compatible storage
+    BACKEND_TYPE_WEBDAV = 4;          // WebDAV
+
+    // Database
+    BACKEND_TYPE_SQLITE = 10;         // SQLite file
+    BACKEND_TYPE_MYSQL = 11;          // MySQL/MariaDB
+    BACKEND_TYPE_POSTGRESQL = 12;     // PostgreSQL
+
+    // Cache
+    BACKEND_TYPE_REDIS = 20;          // Redis
+    BACKEND_TYPE_MEMCACHED = 21;      // Memcached
+
+    // Cloud
+    BACKEND_TYPE_GCS = 30;            // Google Cloud Storage
+    BACKEND_TYPE_AZURE_BLOB = 31;     // Azure Blob Storage
+}
+
+// Server-side backend configuration (NOT part of wire protocol)
+// This is for PHP server configuration only
+message BackendConfig {
+    string backend_id = 1;
+    BackendType type = 2;
+
+    // Connection string (format depends on type)
+    // Examples:
+    //   FTP:        "ftp://user:pass@server/path"
+    //   MySQL:      "mysql://user:pass@host:3306/db"
+    //   SQLite:     "sqlite:///path/to/db.sqlite"
+    //   S3:         "s3://bucket/prefix"
+    //   Filesystem: "file:///var/data/assets"
+    string connection_string = 3;
+
+    // Capabilities
+    bool supports_streaming = 4;      // Can stream large files?
+    bool supports_partial = 5;        // Can do range requests?
+    bool read_only = 6;               // Write operations disabled?
+
+    // Caching
+    bool enable_cache = 7;
+    int32 cache_ttl_seconds = 8;
+
+    // Priority (for fallback)
+    int32 priority = 9;               // Higher = tried first
+}
+
+// Backend routing (server decides which backend to use)
+message BackendRoutingRule {
+    // Match conditions
+    string asset_type_pattern = 1;    // e.g., "image/*", "model/*"
+    int64 min_size = 2;               // Route large files to S3
+    int64 max_size = 3;               // Keep small files in DB
+
+    // Route to
+    string backend_id = 4;
+    repeated string fallback_backend_ids = 5;
+}
+
+// =============================================================================
+// WIRE vs BACKEND SUMMARY
+// =============================================================================
+//
+//   ┌─────────────────────────────────────────────────────────────────────┐
+//   │                                                                     │
+//   │   WIRE (Client ↔ Server)          BACKEND (Server ↔ Storage)        │
+//   │   ══════════════════════          ═══════════════════════════       │
+//   │                                                                     │
+//   │   • gRPC                          • FTP                             │
+//   │   • WebSocket                     • MySQL                           │
+//   │   • HTTP                          • SQLite                          │
+//   │   • TCP                           • PostgreSQL                      │
+//   │   • Kafka                         • S3                              │
+//   │   • UDP                           • Redis                           │
+//   │   • QUIC                          • Filesystem                      │
+//   │                                                                     │
+//   │   Client chooses WIRE             Server chooses BACKEND            │
+//   │   based on use case               based on asset/config             │
+//   │                                                                     │
+//   │   Defined in protocol             NOT in protocol                   │
+//   │   (client knows about it)         (server-internal)                 │
+//   │                                                                     │
+//   └─────────────────────────────────────────────────────────────────────┘
+//
+// =============================================================================

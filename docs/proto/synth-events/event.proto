@@ -418,3 +418,346 @@ message AcknowledgeResponse {
     bool success = 1;
     int32 acknowledged_count = 2;
 }
+
+// =============================================================================
+// ASSET EVENTS
+// =============================================================================
+// URI: synth://asset/{load|resolve|data|ready|error|evict|preload}
+//
+// These events flow through wires for asset lifecycle management.
+// Example CLI:
+//   synth asset load asset_car_model --priority=high
+//   synth asset data asset_car_model --chunk=0 --total=5
+//   synth asset ready asset_car_model --size=5242880
+// =============================================================================
+
+message AssetEvent {
+    string asset_id = 1;
+    AssetEventType event_type = 2;
+
+    // For load/resolve requests
+    AssetLoadPriority priority = 3;
+    bool include_metadata = 4;
+
+    // For data events (chunked transfer)
+    int32 chunk_index = 5;
+    int32 total_chunks = 6;
+    int64 chunk_size = 7;
+    bytes chunk_data = 8;
+    string chunk_checksum = 9;
+    bool is_final_chunk = 10;
+
+    // For ready events
+    string resolved_uri = 11;
+    int64 total_size = 12;
+    string total_checksum = 13;
+    bool from_cache = 14;
+    int64 load_duration_ms = 15;
+
+    // For error events
+    string error_code = 16;
+    string error_message = 17;
+    bool retriable = 18;
+    int32 retry_after_seconds = 19;
+
+    // For evict events
+    AssetEvictReason evict_reason = 20;
+
+    // For preload (batch)
+    repeated string asset_ids = 21;
+
+    // Wire routing hint
+    string preferred_wire = 22;
+}
+
+enum AssetEventType {
+    ASSET_EVENT_UNSPECIFIED = 0;
+    ASSET_EVENT_LOAD = 1;           // Request to load asset
+    ASSET_EVENT_RESOLVE = 2;        // Request to resolve ID → URI
+    ASSET_EVENT_DATA = 3;           // Asset data chunk arriving
+    ASSET_EVENT_READY = 4;          // Asset fully loaded and ready
+    ASSET_EVENT_ERROR = 5;          // Asset load failed
+    ASSET_EVENT_EVICT = 6;          // Asset evicted from memory
+    ASSET_EVENT_PRELOAD = 7;        // Batch preload request
+}
+
+enum AssetLoadPriority {
+    ASSET_PRIORITY_BACKGROUND = 0;
+    ASSET_PRIORITY_LOW = 1;
+    ASSET_PRIORITY_NORMAL = 2;
+    ASSET_PRIORITY_HIGH = 3;
+    ASSET_PRIORITY_CRITICAL = 4;
+}
+
+enum AssetEvictReason {
+    ASSET_EVICT_UNSPECIFIED = 0;
+    ASSET_EVICT_MEMORY_PRESSURE = 1;
+    ASSET_EVICT_TTL_EXPIRED = 2;
+    ASSET_EVICT_MANUAL = 3;
+    ASSET_EVICT_REPLACED = 4;
+}
+
+// =============================================================================
+// BINARY TRANSFER EVENTS
+// =============================================================================
+// URI: synth://binary/{start|chunk|complete|fail|resume}
+//
+// Large binary transfers (images, videos, models).
+// Example CLI:
+//   synth binary start transfer_001 --size=104857600 --chunks=100
+//   synth binary chunk transfer_001 --index=50 --checksum=abc123
+//   synth binary complete transfer_001 --duration=5000
+// =============================================================================
+
+message BinaryTransferEvent {
+    string transfer_id = 1;
+    BinaryTransferEventType event_type = 2;
+
+    // Associated asset (optional)
+    string asset_id = 3;
+
+    // Transfer metadata
+    int64 total_size = 4;
+    int32 total_chunks = 5;
+    string content_type = 6;
+    string filename = 7;
+
+    // For chunk events
+    int32 chunk_index = 8;
+    bytes chunk_data = 9;
+    string chunk_checksum = 10;
+
+    // For complete events
+    string total_checksum = 11;
+    int64 duration_ms = 12;
+
+    // For fail events
+    string error_code = 13;
+    string error_message = 14;
+    int32 failed_at_chunk = 15;
+    bool resumable = 16;
+
+    // For resume events
+    int32 resume_from_chunk = 17;
+}
+
+enum BinaryTransferEventType {
+    BINARY_TRANSFER_UNSPECIFIED = 0;
+    BINARY_TRANSFER_START = 1;      // Transfer initiated
+    BINARY_TRANSFER_CHUNK = 2;      // Chunk received
+    BINARY_TRANSFER_COMPLETE = 3;   // Transfer complete
+    BINARY_TRANSFER_FAIL = 4;       // Transfer failed
+    BINARY_TRANSFER_RESUME = 5;     // Resume interrupted transfer
+}
+
+// =============================================================================
+// WIRE EVENTS
+// =============================================================================
+// URI: synth://wire/{discover|available|select|connect|ping|pong|fail|fallback}
+//
+// Wire management and health.
+// Example CLI:
+//   synth wire available wire_grpc --url=grpc://server:50051 --latency=5
+//   synth wire select wire_grpc --for=state_sync
+//   synth wire fail wire_grpc --error=connection_reset
+// =============================================================================
+
+message WireEvent {
+    string wire_id = 1;
+    WireEventType event_type = 2;
+
+    // Wire info
+    string wire_type = 3;           // grpc, websocket, http, tcp, etc.
+    string url = 4;
+
+    // For available events
+    int32 latency_hint_ms = 5;
+    int32 bandwidth_hint_kbps = 6;
+    repeated string capabilities = 7;
+    repeated string preferred_for = 8;
+
+    // For select events
+    string use_case = 9;            // state_sync, events, binary_transfer, rpc
+
+    // For connect events
+    string status = 10;             // connected, disconnected, reconnecting
+
+    // For ping/pong events
+    int64 ping_timestamp = 11;
+    int64 pong_timestamp = 12;
+    int32 measured_latency_ms = 13;
+    int64 server_time = 14;
+
+    // For degraded events
+    int32 packet_loss_percent = 15;
+
+    // For fail events
+    string error_code = 16;
+    string error_message = 17;
+
+    // For fallback events
+    string fallback_to_wire_id = 18;
+    string fallback_reason = 19;
+
+    // For reconnect events
+    int32 attempt = 20;
+    int32 max_attempts = 21;
+    int32 backoff_ms = 22;
+
+    // For recover events
+    int64 downtime_ms = 23;
+}
+
+enum WireEventType {
+    WIRE_EVENT_UNSPECIFIED = 0;
+    WIRE_EVENT_DISCOVER = 1;        // Client requests available wires
+    WIRE_EVENT_AVAILABLE = 2;       // Server announces wire endpoint
+    WIRE_EVENT_SELECT = 3;          // Client selects wire for use case
+    WIRE_EVENT_CONNECT = 4;         // Wire connected
+    WIRE_EVENT_DISCONNECT = 5;      // Wire disconnected
+    WIRE_EVENT_PING = 6;            // Health check ping
+    WIRE_EVENT_PONG = 7;            // Health check response
+    WIRE_EVENT_DEGRADED = 8;        // Wire performance degraded
+    WIRE_EVENT_FAIL = 9;            // Wire failed
+    WIRE_EVENT_FALLBACK = 10;       // Falling back to another wire
+    WIRE_EVENT_RECONNECT = 11;      // Attempting reconnection
+    WIRE_EVENT_RECOVER = 12;        // Wire recovered
+}
+
+// =============================================================================
+// STATE SYNC EVENTS
+// =============================================================================
+// URI: synth://state/{snapshot|delta|input|correct|ack}
+//
+// Real-time state synchronization events.
+// Example CLI:
+//   synth state delta scene_001 --tick=1001 --changes=5
+//   synth state input scene_001 --seq=100 --type=transform
+//   synth state correct scene_001 --tick=1000 --node=player_01
+// =============================================================================
+
+message StateSyncEvent {
+    string scene_id = 1;
+    StateSyncEventType event_type = 2;
+
+    // Server tick for ordering
+    uint64 tick = 3;
+
+    // For snapshot events
+    int32 node_count = 4;
+    int64 snapshot_size = 5;
+    bytes snapshot_data = 6;
+
+    // For delta events
+    int32 change_count = 7;
+    bytes delta_data = 8;
+
+    // For input events (client → server)
+    uint32 input_sequence = 9;
+    string input_type = 10;         // transform, action, command
+    string target_node_id = 11;
+    bytes input_data = 12;
+
+    // For correction events (server → client)
+    string corrected_node_id = 13;
+    string corrected_field = 14;
+    bytes corrected_value = 15;
+
+    // For ack events
+    uint64 ack_tick = 16;
+    repeated uint32 ack_inputs = 17;
+}
+
+enum StateSyncEventType {
+    STATE_SYNC_UNSPECIFIED = 0;
+    STATE_SYNC_SNAPSHOT_REQUEST = 1;  // Client requests full state
+    STATE_SYNC_SNAPSHOT = 2;          // Full state snapshot
+    STATE_SYNC_DELTA = 3;             // Incremental update
+    STATE_SYNC_INPUT = 4;             // Client input
+    STATE_SYNC_CORRECT = 5;           // Server correction
+    STATE_SYNC_ACK = 6;               // Acknowledgement
+}
+
+// =============================================================================
+// RPC EVENTS
+// =============================================================================
+// URI: synth://rpc/{call|result|error|stream-start|stream-data|stream-end}
+//
+// Request/Response events.
+// Example CLI:
+//   synth rpc call asset/resolve --id=req_001 --args='{"id":"car"}'
+//   synth rpc result req_001 --success --duration=15
+// =============================================================================
+
+message RpcEvent {
+    string request_id = 1;
+    RpcEventType event_type = 2;
+
+    // For call events
+    string method = 3;
+    bytes arguments = 4;
+
+    // For result events
+    bool success = 5;
+    bytes result_data = 6;
+    int64 duration_ms = 7;
+    int32 item_count = 8;           // For list results
+
+    // For error events
+    string error_code = 9;
+    string error_message = 10;
+    bool retriable = 11;
+
+    // For stream events
+    string stream_id = 12;
+    int32 stream_sequence = 13;
+    int64 stream_chunk_size = 14;
+    bytes stream_data = 15;
+    int32 total_chunks = 16;
+    int64 total_size = 17;
+}
+
+enum RpcEventType {
+    RPC_EVENT_UNSPECIFIED = 0;
+    RPC_EVENT_CALL = 1;             // RPC request
+    RPC_EVENT_RESULT = 2;           // RPC success response
+    RPC_EVENT_ERROR = 3;            // RPC error response
+    RPC_EVENT_STREAM_START = 4;     // Streaming RPC started
+    RPC_EVENT_STREAM_DATA = 5;      // Streaming RPC data chunk
+    RPC_EVENT_STREAM_END = 6;       // Streaming RPC ended
+}
+
+// =============================================================================
+// EVENT ROUTING BY WIRE
+// =============================================================================
+//
+// Different event types prefer different wires:
+//
+//   EVENT TYPE              PREFERRED WIRE       REASON
+//   ──────────              ──────────────       ──────
+//   StateSyncEvent          gRPC/TCP             lowest latency
+//   AssetEvent (load)       HTTP/gRPC            request/response
+//   AssetEvent (data)       TCP                  high bandwidth
+//   AssetEvent (ready)      WebSocket            push notification
+//   BinaryTransferEvent     TCP                  streaming binary
+//   WireEvent               WebSocket            always connected
+//   RpcEvent                HTTP/gRPC            standard RPC
+//   ClusterNodeEvent        WebSocket            push events
+//   McpToolEvent            WebSocket/gRPC       tool invocation
+//
+// =============================================================================
+
+message EventWireHint {
+    // Event type pattern (e.g., "synth://asset/data")
+    string event_pattern = 1;
+
+    // Preferred wire types in order
+    repeated string preferred_wires = 2;
+
+    // Fallback wire if preferred unavailable
+    string fallback_wire = 3;
+
+    // Constraints
+    int32 max_latency_ms = 4;
+    int32 min_bandwidth_kbps = 5;
+}

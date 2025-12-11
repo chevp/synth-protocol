@@ -1,0 +1,347 @@
+syntax = "proto3";
+
+package synth.wire;
+
+option java_package = "io.synth.protocol.wire";
+option java_multiple_files = true;
+option csharp_namespace = "Synth.Wire";
+option go_package = "synth/wire";
+
+import "synth-wire/envelope.proto";
+import "synth-wire/channel.proto";
+
+// =============================================================================
+// SYNTH WIRE SERVICE
+// =============================================================================
+//
+// The unified gRPC service definition for PHP ↔ C++ communication.
+// This service handles ALL communication patterns over a single interface.
+//
+// =============================================================================
+// SERVICE OVERVIEW
+// =============================================================================
+//
+//   ┌─────────────────────────────────────────────────────────────────────┐
+//   │                      SYNTH WIRE SERVICE                             │
+//   ├─────────────────────────────────────────────────────────────────────┤
+//   │                                                                     │
+//   │   C++ CLIENT                              PHP SERVER                │
+//   │   ══════════                              ══════════                │
+//   │                                                                     │
+//   │   ┌─────────────────────────────────────────────────────────┐      │
+//   │   │                    SynthWire Service                    │      │
+//   │   ├─────────────────────────────────────────────────────────┤      │
+//   │   │                                                         │      │
+//   │   │   Exchange()     Bidirectional streaming (main channel) │      │
+//   │   │   ───────────    Events, State, RPC all multiplexed     │      │
+//   │   │                                                         │      │
+//   │   │   Call()         Unary RPC (single request/response)    │      │
+//   │   │   ───────        For simple tool invocations            │      │
+//   │   │                                                         │      │
+//   │   │   Subscribe()    Server streaming (event subscription)  │      │
+//   │   │   ───────────    For event-only clients                 │      │
+//   │   │                                                         │      │
+//   │   │   Upload()       Client streaming (asset upload)        │      │
+//   │   │   ────────       For chunked binary upload              │      │
+//   │   │                                                         │      │
+//   │   │   Download()     Server streaming (asset download)      │      │
+//   │   │   ──────────     For chunked binary download            │      │
+//   │   │                                                         │      │
+//   │   └─────────────────────────────────────────────────────────┘      │
+//   │                                                                     │
+//   └─────────────────────────────────────────────────────────────────────┘
+//
+// =============================================================================
+
+// The main service definition
+service SynthWire {
+    // =========================================================================
+    // BIDIRECTIONAL STREAMING (Primary)
+    // =========================================================================
+    //
+    // Main communication channel. Supports all payload types multiplexed
+    // over a single stream. Client and server can send independently.
+    //
+    // Usage:
+    //   - Events: Server pushes, client receives
+    //   - State Sync: Bidirectional deltas and corrections
+    //   - RPC: Request/response pairs via correlation_id
+    //   - Assets: Chunked transfers in either direction
+    //
+    rpc Exchange(stream SynthEnvelope) returns (stream SynthEnvelope);
+
+    // =========================================================================
+    // UNARY RPC
+    // =========================================================================
+    //
+    // Simple request/response for MCP tool invocations and queries.
+    // Equivalent to HTTP POST with single response.
+    //
+    // Usage:
+    //   - MCP tool calls: asset/resolve, storage/list, etc.
+    //   - Queries: Get asset metadata, list scenes, etc.
+    //
+    rpc Call(SynthEnvelope) returns (SynthEnvelope);
+
+    // =========================================================================
+    // SERVER STREAMING
+    // =========================================================================
+    //
+    // Subscribe to event channels. Server pushes events until client cancels.
+    //
+    // Usage:
+    //   - Event subscription without bidirectional overhead
+    //   - Read-only clients (monitoring, logging)
+    //
+    rpc Subscribe(SubscribeRequest) returns (stream SynthEnvelope);
+
+    // =========================================================================
+    // CLIENT STREAMING (Upload)
+    // =========================================================================
+    //
+    // Chunked upload from client to server.
+    //
+    // Usage:
+    //   - Large asset uploads
+    //   - Scene file uploads
+    //
+    rpc Upload(stream SynthEnvelope) returns (UploadResponse);
+
+    // =========================================================================
+    // SERVER STREAMING (Download)
+    // =========================================================================
+    //
+    // Chunked download from server to client.
+    //
+    // Usage:
+    //   - Large asset downloads
+    //   - Scene file downloads
+    //
+    rpc Download(DownloadRequest) returns (stream SynthEnvelope);
+
+    // =========================================================================
+    // SESSION MANAGEMENT
+    // =========================================================================
+
+    // Establish session with handshake
+    rpc Connect(HandshakeRequest) returns (HandshakeResponse);
+
+    // Graceful disconnect
+    rpc Disconnect(DisconnectRequest) returns (DisconnectResponse);
+
+    // Keep-alive ping
+    rpc Ping(PingRequest) returns (PongResponse);
+}
+
+// =============================================================================
+// SERVICE MESSAGES
+// =============================================================================
+
+message SubscribeRequest {
+    // Channels to subscribe (supports wildcards: synth/events/*)
+    repeated string channels = 1;
+
+    // Filters
+    map<string, string> filters = 2;
+
+    // Start from specific point
+    oneof start_from {
+        int64 from_timestamp = 10;    // Unix ms
+        uint64 from_sequence = 11;
+        string from_cursor = 12;
+    }
+
+    // Flow control
+    int32 max_messages = 20;          // 0 = unlimited
+    int32 batch_size = 21;
+}
+
+message UploadResponse {
+    bool success = 1;
+    string asset_id = 2;
+    string uri = 3;
+    int64 total_bytes = 4;
+    string checksum = 5;
+
+    // Error if failed
+    string error_code = 10;
+    string error_message = 11;
+}
+
+message DownloadRequest {
+    // What to download
+    oneof target {
+        string asset_id = 1;
+        string uri = 2;
+    }
+
+    // Partial download
+    int64 offset = 10;
+    int64 length = 11;                // 0 = all
+
+    // Conditional
+    string if_none_match = 20;        // ETag/checksum
+}
+
+message DisconnectRequest {
+    string reason = 1;
+}
+
+message DisconnectResponse {
+    bool acknowledged = 1;
+}
+
+message PingRequest {
+    int64 timestamp = 1;
+}
+
+message PongResponse {
+    int64 ping_timestamp = 1;
+    int64 pong_timestamp = 2;
+    int64 server_time = 3;
+}
+
+// =============================================================================
+// USAGE EXAMPLES
+// =============================================================================
+//
+// C++ Client Pseudocode:
+// ─────────────────────
+//
+//   // Connect
+//   auto channel = grpc::CreateChannel("server:50051", creds);
+//   auto stub = SynthWire::NewStub(channel);
+//
+//   // Bidirectional streaming (main usage)
+//   auto stream = stub->Exchange(&context);
+//
+//   // Send handshake
+//   SynthEnvelope handshake;
+//   handshake.mutable_control()->mutable_handshake()->set_client_id("cpp-01");
+//   stream->Write(handshake);
+//
+//   // Receive events in background thread
+//   std::thread receiver([&stream]() {
+//       SynthEnvelope msg;
+//       while (stream->Read(&msg)) {
+//           switch (msg.payload_type()) {
+//               case PAYLOAD_TYPE_EVENT:
+//                   handleEvent(msg.event());
+//                   break;
+//               case PAYLOAD_TYPE_STATE:
+//                   handleState(msg.state());
+//                   break;
+//               // ...
+//           }
+//       }
+//   });
+//
+//   // Send RPC request
+//   SynthEnvelope request;
+//   request.mutable_header()->set_message_id(uuid());
+//   request.mutable_header()->set_correlation_id(uuid());
+//   request.set_payload_type(PAYLOAD_TYPE_RPC);
+//   request.mutable_rpc()->set_method("asset/resolve");
+//   request.mutable_rpc()->set_is_request(true);
+//   // ... set request data
+//   stream->Write(request);
+//
+//   // Simple unary call alternative
+//   SynthEnvelope response;
+//   stub->Call(&context, request, &response);
+//
+// PHP Server Pseudocode:
+// ─────────────────────
+//
+//   class SynthWireService extends SynthWireServiceInterface {
+//
+//       public function Exchange($stream) {
+//           while ($envelope = $stream->read()) {
+//               $response = $this->process($envelope);
+//               if ($response) {
+//                   $stream->write($response);
+//               }
+//           }
+//       }
+//
+//       private function process(SynthEnvelope $envelope): ?SynthEnvelope {
+//           switch ($envelope->getPayloadType()) {
+//               case PayloadType::PAYLOAD_TYPE_RPC:
+//                   return $this->handleRpc($envelope);
+//               case PayloadType::PAYLOAD_TYPE_STATE:
+//                   return $this->handleStateInput($envelope);
+//               // ...
+//           }
+//       }
+//
+//       private function handleRpc(SynthEnvelope $envelope): SynthEnvelope {
+//           $rpc = $envelope->getRpc();
+//           $method = $rpc->getMethod();
+//           $tool = $this->router->resolve($method);
+//           $result = $tool->execute($rpc->getRequest());
+//
+//           $response = new SynthEnvelope();
+//           $response->getHeader()->setCorrelationId(
+//               $envelope->getHeader()->getMessageId()
+//           );
+//           $response->getRpc()->setResponse($result);
+//           return $response;
+//       }
+//   }
+//
+// =============================================================================
+
+// =============================================================================
+// ERROR CODES
+// =============================================================================
+//
+// Standard error codes for RPC responses:
+//
+//   1xxx - Client errors
+//   ────────────────────
+//   1000 - Invalid request
+//   1001 - Authentication required
+//   1002 - Permission denied
+//   1003 - Resource not found
+//   1004 - Validation failed
+//   1005 - Rate limited
+//   1006 - Quota exceeded
+//
+//   2xxx - Server errors
+//   ────────────────────
+//   2000 - Internal error
+//   2001 - Service unavailable
+//   2002 - Timeout
+//   2003 - Dependency failed
+//
+//   3xxx - Transport errors
+//   ────────────────────
+//   3000 - Connection lost
+//   3001 - Message too large
+//   3002 - Compression error
+//
+// =============================================================================
+
+enum ErrorCode {
+    ERROR_CODE_UNSPECIFIED = 0;
+
+    // Client errors (1xxx)
+    ERROR_CODE_INVALID_REQUEST = 1000;
+    ERROR_CODE_AUTH_REQUIRED = 1001;
+    ERROR_CODE_PERMISSION_DENIED = 1002;
+    ERROR_CODE_NOT_FOUND = 1003;
+    ERROR_CODE_VALIDATION_FAILED = 1004;
+    ERROR_CODE_RATE_LIMITED = 1005;
+    ERROR_CODE_QUOTA_EXCEEDED = 1006;
+
+    // Server errors (2xxx)
+    ERROR_CODE_INTERNAL = 2000;
+    ERROR_CODE_UNAVAILABLE = 2001;
+    ERROR_CODE_TIMEOUT = 2002;
+    ERROR_CODE_DEPENDENCY_FAILED = 2003;
+
+    // Transport errors (3xxx)
+    ERROR_CODE_CONNECTION_LOST = 3000;
+    ERROR_CODE_MESSAGE_TOO_LARGE = 3001;
+    ERROR_CODE_COMPRESSION_ERROR = 3002;
+}

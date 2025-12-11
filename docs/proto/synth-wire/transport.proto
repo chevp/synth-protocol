@@ -1,0 +1,387 @@
+syntax = "proto3";
+
+package synth.wire;
+
+option java_package = "io.synth.protocol.wire";
+option java_multiple_files = true;
+option csharp_namespace = "Synth.Wire";
+option go_package = "synth/wire";
+
+import "synth-wire/envelope.proto";
+
+// =============================================================================
+// SYNTH WIRE PROTOCOL - Transport Bindings
+// =============================================================================
+//
+// Defines how SynthEnvelope is transmitted over different transports.
+// The envelope bytes are IDENTICAL - only framing differs.
+//
+// =============================================================================
+// TRANSPORT BINDING OVERVIEW
+// =============================================================================
+//
+//   ┌─────────────────────────────────────────────────────────────────────┐
+//   │                     TRANSPORT BINDINGS                              │
+//   ├─────────────────────────────────────────────────────────────────────┤
+//   │                                                                     │
+//   │   SynthEnvelope (protobuf bytes)                                    │
+//   │          │                                                          │
+//   │          ▼                                                          │
+//   │   ┌─────────────────────────────────────────────────────────┐       │
+//   │   │                   FRAMING LAYER                         │       │
+//   │   │                                                         │       │
+//   │   │   HTTP:      Content-Type: application/x-synth-proto    │       │
+//   │   │              Body: <envelope bytes>                     │       │
+//   │   │                                                         │       │
+//   │   │   WebSocket: Binary frame with length prefix            │       │
+//   │   │              [4 bytes length][envelope bytes]           │       │
+//   │   │                                                         │       │
+//   │   │   gRPC:      Standard protobuf streaming                │       │
+//   │   │              stream SynthEnvelope                       │       │
+//   │   │                                                         │       │
+//   │   │   Kafka:     Key: channel, Value: envelope bytes        │       │
+//   │   │              Headers: routing metadata                  │       │
+//   │   │                                                         │       │
+//   │   │   TCP:       Length-prefixed frames                     │       │
+//   │   │              [4 bytes length][envelope bytes]           │       │
+//   │   │                                                         │       │
+//   │   └─────────────────────────────────────────────────────────┘       │
+//   │                                                                     │
+//   └─────────────────────────────────────────────────────────────────────┘
+//
+// =============================================================================
+
+// =============================================================================
+// HTTP BINDING
+// =============================================================================
+//
+// For request/response over HTTP/HTTPS (REST-like)
+//
+// Request:
+//   POST /synth/v1/rpc
+//   Content-Type: application/x-synth-proto
+//   X-Synth-Channel: synth/rpc
+//   X-Synth-Correlation-Id: <uuid>
+//   Body: <SynthEnvelope bytes>
+//
+// Response:
+//   200 OK
+//   Content-Type: application/x-synth-proto
+//   X-Synth-Correlation-Id: <uuid>
+//   Body: <SynthEnvelope bytes>
+//
+// Streaming (Server-Sent Events):
+//   GET /synth/v1/events?channels=synth/events/*
+//   Accept: text/event-stream
+//
+//   data: <base64 encoded SynthEnvelope>
+//
+// =============================================================================
+
+message HttpBinding {
+    string base_url = 1;              // e.g., "https://api.example.com/synth/v1"
+
+    // Endpoints
+    string rpc_path = 2;              // Default: "/rpc"
+    string events_path = 3;           // Default: "/events" (SSE)
+    string assets_path = 4;           // Default: "/assets"
+
+    // Headers
+    map<string, string> default_headers = 5;
+
+    // Timeouts
+    int32 connect_timeout_ms = 6;
+    int32 request_timeout_ms = 7;
+
+    // Retry
+    int32 max_retries = 8;
+    int32 retry_backoff_ms = 9;
+}
+
+// =============================================================================
+// WEBSOCKET BINDING
+// =============================================================================
+//
+// For bidirectional streaming over WebSocket
+//
+// Frame format (binary):
+//   [4 bytes: message length (big endian)]
+//   [N bytes: SynthEnvelope protobuf]
+//
+// Connection URL:
+//   wss://api.example.com/synth/v1/ws?token=<auth_token>
+//
+// =============================================================================
+
+message WebSocketBinding {
+    string url = 1;                   // e.g., "wss://api.example.com/synth/v1/ws"
+
+    // Ping/pong interval
+    int32 ping_interval_ms = 2;
+    int32 pong_timeout_ms = 3;
+
+    // Reconnection
+    bool auto_reconnect = 4;
+    int32 reconnect_delay_ms = 5;
+    int32 max_reconnect_attempts = 6;
+
+    // Buffering
+    int32 send_buffer_size = 7;
+    int32 receive_buffer_size = 8;
+}
+
+// =============================================================================
+// gRPC BINDING
+// =============================================================================
+//
+// Native protobuf streaming over HTTP/2
+//
+// Service definition:
+//   service SynthWire {
+//     rpc Exchange(stream SynthEnvelope) returns (stream SynthEnvelope);
+//     rpc Send(SynthEnvelope) returns (SynthEnvelope);
+//   }
+//
+// =============================================================================
+
+message GrpcBinding {
+    string host = 1;
+    int32 port = 2;
+    bool use_tls = 3;
+
+    // Connection pooling
+    int32 max_connections = 4;
+    int32 idle_timeout_ms = 5;
+
+    // Keepalive
+    int32 keepalive_time_ms = 6;
+    int32 keepalive_timeout_ms = 7;
+}
+
+// gRPC service definition (for codegen)
+// Actual service in separate file, but documented here
+//
+// service SynthWire {
+//     // Bidirectional streaming
+//     rpc Exchange(stream SynthEnvelope) returns (stream SynthEnvelope);
+//
+//     // Unary call
+//     rpc Call(SynthEnvelope) returns (SynthEnvelope);
+//
+//     // Server streaming
+//     rpc Subscribe(ChannelSubscription) returns (stream SynthEnvelope);
+// }
+
+// =============================================================================
+// KAFKA BINDING
+// =============================================================================
+//
+// For event distribution via Kafka
+//
+// Topic naming: synth.<channel_name>
+//   e.g., synth.events.scene, synth.state.scene_01
+//
+// Message:
+//   Key: <correlation_id or subject>
+//   Value: <SynthEnvelope bytes>
+//   Headers:
+//     synth-source: <source>
+//     synth-timestamp: <timestamp>
+//     synth-type: <payload_type>
+//
+// =============================================================================
+
+message KafkaBinding {
+    repeated string bootstrap_servers = 1;
+
+    // Producer config
+    string producer_client_id = 2;
+    string acks = 3;                  // "all", "1", "0"
+    int32 batch_size = 4;
+    int32 linger_ms = 5;
+
+    // Consumer config
+    string consumer_group_id = 6;
+    string auto_offset_reset = 7;     // "earliest", "latest"
+    bool enable_auto_commit = 8;
+    int32 auto_commit_interval_ms = 9;
+
+    // Topic prefix
+    string topic_prefix = 10;         // Default: "synth"
+}
+
+// =============================================================================
+// TCP BINDING
+// =============================================================================
+//
+// Raw TCP for maximum performance (internal networks)
+//
+// Frame format:
+//   [4 bytes: magic (0x53594E54 = "SYNT")]
+//   [4 bytes: message length (big endian)]
+//   [1 byte: flags]
+//   [N bytes: SynthEnvelope protobuf]
+//
+// =============================================================================
+
+message TcpBinding {
+    string host = 1;
+    int32 port = 2;
+    bool use_tls = 3;
+
+    // Socket options
+    bool tcp_nodelay = 4;
+    int32 send_buffer_size = 5;
+    int32 receive_buffer_size = 6;
+    int32 keepalive_time_sec = 7;
+
+    // Timeouts
+    int32 connect_timeout_ms = 8;
+    int32 read_timeout_ms = 9;
+    int32 write_timeout_ms = 10;
+}
+
+// TCP frame for length-prefixed framing
+message TcpFrame {
+    fixed32 magic = 1;                // 0x53594E54 ("SYNT")
+    fixed32 length = 2;
+    uint32 flags = 3;
+    bytes payload = 4;
+}
+
+// =============================================================================
+// TRANSPORT CONFIGURATION
+// =============================================================================
+
+message TransportConfig {
+    TransportType type = 1;
+
+    oneof binding {
+        HttpBinding http = 10;
+        WebSocketBinding websocket = 11;
+        GrpcBinding grpc = 12;
+        KafkaBinding kafka = 13;
+        TcpBinding tcp = 14;
+    }
+
+    // Common settings
+    Compression default_compression = 20;
+    int32 max_message_size = 21;
+
+    // TLS settings
+    TlsConfig tls = 30;
+}
+
+enum TransportType {
+    TRANSPORT_TYPE_UNSPECIFIED = 0;
+    TRANSPORT_TYPE_HTTP = 1;
+    TRANSPORT_TYPE_WEBSOCKET = 2;
+    TRANSPORT_TYPE_GRPC = 3;
+    TRANSPORT_TYPE_KAFKA = 4;
+    TRANSPORT_TYPE_TCP = 5;
+}
+
+message TlsConfig {
+    bool enabled = 1;
+    string cert_file = 2;
+    string key_file = 3;
+    string ca_file = 4;
+    bool skip_verify = 5;             // For development only!
+}
+
+// =============================================================================
+// CLIENT CONFIGURATION
+// =============================================================================
+//
+// Configuration for SynthClient (C++, TypeScript, etc.)
+//
+// =============================================================================
+
+message ClientConfig {
+    // Client identity
+    string client_id = 1;
+    string client_type = 2;
+
+    // Primary transport
+    TransportConfig primary_transport = 3;
+
+    // Fallback transports (tried in order if primary fails)
+    repeated TransportConfig fallback_transports = 4;
+
+    // Channels to subscribe on connect
+    repeated string auto_subscribe = 5;
+
+    // Authentication
+    AuthConfig auth = 6;
+
+    // Logging
+    LogLevel log_level = 7;
+}
+
+message AuthConfig {
+    AuthType type = 1;
+
+    oneof credentials {
+        string token = 10;
+        BasicAuth basic = 11;
+        ApiKeyAuth api_key = 12;
+    }
+}
+
+enum AuthType {
+    AUTH_TYPE_NONE = 0;
+    AUTH_TYPE_TOKEN = 1;
+    AUTH_TYPE_BASIC = 2;
+    AUTH_TYPE_API_KEY = 3;
+}
+
+message BasicAuth {
+    string username = 1;
+    string password = 2;
+}
+
+message ApiKeyAuth {
+    string key = 1;
+    string header = 2;                // Default: "X-API-Key"
+}
+
+enum LogLevel {
+    LOG_LEVEL_OFF = 0;
+    LOG_LEVEL_ERROR = 1;
+    LOG_LEVEL_WARN = 2;
+    LOG_LEVEL_INFO = 3;
+    LOG_LEVEL_DEBUG = 4;
+    LOG_LEVEL_TRACE = 5;
+}
+
+// =============================================================================
+// SERVER CONFIGURATION
+// =============================================================================
+//
+// Configuration for SynthServer (PHP)
+//
+// NOTE: Storage backend configuration is SERVER-INTERNAL.
+// Clients never see or care how the server stores data.
+// The wire protocol only defines REQUEST → RESPONSE.
+//
+// =============================================================================
+
+message ServerConfig {
+    string server_id = 1;
+
+    // Listen on multiple transports
+    repeated TransportConfig transports = 2;
+
+    // Session management
+    int32 session_timeout_sec = 3;
+    int32 max_sessions = 4;
+
+    // Rate limiting
+    RateLimitConfig rate_limit = 5;
+}
+
+message RateLimitConfig {
+    int32 requests_per_second = 1;
+    int32 burst_size = 2;
+    bool per_client = 3;
+}
