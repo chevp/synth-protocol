@@ -1,0 +1,703 @@
+syntax = "proto3";
+
+package synth.asset;
+
+option java_package = "io.synth.protocol.asset";
+option java_multiple_files = true;
+option csharp_namespace = "Synth.Asset";
+option go_package = "synth/asset";
+
+// =============================================================================
+// ASSET REFERENCE MODEL
+// =============================================================================
+//
+// This file defines the asset referencing architecture across the synth-protocol.
+// Assets can be referenced by ID or URI depending on the context.
+//
+// =============================================================================
+// ARCHITECTURAL OVERVIEW
+// =============================================================================
+//
+//   ┌─────────────────────────────────────────────────────────────────────┐
+//   │                        ASSET REFERENCE MODEL                        │
+//   ├─────────────────────────────────────────────────────────────────────┤
+//   │                                                                     │
+//   │  ┌──────────────────┐                                               │
+//   │  │  AUTHORITATIVE   │  .synth / .synthdb                            │
+//   │  │  (Source of      │                                               │
+//   │  │   Truth)         │  Asset {                                      │
+//   │  │                  │    id:  "asset_header"                        │
+//   │  │                  │    uri: "asset://project/assets/header.png"   │
+//   │  │                  │    checksum: "sha256:..."                     │
+//   │  │                  │  }                                            │
+//   │  └────────┬─────────┘                                               │
+//   │           │                                                         │
+//   │           │ Registry Lookup                                         │
+//   │           ▼                                                         │
+//   │  ┌──────────────────┐                                               │
+//   │  │  ASSET REGISTRY  │  Runtime Cache                                │
+//   │  │  (ID → URI Map)  │                                               │
+//   │  │                  │  "asset_header" → {                           │
+//   │  │                  │    uri, cached, loaded, version               │
+//   │  │                  │  }                                            │
+//   │  └────────┬─────────┘                                               │
+//   │           │                                                         │
+//   │     ┌─────┴─────┐                                                   │
+//   │     │           │                                                   │
+//   │     ▼           ▼                                                   │
+//   │  ┌──────────┐  ┌──────────────┐                                     │
+//   │  │  EVENTS  │  │  STATE-SYNC  │                                     │
+//   │  │          │  │              │                                     │
+//   │  │  ID only │  │  Full URI    │                                     │
+//   │  │          │  │              │                                     │
+//   │  │  synth   │  │  mesh_uri:   │                                     │
+//   │  │  asset   │  │  "asset://   │                                     │
+//   │  │  load    │  │  ..."        │                                     │
+//   │  │  asset_  │  │              │                                     │
+//   │  │  header  │  │  (self-      │                                     │
+//   │  │          │  │  contained)  │                                     │
+//   │  └──────────┘  └──────────────┘                                     │
+//   │                                                                     │
+//   │  Loose coupling   Strong consistency                                │
+//   │  Eventual         Interpolatable                                    │
+//   └─────────────────────────────────────────────────────────────────────┘
+//
+// =============================================================================
+// REFERENCE STRATEGY BY CONTEXT
+// =============================================================================
+//
+//   Context          │ ID  │ URI │ Reason
+//   ─────────────────┼─────┼─────┼────────────────────────────────────────
+//   synth-events     │  ✓  │  ✗  │ Compact, registry resolves at runtime
+//   synth-state-sync │  ✗  │  ✓  │ Self-contained, no registry for playback
+//   Authoritative    │  ✓  │  ✓  │ ID for references, URI for resolution
+//
+// =============================================================================
+// DATA FLOW
+// =============================================================================
+//
+//   1. AUTHORING (Write Path)
+//      ─────────────────────
+//      User imports asset → System generates ID + resolves URI
+//      → Stored in .synth/.synthdb with both
+//
+//   2. EVENTS (Notification Path)
+//      ──────────────────────────
+//      synth asset load asset_header --into=node_tree
+//      → Receiver looks up ID in registry → Gets URI → Loads if needed
+//
+//   3. STATE-SYNC (Replication Path)
+//      ─────────────────────────────
+//      SceneSnapshot contains full URIs
+//      → Client can load without registry access
+//      → Enables offline playback, recording, debugging
+//
+//   4. LAZY LOADING
+//      ────────────
+//      Asset referenced by ID → Not loaded until needed
+//      → Event triggers load → Registry resolves → Fetched from URI
+//
+// =============================================================================
+
+import "synth-core/common.proto";
+
+// =============================================================================
+// ASSET IDENTITY
+// =============================================================================
+
+// AssetId - Short identifier for event-based references
+// Used in: synth-events, component references, user-facing APIs
+message AssetId {
+    string id = 1;  // e.g., "asset_header", "mesh_tree_01"
+}
+
+// AssetUri - Full URI for self-contained references
+// Used in: synth-state-sync, authoritative storage, external systems
+message AssetUri {
+    string uri = 1;  // e.g., "asset://project/assets/header.png"
+}
+
+// AssetRef - Flexible reference supporting both modes
+// Used when context determines resolution strategy
+message AssetRef {
+    oneof reference {
+        string id = 1;   // ID-based (requires registry)
+        string uri = 2;  // URI-based (self-contained)
+    }
+}
+
+// =============================================================================
+// URI SCHEMES
+// =============================================================================
+//
+// Supported URI schemes for asset resolution:
+//
+//   asset://     - Project-local assets (relative to project root)
+//                  asset://project/assets/texture.png
+//                  asset://project/models/tree.glb
+//
+//   file://      - Absolute file system path
+//                  file:///C:/assets/shared/skybox.hdr
+//
+//   http(s)://   - Remote assets (CDN, asset server)
+//                  https://cdn.example.com/assets/v2/texture.png
+//
+//   bundle://    - Bundled/packaged assets
+//                  bundle://core/materials/default.mat
+//
+//   cache://     - Cached/generated assets
+//                  cache://generated/texture_001_upscaled.png
+//
+// =============================================================================
+
+enum AssetUriScheme {
+    ASSET_URI_SCHEME_UNSPECIFIED = 0;
+    ASSET_URI_SCHEME_ASSET = 1;    // asset://  - Project-local
+    ASSET_URI_SCHEME_FILE = 2;     // file://   - File system
+    ASSET_URI_SCHEME_HTTP = 3;     // http://   - Remote (insecure)
+    ASSET_URI_SCHEME_HTTPS = 4;    // https://  - Remote (secure)
+    ASSET_URI_SCHEME_BUNDLE = 5;   // bundle:// - Packaged
+    ASSET_URI_SCHEME_CACHE = 6;    // cache://  - Generated/cached
+}
+
+// =============================================================================
+// ASSET DEFINITION (Authoritative)
+// =============================================================================
+
+// Asset - Full asset definition stored in .synth/.synthdb
+// This is the authoritative record containing both ID and URI
+message Asset {
+    // Identity
+    string id = 1;                    // Unique identifier (used in events)
+    string uri = 2;                   // Full URI (used in state-sync)
+
+    // Metadata
+    string name = 3;                  // Human-readable name
+    AssetType type = 4;               // Asset type classification
+    string mime_type = 5;             // MIME type (e.g., "image/png")
+
+    // Source & Integrity
+    string source_path = 6;           // Original import path (for re-import)
+    string checksum = 7;              // SHA-256 hash for integrity
+    int64 size_bytes = 8;             // File size
+
+    // Versioning
+    uint32 version = 9;               // Asset version (increments on update)
+    int64 created_at = 10;            // Unix timestamp (ms)
+    int64 updated_at = 11;            // Unix timestamp (ms)
+
+    // Dependencies
+    repeated string dependency_ids = 12;  // Other assets this depends on
+
+    // Custom metadata
+    map<string, string> metadata = 13;
+}
+
+enum AssetType {
+    ASSET_TYPE_UNSPECIFIED = 0;
+    ASSET_TYPE_TEXTURE = 1;           // Images, textures
+    ASSET_TYPE_MATERIAL = 2;          // Material definitions
+    ASSET_TYPE_MESH = 3;              // 3D models
+    ASSET_TYPE_ANIMATION = 4;         // Animation clips
+    ASSET_TYPE_AUDIO = 5;             // Sound files
+    ASSET_TYPE_SCRIPT = 6;            // Scripts, code
+    ASSET_TYPE_PREFAB = 7;            // Prefabricated objects
+    ASSET_TYPE_SCENE = 8;             // Sub-scenes
+    ASSET_TYPE_FONT = 9;              // Font files
+    ASSET_TYPE_SHADER = 10;           // Shader programs
+    ASSET_TYPE_DATA = 11;             // Generic data files
+}
+
+// =============================================================================
+// ASSET REGISTRY (Runtime)
+// =============================================================================
+
+// AssetRegistryEntry - Runtime state for a registered asset
+message AssetRegistryEntry {
+    string id = 1;                    // Asset ID (key)
+    string uri = 2;                   // Resolved URI
+
+    // Loading state
+    AssetLoadState load_state = 3;
+    int64 loaded_at = 4;              // When loaded (Unix ms)
+    int64 last_accessed = 5;          // For LRU eviction
+
+    // Cache info
+    bool cached = 6;                  // Is cached locally?
+    string cache_path = 7;            // Local cache path
+    int64 cache_expires = 8;          // Cache expiration (Unix ms)
+
+    // Version tracking
+    uint32 version = 9;               // Current version
+    string checksum = 10;             // For change detection
+}
+
+enum AssetLoadState {
+    ASSET_LOAD_STATE_UNSPECIFIED = 0;
+    ASSET_LOAD_STATE_UNLOADED = 1;    // Not loaded, ID known
+    ASSET_LOAD_STATE_LOADING = 2;     // Currently loading
+    ASSET_LOAD_STATE_LOADED = 3;      // Loaded and ready
+    ASSET_LOAD_STATE_FAILED = 4;      // Load failed
+    ASSET_LOAD_STATE_EVICTED = 5;     // Was loaded, now evicted from memory
+}
+
+// AssetRegistry - Full registry state (for serialization/sync)
+message AssetRegistry {
+    map<string, AssetRegistryEntry> entries = 1;  // id → entry
+    int64 last_sync = 2;                          // Last sync timestamp
+}
+
+// =============================================================================
+// ASSET LOADING EVENTS
+// =============================================================================
+
+// AssetLoadRequest - Request to load an asset by ID
+// Used in synth-events: synth asset load <id> [--into=<node>]
+message AssetLoadRequest {
+    string asset_id = 1;              // Asset to load
+    string target_node_id = 2;        // Optional: attach to node
+    AssetLoadPriority priority = 3;   // Loading priority
+    bool force_reload = 4;            // Ignore cache, reload from source
+}
+
+enum AssetLoadPriority {
+    ASSET_LOAD_PRIORITY_UNSPECIFIED = 0;
+    ASSET_LOAD_PRIORITY_LOW = 1;      // Background loading
+    ASSET_LOAD_PRIORITY_NORMAL = 2;   // Standard priority
+    ASSET_LOAD_PRIORITY_HIGH = 3;     // Prioritized loading
+    ASSET_LOAD_PRIORITY_IMMEDIATE = 4; // Block until loaded
+}
+
+// AssetLoadResult - Result of a load operation
+message AssetLoadResult {
+    string asset_id = 1;
+    bool success = 2;
+    string error_message = 3;
+    int64 load_duration_ms = 4;
+    string resolved_uri = 5;          // The URI that was loaded
+}
+
+// =============================================================================
+// ASSET IMPORT
+// =============================================================================
+
+// AssetImportRequest - Import new asset from external source
+// Used when SRC is provided without existing ID
+message AssetImportRequest {
+    string source_uri = 1;            // External URI to import from
+    string target_id = 2;             // Optional: desired ID (auto-generated if empty)
+    string target_path = 3;           // Optional: project-relative path
+    AssetType type_hint = 4;          // Optional: type hint
+    map<string, string> metadata = 5; // Optional: initial metadata
+}
+
+// AssetImportResult - Result of import operation
+message AssetImportResult {
+    bool success = 1;
+    string asset_id = 2;              // Generated/assigned ID
+    string asset_uri = 3;             // Internal URI
+    string error_message = 4;
+}
+
+// =============================================================================
+// STATE-SYNC ASSET REFERENCES
+// =============================================================================
+//
+// In synth-state-sync messages (SceneSnapshot, NodeState, etc.),
+// assets are ALWAYS referenced by full URI for self-containment.
+//
+// Example from scene_state.proto:
+//
+//   message AssetNodeData {
+//       string asset_uri = 1;           // Full URI, not ID
+//       ...
+//   }
+//
+//   message MeshRendererData {
+//       string mesh_uri = 1;            // Full URI
+//       repeated string material_uris = 2;  // Full URIs
+//       ...
+//   }
+//
+// This ensures:
+// - Snapshots are self-contained
+// - No registry dependency for playback
+// - Offline/recording scenarios work
+// - Debugging with full context
+//
+// =============================================================================
+
+// =============================================================================
+// ASSET RESOLUTION SERVICE
+// =============================================================================
+
+service AssetService {
+    // Resolve ID to URI (for event handlers)
+    rpc ResolveId(AssetId) returns (AssetUri);
+
+    // Load asset by ID
+    rpc Load(AssetLoadRequest) returns (AssetLoadResult);
+
+    // Import from external source
+    rpc Import(AssetImportRequest) returns (AssetImportResult);
+
+    // Get full asset definition
+    rpc GetAsset(AssetId) returns (Asset);
+
+    // List all registered assets
+    rpc ListAssets(ListAssetsRequest) returns (ListAssetsResponse);
+
+    // Preload multiple assets
+    rpc Preload(PreloadRequest) returns (PreloadResponse);
+}
+
+message ListAssetsRequest {
+    AssetType type_filter = 1;        // Optional type filter
+    int32 limit = 2;
+    string cursor = 3;
+}
+
+message ListAssetsResponse {
+    repeated Asset assets = 1;
+    string next_cursor = 2;
+}
+
+message PreloadRequest {
+    repeated string asset_ids = 1;
+    AssetLoadPriority priority = 2;
+}
+
+message PreloadResponse {
+    int32 queued_count = 1;
+    repeated string failed_ids = 2;
+}
+
+// =============================================================================
+// CLIENT-SIDE STATE MACHINE
+// =============================================================================
+//
+// The client maintains an AssetStateMachine for each referenced asset.
+// This ensures correct loading behavior and prevents redundant requests.
+//
+//   ┌─────────────────────────────────────────────────────────────────────┐
+//   │                    ASSET STATE MACHINE (Client)                     │
+//   ├─────────────────────────────────────────────────────────────────────┤
+//   │                                                                     │
+//   │                        ┌───────────┐                                │
+//   │                        │  UNKNOWN  │                                │
+//   │                        └─────┬─────┘                                │
+//   │                              │ register(id)                         │
+//   │                              ▼                                      │
+//   │                        ┌───────────┐                                │
+//   │               ┌───────►│ REGISTERED│◄──────────┐                    │
+//   │               │        └─────┬─────┘           │                    │
+//   │               │              │ request_load()  │                    │
+//   │               │              ▼                 │                    │
+//   │               │        ┌───────────┐           │                    │
+//   │               │        │  PENDING  │           │                    │
+//   │               │        └─────┬─────┘           │                    │
+//   │               │              │ server_ack()    │                    │
+//   │               │              ▼                 │                    │
+//   │               │        ┌───────────┐           │                    │
+//   │               │        │  LOADING  │───────────┤ error()            │
+//   │               │        └─────┬─────┘           │                    │
+//   │               │              │ data_received() │                    │
+//   │               │              ▼                 │                    │
+//   │               │        ┌───────────┐           │                    │
+//   │               │        │  LOADED   │           │                    │
+//   │               │        └─────┬─────┘           │                    │
+//   │               │              │ evict()         │                    │
+//   │               │              ▼                 │                    │
+//   │               │        ┌───────────┐           │                    │
+//   │               └────────┤  EVICTED  │───────────┘                    │
+//   │                        └───────────┘  reload()                      │
+//   │                                                                     │
+//   └─────────────────────────────────────────────────────────────────────┘
+//
+// State Descriptions:
+//   UNKNOWN    - Asset ID not known to client
+//   REGISTERED - ID registered in local registry, URI known, not loaded
+//   PENDING    - Load request sent to server, awaiting acknowledgement
+//   LOADING    - Server acknowledged, data transfer in progress
+//   LOADED     - Asset data available in memory
+//   EVICTED    - Was loaded, evicted from memory (can be reloaded)
+//
+// =============================================================================
+
+// Client-side asset state
+enum AssetState {
+    ASSET_STATE_UNKNOWN = 0;
+    ASSET_STATE_REGISTERED = 1;
+    ASSET_STATE_PENDING = 2;
+    ASSET_STATE_LOADING = 3;
+    ASSET_STATE_LOADED = 4;
+    ASSET_STATE_EVICTED = 5;
+    ASSET_STATE_ERROR = 6;
+}
+
+// State machine transition events
+enum AssetStateTransition {
+    ASSET_TRANSITION_UNSPECIFIED = 0;
+    ASSET_TRANSITION_REGISTER = 1;      // UNKNOWN → REGISTERED
+    ASSET_TRANSITION_REQUEST_LOAD = 2;  // REGISTERED/EVICTED → PENDING
+    ASSET_TRANSITION_SERVER_ACK = 3;    // PENDING → LOADING
+    ASSET_TRANSITION_DATA_RECEIVED = 4; // LOADING → LOADED
+    ASSET_TRANSITION_EVICT = 5;         // LOADED → EVICTED
+    ASSET_TRANSITION_ERROR = 6;         // Any → ERROR / back to REGISTERED
+    ASSET_TRANSITION_RELOAD = 7;        // EVICTED → PENDING
+}
+
+// Client state machine instance
+message AssetStateMachine {
+    string asset_id = 1;
+    AssetState current_state = 2;
+
+    // Timing
+    int64 state_entered_at = 3;       // When current state was entered
+    int64 load_requested_at = 4;      // When load was requested
+    int64 load_completed_at = 5;      // When load completed
+
+    // Progress (for LOADING state)
+    int64 bytes_received = 6;
+    int64 bytes_total = 7;
+
+    // Error info (for ERROR state)
+    string error_message = 8;
+    int32 retry_count = 9;
+    int32 max_retries = 10;
+
+    // Resolved data
+    string resolved_uri = 11;
+    string checksum = 12;
+}
+
+// =============================================================================
+// PHP AUTHORITATIVE SERVER PROTOCOL
+// =============================================================================
+//
+// The PHP server (synth-mcp-php) is the authoritative source for assets.
+// Client requests assets via MCP tools, server responds with URIs or data.
+//
+//   ┌─────────────────────────────────────────────────────────────────────┐
+//   │                  CLIENT ←→ SERVER INTERACTION                       │
+//   ├─────────────────────────────────────────────────────────────────────┤
+//   │                                                                     │
+//   │   CLIENT                              SERVER (PHP)                  │
+//   │   ──────                              ────────────                  │
+//   │                                                                     │
+//   │   1. RESOLVE (ID → URI)                                             │
+//   │   ┌──────────────┐                   ┌──────────────┐               │
+//   │   │ asset/resolve│──── request ─────►│ AssetTool    │               │
+//   │   │ {id: "..."}  │                   │ resolve()    │               │
+//   │   │              │◄─── response ─────│ {uri, meta}  │               │
+//   │   └──────────────┘                   └──────────────┘               │
+//   │                                                                     │
+//   │   2. LOAD (fetch data)                                              │
+//   │   ┌──────────────┐                   ┌──────────────┐               │
+//   │   │ asset/load   │──── request ─────►│ AssetTool    │               │
+//   │   │ {id: "..."}  │                   │ load()       │               │
+//   │   │              │◄─── stream ───────│ {chunks...}  │               │
+//   │   └──────────────┘                   └──────────────┘               │
+//   │                                                                     │
+//   │   3. UPLOAD (new asset)                                             │
+//   │   ┌──────────────┐                   ┌──────────────┐               │
+//   │   │storage/upload│──── request ─────►│ UploadTool   │               │
+//   │   │ {data, meta} │                   │ execute()    │               │
+//   │   │              │◄─── response ─────│ {id, uri}    │               │
+//   │   └──────────────┘                   └──────────────┘               │
+//   │                                                                     │
+//   │   4. LIST (query assets)                                            │
+//   │   ┌──────────────┐                   ┌──────────────┐               │
+//   │   │ storage/list │──── request ─────►│ ListTool     │               │
+//   │   │ {bucket, ..} │                   │ execute()    │               │
+//   │   │              │◄─── response ─────│ {files[]}    │               │
+//   │   └──────────────┘                   └──────────────┘               │
+//   │                                                                     │
+//   └─────────────────────────────────────────────────────────────────────┘
+//
+// =============================================================================
+
+// =============================================================================
+// SERVER-SIDE MESSAGES (PHP ↔ Client)
+// =============================================================================
+
+// Request to resolve asset ID to URI (client → server)
+message AssetResolveRequest {
+    string asset_id = 1;
+    bool include_metadata = 2;        // Also return full metadata?
+}
+
+// Response with resolved URI (server → client)
+message AssetResolveResponse {
+    string asset_id = 1;
+    string uri = 2;
+    bool found = 3;
+
+    // Optional metadata (if include_metadata=true)
+    AssetMetadata metadata = 4;
+}
+
+message AssetMetadata {
+    string name = 1;
+    AssetType type = 2;
+    string mime_type = 3;
+    int64 size_bytes = 4;
+    string checksum = 5;
+    uint32 version = 6;
+    int64 updated_at = 7;
+}
+
+// Request to load asset data (client → server)
+message AssetDataRequest {
+    string asset_id = 1;
+
+    // Optional: partial load
+    int64 offset = 2;                 // Start byte
+    int64 length = 3;                 // Number of bytes (0 = all)
+
+    // Optional: version check
+    string expected_checksum = 4;     // Return 304 if unchanged
+}
+
+// Response with asset data (server → client)
+// For large assets, this may be streamed in chunks
+message AssetDataResponse {
+    string asset_id = 1;
+    AssetDataStatus status = 2;
+
+    // Data (for non-chunked or final chunk)
+    bytes data = 3;
+
+    // Chunking info
+    bool is_chunked = 4;
+    int32 chunk_index = 5;
+    int32 total_chunks = 6;
+    int64 total_size = 7;
+
+    // Integrity
+    string checksum = 8;              // SHA-256 of complete data
+
+    // Caching hints
+    int64 cache_ttl_seconds = 9;
+    bool immutable = 10;              // Asset will never change
+}
+
+enum AssetDataStatus {
+    ASSET_DATA_STATUS_OK = 0;
+    ASSET_DATA_STATUS_NOT_FOUND = 1;
+    ASSET_DATA_STATUS_NOT_MODIFIED = 2;  // Checksum matched
+    ASSET_DATA_STATUS_ERROR = 3;
+}
+
+// =============================================================================
+// LAZY LOADING PROTOCOL
+// =============================================================================
+//
+// Assets are loaded on-demand when first referenced.
+// The client state machine ensures proper sequencing.
+//
+//   SEQUENCE DIAGRAM:
+//
+//   Client                    Registry              Server (PHP)
+//   ──────                    ────────              ────────────
+//     │                          │                       │
+//     │ event: asset_load(id)    │                       │
+//     │─────────────────────────►│                       │
+//     │                          │                       │
+//     │          lookup(id)      │                       │
+//     │◄─────────────────────────│                       │
+//     │          {uri, state}    │                       │
+//     │                          │                       │
+//     │ [if state != LOADED]     │                       │
+//     │                          │                       │
+//     │          set PENDING     │                       │
+//     │─────────────────────────►│                       │
+//     │                          │                       │
+//     │                          │  asset/resolve(id)    │
+//     │                          │──────────────────────►│
+//     │                          │                       │
+//     │                          │  {uri, checksum}      │
+//     │                          │◄──────────────────────│
+//     │                          │                       │
+//     │          set LOADING     │                       │
+//     │─────────────────────────►│                       │
+//     │                          │                       │
+//     │                          │  asset/load(id)       │
+//     │                          │──────────────────────►│
+//     │                          │                       │
+//     │                          │  {data chunks...}     │
+//     │                          │◄──────────────────────│
+//     │                          │                       │
+//     │          set LOADED      │                       │
+//     │─────────────────────────►│                       │
+//     │                          │                       │
+//     │ callback: asset_ready    │                       │
+//     │◄─────────────────────────│                       │
+//     │                          │                       │
+//
+// =============================================================================
+
+// Callback event when asset becomes available
+message AssetReadyEvent {
+    string asset_id = 1;
+    string uri = 2;
+    AssetType type = 3;
+    int64 size_bytes = 4;
+    int64 load_duration_ms = 5;
+    bool from_cache = 6;              // Was served from local cache?
+}
+
+// Callback event when asset load fails
+message AssetErrorEvent {
+    string asset_id = 1;
+    AssetDataStatus status = 2;
+    string error_message = 3;
+    bool retriable = 4;
+    int32 retry_after_seconds = 5;
+}
+
+// =============================================================================
+// MCP TOOL DEFINITIONS (for synth-mcp-php)
+// =============================================================================
+//
+// These tool definitions should be implemented in PHP:
+//
+//   class AssetResolveTool extends AbstractTool {
+//       getName(): "asset/resolve"
+//       execute({id, include_metadata}) → {id, uri, found, metadata?}
+//   }
+//
+//   class AssetLoadTool extends AbstractTool {
+//       getName(): "asset/load"
+//       execute({id, offset?, length?, checksum?}) → {data, status, ...}
+//   }
+//
+//   class AssetRegisterTool extends AbstractTool {
+//       getName(): "asset/register"
+//       execute({uri, type, name, metadata}) → {id, uri, checksum}
+//   }
+//
+// See: synth-mcp-php/src/Tools/Asset/*.php
+//
+// =============================================================================
+
+// Tool input schemas (for MCP tool registration)
+message AssetResolveToolInput {
+    string id = 1;
+    bool include_metadata = 2;
+}
+
+message AssetLoadToolInput {
+    string id = 1;
+    int64 offset = 2;
+    int64 length = 3;
+    string expected_checksum = 4;
+}
+
+message AssetRegisterToolInput {
+    string uri = 1;                   // Source URI to import from
+    string id = 2;                    // Optional: desired ID
+    AssetType type = 3;               // Asset type
+    string name = 4;                  // Display name
+    map<string, string> metadata = 5;
+}
