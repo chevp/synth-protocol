@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Synth Compact Event Editor v2</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/lint/lint.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #1a1a2e;
+            color: #eee;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        header {
+            background: #16213e;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            border-bottom: 1px solid #0f3460;
+        }
+        header h1 {
+            font-size: 18px;
+            font-weight: 500;
+            color: #e94560;
+        }
+        header .info {
+            font-size: 12px;
+            color: #888;
+            font-family: 'Consolas', monospace;
+        }
+        .toolbar {
+            background: #16213e;
+            padding: 8px 20px;
+            display: flex;
+            gap: 10px;
+            border-bottom: 1px solid #0f3460;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .toolbar button {
+            background: #0f3460;
+            border: none;
+            color: #eee;
+            padding: 6px 14px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .toolbar button:hover {
+            background: #e94560;
+        }
+        .toolbar .separator {
+            width: 1px;
+            background: #0f3460;
+            height: 24px;
+            margin: 0 5px;
+        }
+        .toolbar .hint {
+            font-size: 11px;
+            color: #666;
+            margin-left: auto;
+        }
+        .toolbar .hint kbd {
+            background: #0f3460;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: inherit;
+        }
+        .container {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+        .editor-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .CodeMirror {
+            flex: 1;
+            height: auto;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 14px;
+            background: #1a1a2e;
+            color: #eee;
+        }
+        .CodeMirror-gutters {
+            background: #16213e;
+            border-right: 1px solid #0f3460;
+        }
+        .CodeMirror-linenumber {
+            color: #666;
+        }
+        .CodeMirror-cursor {
+            border-left: 2px solid #e94560;
+        }
+        .CodeMirror-selected {
+            background: #0f3460 !important;
+        }
+        .CodeMirror-activeline-background {
+            background: #16213e;
+        }
+        /* Syntax highlighting */
+        .cm-synth-comment { color: #5c6370; font-style: italic; }
+        .cm-synth-domain { color: #60a5fa; font-weight: bold; }
+        .cm-synth-resource { color: #c084fc; }
+        .cm-synth-action { color: #34d399; font-weight: bold; }
+        .cm-synth-subject { color: #fbbf24; }
+        .cm-synth-modifier { color: #f472b6; }
+        .cm-synth-target { color: #fb923c; }
+        .cm-synth-arg-key { color: #e06c75; }
+        .cm-synth-arg-value { color: #d19a66; }
+
+        /* Autocomplete hints styling */
+        .CodeMirror-hints {
+            background: #16213e;
+            border: 1px solid #0f3460;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            font-family: 'Consolas', monospace;
+            font-size: 13px;
+            max-height: 300px;
+            overflow-y: auto;
+            padding: 4px 0;
+        }
+        .CodeMirror-hint {
+            padding: 6px 12px;
+            color: #eee;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .CodeMirror-hint:hover {
+            background: #0f3460;
+        }
+        .CodeMirror-hint-active {
+            background: #e94560 !important;
+            color: white;
+        }
+        .hint-keyword {
+            font-weight: bold;
+            min-width: 100px;
+        }
+        .hint-type {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 3px;
+            text-transform: uppercase;
+        }
+        .hint-type.domain { background: #60a5fa30; color: #60a5fa; }
+        .hint-type.resource { background: #c084fc30; color: #c084fc; }
+        .hint-type.action { background: #34d39930; color: #34d399; }
+        .hint-type.modifier { background: #f472b630; color: #f472b6; }
+        .hint-desc {
+            color: #888;
+            font-size: 11px;
+            flex: 1;
+        }
+
+        /* Lint markers */
+        .CodeMirror-lint-marker-error {
+            background: #ef4444;
+        }
+        .CodeMirror-lint-message-error {
+            background: #2d1f1f;
+            color: #ef4444;
+        }
+
+        /* Context help panel */
+        .context-help {
+            background: #0f3460;
+            border-bottom: 1px solid #16213e;
+            padding: 8px 15px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            min-height: 36px;
+        }
+        .context-help .slot-indicator {
+            display: flex;
+            gap: 8px;
+        }
+        .context-help .slot {
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            opacity: 0.5;
+        }
+        .context-help .slot.active {
+            opacity: 1;
+            font-weight: bold;
+        }
+        .context-help .slot.domain { background: #60a5fa30; color: #60a5fa; }
+        .context-help .slot.resource { background: #c084fc30; color: #c084fc; }
+        .context-help .slot.action { background: #34d39930; color: #34d399; }
+        .context-help .slot.subject { background: #fbbf2430; color: #fbbf24; }
+        .context-help .slot.modifier { background: #f472b630; color: #f472b6; }
+        .context-help .slot.target { background: #fb923c30; color: #fb923c; }
+        .context-help .slot.args { background: #e06c7530; color: #e06c75; }
+        .context-help .suggestions {
+            color: #888;
+            flex: 1;
+        }
+        .context-help .suggestions strong {
+            color: #eee;
+        }
+
+        .output-panel {
+            height: 200px;
+            background: #16213e;
+            border-top: 1px solid #0f3460;
+            display: flex;
+            flex-direction: column;
+        }
+        .output-panel h3 {
+            font-size: 12px;
+            color: #888;
+            padding: 10px 15px;
+            text-transform: uppercase;
+            border-bottom: 1px solid #0f3460;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .output-panel h3 .count {
+            color: #e94560;
+        }
+        .output-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px 15px;
+            font-family: 'Consolas', monospace;
+            font-size: 12px;
+        }
+        .output-item {
+            padding: 8px 12px;
+            margin-bottom: 6px;
+            background: #0f3460;
+            border-radius: 4px;
+            border-left: 3px solid #34d399;
+        }
+        .output-item.error {
+            border-left-color: #ef4444;
+            background: #2d1f1f;
+        }
+        .output-item .line-num {
+            color: #666;
+            font-size: 10px;
+        }
+        .output-item .human {
+            margin-top: 4px;
+        }
+        .output-item .human .domain { color: #60a5fa; }
+        .output-item .human .resource { color: #c084fc; }
+        .output-item .human .action { color: #34d399; }
+        .output-item .human .subject { color: #fbbf24; }
+        .output-item .human .modifier { color: #f472b6; }
+        .output-item .human .target { color: #fb923c; }
+        .output-item .binary {
+            margin-top: 4px;
+            color: #888;
+            font-size: 11px;
+        }
+        .output-item .binary span {
+            background: #1a1a2e;
+            padding: 2px 5px;
+            border-radius: 3px;
+            margin-right: 3px;
+        }
+        .output-item .json {
+            margin-top: 4px;
+            color: #666;
+            font-size: 11px;
+        }
+        .sidebar {
+            width: 280px;
+            background: #16213e;
+            border-left: 1px solid #0f3460;
+            padding: 15px;
+            overflow-y: auto;
+        }
+        .sidebar h2 {
+            font-size: 14px;
+            color: #e94560;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #0f3460;
+        }
+        .sidebar h3 {
+            font-size: 12px;
+            color: #888;
+            margin: 15px 0 8px 0;
+            text-transform: uppercase;
+        }
+        .schema-section {
+            background: #0f3460;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+        }
+        .schema-section code {
+            display: block;
+            font-family: 'Consolas', monospace;
+            font-size: 11px;
+            color: #eee;
+            margin-bottom: 8px;
+        }
+        .schema-section .note {
+            font-size: 10px;
+            color: #888;
+            font-style: italic;
+        }
+        .legend {
+            font-size: 11px;
+            line-height: 1.8;
+        }
+        .legend code {
+            background: #0f3460;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Consolas', monospace;
+        }
+        .enum-list {
+            font-size: 10px;
+            color: #888;
+            line-height: 1.6;
+        }
+        .status {
+            background: #0f3460;
+            padding: 8px 20px;
+            font-size: 12px;
+            color: #888;
+            display: flex;
+            justify-content: space-between;
+        }
+        .status .valid {
+            color: #4ade80;
+        }
+        .status .errors {
+            color: #ef4444;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Compact Event Editor v2</h1>
+        <span class="info">&lt;domain&gt; [resource] &lt;action&gt; &lt;subject&gt; [modifier target] [--args]</span>
+    </header>
+    <div class="toolbar">
+        <button onclick="validateAll()">Validate</button>
+        <button onclick="parseAll()">Parse to JSON</button>
+        <div class="separator"></div>
+        <button onclick="loadExample('basic')">Basic</button>
+        <button onclick="loadExample('scene')">Scene</button>
+        <button onclick="loadExample('mcp')">MCP</button>
+        <button onclick="loadExample('agent')">Agent</button>
+        <div class="separator"></div>
+        <button onclick="clearEditor()">Clear</button>
+        <span class="hint"><kbd>Ctrl</kbd>+<kbd>Space</kbd> for autocomplete</span>
+    </div>
+    <div class="container">
+        <div class="editor-panel">
+            <div class="context-help">
+                <div class="slot-indicator">
+                    <span class="slot domain" data-slot="0">Domain</span>
+                    <span class="slot resource" data-slot="1">Resource</span>
+                    <span class="slot action" data-slot="2">Action</span>
+                    <span class="slot subject" data-slot="3">Subject</span>
+                    <span class="slot modifier" data-slot="4">Modifier</span>
+                    <span class="slot target" data-slot="5">Target</span>
+                    <span class="slot args" data-slot="6">--args</span>
+                </div>
+                <div class="suggestions" id="contextSuggestions">
+                    Type to start or press <strong>Ctrl+Space</strong> for suggestions
+                </div>
+            </div>
+            <textarea id="editor"></textarea>
+            <div class="output-panel">
+                <h3>
+                    <span>Parsed Events</span>
+                    <span class="count" id="eventCount">0 events</span>
+                </h3>
+                <div class="output-content" id="outputContent"></div>
+            </div>
+        </div>
+        <div class="sidebar">
+            <h2>Grammar Schema</h2>
+
+            <div class="schema-section">
+                <code>&lt;domain&gt; [resource] &lt;action&gt; &lt;subject&gt; [modifier target] [--key=value]</code>
+                <div class="note">Press Ctrl+Space anytime for suggestions</div>
+            </div>
+
+            <h3>Domains</h3>
+            <div class="enum-list">
+                scene, cluster, component, mcp, agent, project, asset, plugin, system
+            </div>
+
+            <h3>Resources</h3>
+            <div class="enum-list">
+                node, server, tool, task, selection, folder, file, setting, session
+            </div>
+
+            <h3>Actions</h3>
+            <div class="enum-list">
+                create, update, delete, start, stop, enable, disable, move, rename, select, connect, disconnect, invoke, complete, fail, cancel, progress, health, error, register, init, open, save, close
+            </div>
+
+            <h3>Modifiers</h3>
+            <div class="enum-list">
+                to, from, in, with, by, for, on, at
+            </div>
+
+            <h3>Keyboard Shortcuts</h3>
+            <div class="legend" style="font-size: 10px;">
+                <code>Ctrl+Space</code> Autocomplete<br>
+                <code>Tab</code> Accept suggestion<br>
+                <code>Esc</code> Close suggestions
+            </div>
+        </div>
+    </div>
+    <div class="status">
+        <span id="cursorPos">Line 1, Col 1</span>
+        <span id="validationStatus">Ready</span>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/lint/lint.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/selection/active-line.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.js"></script>
+    <script>
+        // Schema definitions with descriptions
+        const SCHEMA = {
+            domains: [
+                { text: 'scene', desc: 'Scene management events' },
+                { text: 'cluster', desc: 'Node hierarchy events' },
+                { text: 'component', desc: 'Component lifecycle events' },
+                { text: 'mcp', desc: 'MCP server/tool events' },
+                { text: 'agent', desc: 'AI agent events' },
+                { text: 'project', desc: 'Project file events' },
+                { text: 'asset', desc: 'Asset loading events' },
+                { text: 'plugin', desc: 'Plugin system events' },
+                { text: 'system', desc: 'System-level events' }
+            ],
+            resources: [
+                { text: 'node', desc: 'Scene graph node' },
+                { text: 'server', desc: 'MCP server instance' },
+                { text: 'tool', desc: 'MCP tool' },
+                { text: 'task', desc: 'Agent task' },
+                { text: 'selection', desc: 'Node selection set' },
+                { text: 'folder', desc: 'Folder in hierarchy' },
+                { text: 'file', desc: 'File resource' },
+                { text: 'setting', desc: 'Configuration setting' },
+                { text: 'session', desc: 'User session' }
+            ],
+            actions: [
+                { text: 'create', desc: 'Create new entity' },
+                { text: 'update', desc: 'Update existing entity' },
+                { text: 'delete', desc: 'Delete entity' },
+                { text: 'start', desc: 'Start process/service' },
+                { text: 'stop', desc: 'Stop process/service' },
+                { text: 'enable', desc: 'Enable entity' },
+                { text: 'disable', desc: 'Disable entity' },
+                { text: 'move', desc: 'Move to new location' },
+                { text: 'rename', desc: 'Rename entity' },
+                { text: 'select', desc: 'Select entity' },
+                { text: 'connect', desc: 'Establish connection' },
+                { text: 'disconnect', desc: 'Close connection' },
+                { text: 'reconnect', desc: 'Re-establish connection' },
+                { text: 'invoke', desc: 'Invoke tool/action' },
+                { text: 'complete', desc: 'Mark as completed' },
+                { text: 'fail', desc: 'Mark as failed' },
+                { text: 'cancel', desc: 'Cancel operation' },
+                { text: 'progress', desc: 'Report progress' },
+                { text: 'health', desc: 'Health check' },
+                { text: 'error', desc: 'Report error' },
+                { text: 'register', desc: 'Register entity' },
+                { text: 'unregister', desc: 'Unregister entity' },
+                { text: 'init', desc: 'Initialize' },
+                { text: 'open', desc: 'Open file/resource' },
+                { text: 'save', desc: 'Save changes' },
+                { text: 'close', desc: 'Close file/resource' }
+            ],
+            modifiers: [
+                { text: 'to', desc: 'Target destination' },
+                { text: 'from', desc: 'Source origin' },
+                { text: 'in', desc: 'Container context' },
+                { text: 'with', desc: 'Accompanying element' },
+                { text: 'by', desc: 'Actor/agent' },
+                { text: 'for', desc: 'Purpose/beneficiary' },
+                { text: 'on', desc: 'Surface/trigger' },
+                { text: 'at', desc: 'Location/time' }
+            ],
+            commonArgs: [
+                { text: '--name=', desc: 'Display name' },
+                { text: '--type=', desc: 'Entity type' },
+                { text: '--state=', desc: 'Current state' },
+                { text: '--priority=', desc: 'Priority level' },
+                { text: '--transport=', desc: 'Transport type (stdio, sse)' },
+                { text: '--version=', desc: 'Version string' },
+                { text: '--duration=', desc: 'Duration in ms' },
+                { text: '--error=', desc: 'Error code/message' },
+                { text: '--progress=', desc: 'Progress percentage' },
+                { text: '--msg=', desc: 'Status message' }
+            ]
+        };
+
+        const DOMAIN_MAP = { scene: 1, cluster: 2, component: 3, mcp: 4, agent: 5, project: 6, asset: 7, plugin: 8, system: 9 };
+        const RESOURCE_MAP = { node: 1, server: 2, tool: 3, task: 4, selection: 5, folder: 6, file: 7, setting: 8, session: 9 };
+        const ACTION_MAP = { create: 1, update: 2, delete: 3, start: 4, stop: 5, enable: 6, disable: 7, move: 8, rename: 9, select: 10, connect: 11, disconnect: 12, reconnect: 13, invoke: 14, complete: 15, fail: 16, cancel: 17, progress: 18, health: 19, error: 20, register: 21, unregister: 22, init: 23, open: 24, save: 25, close: 26 };
+        const MODIFIER_MAP = { to: 1, from: 2, in: 3, with: 4, by: 5, for: 6, on: 7, at: 8 };
+
+        // Determine current slot position based on tokens
+        function getCurrentSlot(line, cursorCh) {
+            const beforeCursor = line.substring(0, cursorCh);
+            const tokens = beforeCursor.trim().split(/\s+/).filter(t => t && !t.startsWith('--'));
+
+            if (beforeCursor.includes('--')) return 6; // args slot
+
+            const domainNames = SCHEMA.domains.map(d => d.text);
+            const resourceNames = SCHEMA.resources.map(r => r.text);
+            const actionNames = SCHEMA.actions.map(a => a.text);
+            const modifierNames = SCHEMA.modifiers.map(m => m.text);
+
+            if (tokens.length === 0) return 0; // domain
+
+            const firstToken = tokens[0].toLowerCase();
+            if (!domainNames.includes(firstToken)) return 0; // still typing domain
+
+            if (tokens.length === 1) {
+                // After domain, could be resource or action
+                return 1; // resource (or action)
+            }
+
+            const secondToken = tokens[1].toLowerCase();
+            const hasResource = resourceNames.includes(secondToken);
+
+            if (hasResource) {
+                if (tokens.length === 2) return 2; // action
+                if (tokens.length === 3) return 3; // subject
+                if (tokens.length === 4) return 4; // modifier
+                if (tokens.length === 5) return 5; // target
+            } else {
+                // No resource
+                if (tokens.length === 2) {
+                    if (actionNames.includes(secondToken)) return 3; // subject
+                    return 2; // still typing action
+                }
+                if (tokens.length === 3) return 4; // modifier
+                if (tokens.length === 4) return 5; // target
+            }
+
+            return 6; // args or beyond
+        }
+
+        // Get suggestions based on current slot and input
+        function getSuggestions(slot, prefix) {
+            prefix = prefix.toLowerCase();
+            let items = [];
+            let type = '';
+
+            switch (slot) {
+                case 0:
+                    items = SCHEMA.domains;
+                    type = 'domain';
+                    break;
+                case 1:
+                    // Could be resource or action
+                    items = [...SCHEMA.resources, ...SCHEMA.actions];
+                    type = 'resource/action';
+                    break;
+                case 2:
+                    items = SCHEMA.actions;
+                    type = 'action';
+                    break;
+                case 4:
+                    items = SCHEMA.modifiers;
+                    type = 'modifier';
+                    break;
+                case 6:
+                    items = SCHEMA.commonArgs;
+                    type = 'arg';
+                    break;
+                default:
+                    return [];
+            }
+
+            return items
+                .filter(item => item.text.toLowerCase().startsWith(prefix))
+                .map(item => ({
+                    ...item,
+                    type: SCHEMA.resources.includes(item) ? 'resource' :
+                          SCHEMA.actions.includes(item) ? 'action' : type
+                }));
+        }
+
+        // Update context help display
+        function updateContextHelp(slot, suggestions) {
+            // Highlight active slot
+            document.querySelectorAll('.slot').forEach((el, i) => {
+                el.classList.toggle('active', i === slot);
+            });
+
+            // Update suggestions text
+            const suggestionsEl = document.getElementById('contextSuggestions');
+            if (suggestions.length > 0) {
+                const matches = suggestions.slice(0, 5).map(s => `<strong>${s.text}</strong>`).join(', ');
+                const more = suggestions.length > 5 ? ` +${suggestions.length - 5} more` : '';
+                suggestionsEl.innerHTML = `Suggestions: ${matches}${more}`;
+            } else {
+                const slotNames = ['domain', 'resource/action', 'action', 'subject ID', 'modifier', 'target ID', 'arguments'];
+                suggestionsEl.innerHTML = `Enter ${slotNames[slot] || 'value'}...`;
+            }
+        }
+
+        // Custom hint function for autocomplete
+        function synthHint(cm) {
+            const cursor = cm.getCursor();
+            const line = cm.getLine(cursor.line);
+
+            // Skip comments
+            if (line.trim().startsWith('#')) return null;
+
+            // Find current word
+            let start = cursor.ch;
+            let end = cursor.ch;
+            while (start > 0 && /[\w-]/.test(line.charAt(start - 1))) start--;
+            while (end < line.length && /[\w-]/.test(line.charAt(end))) end++;
+
+            const prefix = line.substring(start, cursor.ch);
+            const slot = getCurrentSlot(line, cursor.ch);
+            const suggestions = getSuggestions(slot, prefix);
+
+            if (suggestions.length === 0) return null;
+
+            return {
+                list: suggestions.map(s => ({
+                    text: s.text,
+                    displayText: s.text,
+                    className: `hint-item hint-${s.type}`,
+                    render: function(element, self, data) {
+                        const typeClass = SCHEMA.resources.some(r => r.text === s.text) ? 'resource' :
+                                         SCHEMA.actions.some(a => a.text === s.text) ? 'action' :
+                                         SCHEMA.domains.some(d => d.text === s.text) ? 'domain' :
+                                         SCHEMA.modifiers.some(m => m.text === s.text) ? 'modifier' : 'arg';
+                        element.innerHTML = `
+                            <span class="hint-keyword">${s.text}</span>
+                            <span class="hint-type ${typeClass}">${typeClass}</span>
+                            <span class="hint-desc">${s.desc}</span>
+                        `;
+                    }
+                })),
+                from: CodeMirror.Pos(cursor.line, start),
+                to: CodeMirror.Pos(cursor.line, end)
+            };
+        }
+
+        // Parse a single line into a CompactEvent
+        function parseLine(line, lineNum) {
+            const trimmed = line.trim();
+            if (!trimmed || trimmed.startsWith('#')) {
+                return { type: 'skip', line: lineNum };
+            }
+
+            const result = {
+                type: 'event',
+                line: lineNum,
+                raw: trimmed,
+                errors: [],
+                event: null
+            };
+
+            const tokens = [];
+            const args = {};
+            let current = '';
+            let inQuote = false;
+            let quoteChar = '';
+
+            for (let i = 0; i < trimmed.length; i++) {
+                const char = trimmed[i];
+                if ((char === '"' || char === "'") && !inQuote) {
+                    inQuote = true;
+                    quoteChar = char;
+                } else if (char === quoteChar && inQuote) {
+                    inQuote = false;
+                    quoteChar = '';
+                } else if (char === ' ' && !inQuote) {
+                    if (current) {
+                        tokens.push(current);
+                        current = '';
+                    }
+                } else {
+                    current += char;
+                }
+            }
+            if (current) tokens.push(current);
+
+            const positional = [];
+            tokens.forEach(token => {
+                if (token.startsWith('--')) {
+                    const match = token.match(/^--([^=]+)=(.*)$/);
+                    if (match) {
+                        args[match[1]] = match[2].replace(/^["']|["']$/g, '');
+                    } else {
+                        result.errors.push(`Invalid argument: ${token}`);
+                    }
+                } else {
+                    positional.push(token.toLowerCase());
+                }
+            });
+
+            if (positional.length < 3) {
+                result.errors.push('Minimum: <domain> <action> <subject>');
+                return result;
+            }
+
+            let idx = 0;
+            const event = {
+                domain: 0,
+                resource: 0,
+                action: 0,
+                subject_id: '',
+                modifier: 0,
+                modifier_target: '',
+                args: args,
+                timestamp: Date.now()
+            };
+
+            const domainNames = SCHEMA.domains.map(d => d.text);
+            const resourceNames = SCHEMA.resources.map(r => r.text);
+            const actionNames = SCHEMA.actions.map(a => a.text);
+            const modifierNames = SCHEMA.modifiers.map(m => m.text);
+
+            // Domain
+            const domainToken = positional[idx++];
+            if (!domainNames.includes(domainToken)) {
+                result.errors.push(`Invalid domain: "${domainToken}"`);
+            } else {
+                event.domain = DOMAIN_MAP[domainToken];
+            }
+
+            // Resource (optional)
+            const nextToken = positional[idx];
+            if (resourceNames.includes(nextToken)) {
+                event.resource = RESOURCE_MAP[nextToken];
+                idx++;
+            }
+
+            // Action
+            if (idx >= positional.length) {
+                result.errors.push('Missing action');
+                return result;
+            }
+            const actionToken = positional[idx++];
+            if (!actionNames.includes(actionToken)) {
+                result.errors.push(`Invalid action: "${actionToken}"`);
+            } else {
+                event.action = ACTION_MAP[actionToken];
+            }
+
+            // Subject
+            if (idx >= positional.length) {
+                result.errors.push('Missing subject');
+                return result;
+            }
+            const subjectIdx = tokens.findIndex(t => !t.startsWith('--') && t.toLowerCase() === positional[idx]);
+            event.subject_id = tokens[subjectIdx] || positional[idx];
+            idx++;
+
+            // Modifier + Target (optional)
+            if (idx < positional.length) {
+                const modToken = positional[idx];
+                if (modifierNames.includes(modToken)) {
+                    event.modifier = MODIFIER_MAP[modToken];
+                    idx++;
+                    if (idx < positional.length) {
+                        const targetIdx = tokens.findIndex(t => !t.startsWith('--') && t.toLowerCase() === positional[idx]);
+                        event.modifier_target = tokens[targetIdx] || positional[idx];
+                        idx++;
+                    } else {
+                        result.errors.push(`Modifier "${modToken}" needs target`);
+                    }
+                } else {
+                    result.errors.push(`Invalid modifier: "${modToken}"`);
+                }
+            }
+
+            result.event = event;
+            return result;
+        }
+
+        // Custom CodeMirror mode
+        CodeMirror.defineMode('synth-compact', function() {
+            const domainRegex = new RegExp('^(' + SCHEMA.domains.map(d => d.text).join('|') + ')\\b', 'i');
+            const resourceRegex = new RegExp('^(' + SCHEMA.resources.map(r => r.text).join('|') + ')\\b', 'i');
+            const actionRegex = new RegExp('^(' + SCHEMA.actions.map(a => a.text).join('|') + ')\\b', 'i');
+            const modifierRegex = new RegExp('^(' + SCHEMA.modifiers.map(m => m.text).join('|') + ')\\b', 'i');
+
+            return {
+                token: function(stream, state) {
+                    if (stream.match(/^#.*/)) return 'synth-comment';
+                    if (stream.match(/^--[a-zA-Z_][a-zA-Z0-9_]*=/)) return 'synth-arg-key';
+                    if (stream.match(/^"[^"]*"/)) return 'synth-arg-value';
+                    if (stream.match(/^'[^']*'/)) return 'synth-arg-value';
+                    if (stream.match(domainRegex)) return 'synth-domain';
+                    if (stream.match(resourceRegex)) return 'synth-resource';
+                    if (stream.match(actionRegex)) return 'synth-action';
+                    if (stream.match(modifierRegex)) return 'synth-modifier';
+                    if (stream.match(/^[a-zA-Z_][a-zA-Z0-9_-]*/)) return 'synth-subject';
+                    if (stream.match(/^[^\s]+/)) return 'synth-arg-value';
+                    stream.next();
+                    return null;
+                }
+            };
+        });
+
+        // Linter
+        function synthLinter(text) {
+            const lines = text.split('\n');
+            const errors = [];
+            lines.forEach((line, i) => {
+                const result = parseLine(line, i);
+                if (result.type === 'event' && result.errors.length > 0) {
+                    result.errors.forEach(err => {
+                        errors.push({
+                            from: CodeMirror.Pos(i, 0),
+                            to: CodeMirror.Pos(i, line.length),
+                            message: err,
+                            severity: 'error'
+                        });
+                    });
+                }
+            });
+            return errors;
+        }
+
+        // Initialize editor
+        const editor = CodeMirror.fromTextArea(document.getElementById('editor'), {
+            mode: 'synth-compact',
+            theme: 'default',
+            lineNumbers: true,
+            lineWrapping: false,
+            styleActiveLine: true,
+            lint: { getAnnotations: synthLinter, async: false },
+            gutters: ['CodeMirror-lint-markers', 'CodeMirror-linenumbers'],
+            extraKeys: {
+                'Ctrl-Space': function(cm) {
+                    cm.showHint({ hint: synthHint, completeSingle: false });
+                },
+                'Tab': function(cm) {
+                    if (cm.state.completionActive) {
+                        cm.state.completionActive.pick();
+                    } else {
+                        cm.execCommand('defaultTab');
+                    }
+                }
+            }
+        });
+
+        // Update context on cursor/input change
+        editor.on('cursorActivity', function() {
+            const pos = editor.getCursor();
+            const line = editor.getLine(pos.line);
+            document.getElementById('cursorPos').textContent = `Line ${pos.line + 1}, Col ${pos.ch + 1}`;
+
+            // Update context help
+            const slot = getCurrentSlot(line, pos.ch);
+
+            // Find current word prefix
+            let start = pos.ch;
+            while (start > 0 && /[\w-]/.test(line.charAt(start - 1))) start--;
+            const prefix = line.substring(start, pos.ch);
+
+            const suggestions = getSuggestions(slot, prefix);
+            updateContextHelp(slot, suggestions);
+        });
+
+        // Auto-show hints on input
+        editor.on('inputRead', function(cm, change) {
+            if (change.text[0] && /[a-zA-Z-]/.test(change.text[0])) {
+                const cursor = cm.getCursor();
+                const line = cm.getLine(cursor.line);
+                if (!line.trim().startsWith('#')) {
+                    cm.showHint({ hint: synthHint, completeSingle: false });
+                }
+            }
+        });
+
+        // Validate on change
+        let validateTimeout;
+        editor.on('change', function() {
+            clearTimeout(validateTimeout);
+            validateTimeout = setTimeout(validateAll, 500);
+        });
+
+        function validateAll() {
+            const text = editor.getValue();
+            const lines = text.split('\n');
+            let errorCount = 0;
+            let validCount = 0;
+
+            lines.forEach((line, i) => {
+                const result = parseLine(line, i);
+                if (result.type === 'event') {
+                    if (result.errors.length > 0) errorCount++;
+                    else validCount++;
+                }
+            });
+
+            const statusEl = document.getElementById('validationStatus');
+            if (errorCount === 0) {
+                statusEl.className = 'valid';
+                statusEl.textContent = `✓ ${validCount} valid event(s)`;
+            } else {
+                statusEl.className = 'errors';
+                statusEl.textContent = `✗ ${errorCount} error(s), ${validCount} valid`;
+            }
+        }
+
+        function parseAll() {
+            const text = editor.getValue();
+            const lines = text.split('\n');
+            const outputEl = document.getElementById('outputContent');
+            outputEl.innerHTML = '';
+            let eventCount = 0;
+
+            lines.forEach((line, i) => {
+                const result = parseLine(line, i);
+                if (result.type === 'skip') return;
+
+                eventCount++;
+                const item = document.createElement('div');
+                item.className = result.errors.length > 0 ? 'output-item error' : 'output-item';
+
+                if (result.errors.length > 0) {
+                    item.innerHTML = `
+                        <div class="line-num">Line ${i + 1}</div>
+                        <div style="color: #ef4444;">${result.errors.join('; ')}</div>
+                        <div class="json">${result.raw}</div>
+                    `;
+                } else {
+                    const e = result.event;
+                    const domainName = Object.keys(DOMAIN_MAP).find(k => DOMAIN_MAP[k] === e.domain) || '';
+                    const resourceName = Object.keys(RESOURCE_MAP).find(k => RESOURCE_MAP[k] === e.resource) || '';
+                    const actionName = Object.keys(ACTION_MAP).find(k => ACTION_MAP[k] === e.action) || '';
+                    const modifierName = Object.keys(MODIFIER_MAP).find(k => MODIFIER_MAP[k] === e.modifier) || '';
+
+                    let humanHtml = `<span class="domain">${domainName}</span>`;
+                    if (resourceName) humanHtml += ` <span class="resource">${resourceName}</span>`;
+                    humanHtml += ` <span class="action">${actionName}</span>`;
+                    humanHtml += ` <span class="subject">${e.subject_id}</span>`;
+                    if (modifierName) humanHtml += ` <span class="modifier">${modifierName}</span> <span class="target">${e.modifier_target}</span>`;
+
+                    const binaryHtml = `<span>0x${e.domain.toString(16)}</span><span>0x${e.resource.toString(16)}</span><span>0x${e.action.toString(16).padStart(2,'0')}</span><span>0x${e.modifier.toString(16)}</span>`;
+
+                    item.innerHTML = `
+                        <div class="line-num">Line ${i + 1}</div>
+                        <div class="human">${humanHtml}</div>
+                        <div class="binary">${binaryHtml} "${e.subject_id}" ${e.modifier_target ? `"${e.modifier_target}"` : ''}</div>
+                        <div class="json">${JSON.stringify(e)}</div>
+                    `;
+                }
+
+                outputEl.appendChild(item);
+            });
+
+            document.getElementById('eventCount').textContent = `${eventCount} event(s)`;
+        }
+
+        function loadExample(type) {
+            const examples = {
+                basic: `# Basic Examples - Type or press Ctrl+Space for suggestions
+# Format: <domain> [resource] <action> <subject> [modifier target] [--args]
+
+# Try typing "p" to see domain suggestions (project, plugin)
+project init demo_project --path=/projects/demo.synth
+project open my_project
+project save my_project
+
+# Try typing "c" to see suggestions (cluster, component, create, connect...)
+cluster node create node_tree_01 in scene_outdoor --name="Oak Tree"
+cluster node move node_tree_01 to folder_vegetation
+
+# Try typing "m" for mcp or modifier suggestions
+mcp server start mcp_vision --transport=stdio --version=1.0.0
+
+# Full example with all slots
+agent task complete task_001 by agent_vision_01 --duration=2000`,
+
+                scene: `# Scene Workflow
+scene create scene_outdoor --name="Outdoor Scene" --state=active
+
+cluster node create node_tree_01 in scene_outdoor --name="Oak Tree"
+cluster node create node_tree_02 in scene_outdoor --name="Pine Tree"
+cluster node create node_rock_01 in scene_outdoor --name="Boulder"
+
+component node create comp_transform on node_tree_01 --type=transform
+component node create comp_material on node_tree_01 --type=material
+
+cluster folder create folder_vegetation in scene_outdoor
+cluster node move node_tree_01 to folder_vegetation
+cluster node move node_tree_02 to folder_vegetation
+
+component node update comp_transform on node_tree_01 --field=position
+cluster selection create sel_trees in scene_outdoor --nodes=node_tree_01,node_tree_02`,
+
+                mcp: `# MCP Server Workflow
+mcp server start mcp_vision --transport=stdio --version=1.0.0
+mcp server start mcp_audio --transport=stdio --version=1.0.0
+
+mcp server health mcp_vision --healthy=true --latency=45
+
+mcp tool register vision_analyze on mcp_vision --version=1.0.0
+mcp tool register vision_segment on mcp_vision --version=1.0.0
+
+mcp tool invoke vision_analyze on mcp_vision --invocation=inv_001
+mcp tool progress vision_analyze by mcp_vision --percent=50
+mcp tool complete vision_analyze by mcp_vision --duration=1234
+
+mcp tool fail vision_segment by mcp_vision --error=timeout
+mcp server disconnect mcp_vision --reason=crash
+mcp server reconnect mcp_vision --attempt=1`,
+
+                agent: `# Agent Task Workflow
+agent create agent_vision_01 --type=reactive --name="Vision Analyzer"
+agent create agent_planner_01 --type=deliberative --name="Task Planner"
+
+agent start agent_vision_01
+agent start agent_planner_01
+
+agent task create task_analyze for agent_vision_01 --type=analyze --priority=high
+agent task start task_analyze by agent_vision_01
+agent task progress task_analyze by agent_vision_01 --percent=50 --msg="Processing"
+agent task complete task_analyze by agent_vision_01 --duration=2500
+
+agent task create task_segment for agent_vision_01 --type=segment
+agent task fail task_segment by agent_vision_01 --error=out_of_memory
+
+agent error agent_vision_01 --error=gpu_failure --recoverable=true
+agent stop agent_vision_01`
+            };
+
+            editor.setValue(examples[type] || '');
+            parseAll();
+        }
+
+        function clearEditor() {
+            editor.setValue('');
+            document.getElementById('outputContent').innerHTML = '';
+            document.getElementById('eventCount').textContent = '0 events';
+            document.getElementById('validationStatus').textContent = 'Ready';
+        }
+
+        // Load basic example
+        loadExample('basic');
+    </script>
+</body>
+</html>

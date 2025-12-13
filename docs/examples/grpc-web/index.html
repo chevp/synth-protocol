@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>gRPC-Web Example - Synth Protocol</title>
+    <style>
+        :root {
+            --bg-primary: #1a1a2e;
+            --bg-secondary: #16213e;
+            --bg-card: #0f3460;
+            --text-primary: #eaeaea;
+            --text-secondary: #a0a0a0;
+            --accent: #e94560;
+            --success: #4ade80;
+            --border: #333;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        h1 {
+            color: var(--accent);
+            margin-bottom: 0.5rem;
+        }
+
+        h2 {
+            color: var(--text-primary);
+            font-size: 1.2rem;
+            margin: 1.5rem 0 0.75rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.5rem;
+        }
+
+        .card h3 {
+            color: var(--accent);
+            margin-bottom: 1rem;
+            font-size: 1rem;
+        }
+
+        label {
+            display: block;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin-bottom: 0.25rem;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 0.5rem;
+            margin-bottom: 0.75rem;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            color: var(--text-primary);
+            font-family: inherit;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        button {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 0.6rem 1.2rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: opacity 0.2s;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+        }
+
+        .output {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 1rem;
+            margin-top: 1rem;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.85rem;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .output.empty {
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        .status {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            margin-bottom: 1rem;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .status.connected {
+            background: rgba(74, 222, 128, 0.1);
+            color: var(--success);
+        }
+
+        .status.connected .status-dot {
+            background: var(--success);
+        }
+
+        .status.disconnected {
+            background: rgba(233, 69, 96, 0.1);
+            color: var(--accent);
+        }
+
+        .status.disconnected .status-dot {
+            background: var(--accent);
+        }
+
+        .info-box {
+            background: var(--bg-card);
+            border-left: 3px solid var(--accent);
+            padding: 1rem;
+            margin: 1rem 0;
+            font-size: 0.9rem;
+        }
+
+        .info-box code {
+            background: var(--bg-primary);
+            padding: 0.1rem 0.3rem;
+            border-radius: 3px;
+            font-size: 0.85rem;
+        }
+
+        .stream-item {
+            padding: 0.5rem;
+            margin: 0.25rem 0;
+            background: var(--bg-card);
+            border-radius: 4px;
+            border-left: 2px solid var(--accent);
+        }
+
+        pre {
+            background: var(--bg-primary);
+            padding: 1rem;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 0.85rem;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .tab {
+            padding: 0.5rem 1rem;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            cursor: pointer;
+            color: var(--text-secondary);
+        }
+
+        .tab.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>gRPC-Web Browser Client</h1>
+        <p class="subtitle">Protobuf-basierte API-Aufrufe direkt aus dem Browser</p>
+
+        <div class="info-box">
+            <strong>Was ist gRPC-Web?</strong><br>
+            gRPC-Web ermöglicht es, gRPC-Services direkt aus dem Browser aufzurufen.
+            Die Protobuf-Definitionen werden zu JavaScript/TypeScript kompiliert,
+            wodurch typsichere API-Aufrufe möglich sind.
+            <br><br>
+            <strong>Architektur:</strong> Browser → gRPC-Web Proxy (Envoy) → gRPC Server
+        </div>
+
+        <!-- Connection Status -->
+        <div class="card">
+            <h3>Verbindung</h3>
+            <div id="connectionStatus" class="status disconnected">
+                <span class="status-dot"></span>
+                <span>Nicht verbunden</span>
+            </div>
+
+            <label for="serverUrl">gRPC-Web Endpunkt:</label>
+            <input type="text" id="serverUrl" value="http://localhost:8080" placeholder="http://localhost:8080">
+
+            <button onclick="testConnection()">Verbindung testen</button>
+        </div>
+
+        <div class="grid">
+            <!-- GetUser Example -->
+            <div class="card">
+                <h3>GetUser (Unary RPC)</h3>
+                <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1rem;">
+                    Einfacher Request/Response-Aufruf
+                </p>
+
+                <label for="userId">User ID:</label>
+                <input type="text" id="userId" value="user_123" placeholder="user_123">
+
+                <button onclick="getUser()">User abrufen</button>
+
+                <div id="getUserOutput" class="output empty">Noch keine Daten</div>
+            </div>
+
+            <!-- ListProjects Example -->
+            <div class="card">
+                <h3>ListProjects (Paginated)</h3>
+                <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1rem;">
+                    Liste mit Paginierung
+                </p>
+
+                <label for="ownerId">Owner ID:</label>
+                <input type="text" id="ownerId" value="user_123" placeholder="user_123">
+
+                <label for="pageSize">Page Size:</label>
+                <input type="number" id="pageSize" value="10" min="1" max="100">
+
+                <button onclick="listProjects()">Projekte laden</button>
+
+                <div id="listProjectsOutput" class="output empty">Noch keine Daten</div>
+            </div>
+
+            <!-- CreateProject Example -->
+            <div class="card">
+                <h3>CreateProject (Mutation)</h3>
+                <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1rem;">
+                    Neues Projekt erstellen
+                </p>
+
+                <label for="projectName">Projekt Name:</label>
+                <input type="text" id="projectName" placeholder="Mein Projekt">
+
+                <label for="projectDesc">Beschreibung:</label>
+                <textarea id="projectDesc" rows="2" placeholder="Beschreibung..."></textarea>
+
+                <button onclick="createProject()">Projekt erstellen</button>
+
+                <div id="createProjectOutput" class="output empty">Noch keine Daten</div>
+            </div>
+
+            <!-- Server Streaming Example -->
+            <div class="card">
+                <h3>WatchProjects (Server Streaming)</h3>
+                <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1rem;">
+                    Echtzeit-Updates via Stream
+                </p>
+
+                <label for="watchProjectIds">Project IDs (kommagetrennt):</label>
+                <input type="text" id="watchProjectIds" value="proj_1,proj_2" placeholder="proj_1,proj_2">
+
+                <div style="display: flex; gap: 0.5rem;">
+                    <button onclick="startWatching()" id="startWatchBtn">Stream starten</button>
+                    <button onclick="stopWatching()" id="stopWatchBtn" class="btn-secondary" disabled>Stoppen</button>
+                </div>
+
+                <div id="watchOutput" class="output empty">Stream nicht aktiv</div>
+            </div>
+        </div>
+
+        <h2>Generierte Proto-Bindings (JavaScript)</h2>
+
+        <div class="tabs">
+            <div class="tab active" onclick="showTab('proto')">Proto Definition</div>
+            <div class="tab" onclick="showTab('client')">Client Code</div>
+            <div class="tab" onclick="showTab('setup')">Setup Anleitung</div>
+        </div>
+
+        <div id="protoTab">
+            <pre><code>// grpc-web-example.proto - Service Definition
+
+service ExampleService {
+    // Unary RPC - simple request/response
+    rpc GetUser(GetUserRequest) returns (GetUserResponse);
+
+    // Unary RPC - list with pagination
+    rpc ListProjects(ListProjectsRequest) returns (ListProjectsResponse);
+
+    // Unary RPC - create operation
+    rpc CreateProject(CreateProjectRequest) returns (CreateProjectResponse);
+
+    // Server streaming RPC (supported by gRPC-Web)
+    rpc WatchProjects(WatchProjectsRequest) returns (stream ProjectUpdate);
+}
+
+message User {
+    string id = 1;
+    string name = 2;
+    string email = 3;
+    int64 created_at = 4;
+}
+
+message Project {
+    string id = 1;
+    string name = 2;
+    string description = 3;
+    string owner_id = 4;
+    repeated string tag_ids = 5;
+    ProjectStatus status = 6;
+}</code></pre>
+        </div>
+
+        <div id="clientTab" style="display: none;">
+            <pre><code>// Generated client usage (TypeScript)
+import { ExampleServiceClient } from './generated/ExampleServiceClientPb';
+import { GetUserRequest, ListProjectsRequest } from './generated/grpc-web-example_pb';
+
+// Client erstellen
+const client = new ExampleServiceClient('http://localhost:8080');
+
+// Unary RPC aufrufen
+async function getUser(userId: string) {
+    const request = new GetUserRequest();
+    request.setUserId(userId);
+
+    return new Promise((resolve, reject) => {
+        client.getUser(request, {}, (err, response) => {
+            if (err) {
+                reject(err);
+                return;
+            }
+            // Response ist typsicher!
+            const user = response.getUser();
+            resolve({
+                id: user.getId(),
+                name: user.getName(),
+                email: user.getEmail(),
+                createdAt: user.getCreatedAt()
+            });
+        });
+    });
+}
+
+// Server Streaming
+function watchProjects(projectIds: string[], onUpdate: (update) => void) {
+    const request = new WatchProjectsRequest();
+    request.setProjectIdsList(projectIds);
+
+    const stream = client.watchProjects(request, {});
+
+    stream.on('data', (response) => {
+        onUpdate({
+            projectId: response.getProjectId(),
+            updateType: response.getUpdateType(),
+            project: response.getProject()?.toObject(),
+            timestamp: response.getTimestamp()
+        });
+    });
+
+    stream.on('error', (err) => console.error('Stream error:', err));
+    stream.on('end', () => console.log('Stream ended'));
+
+    return stream;
+}</code></pre>
+        </div>
+
+        <div id="setupTab" style="display: none;">
+            <pre><code># Setup Anleitung für gRPC-Web
+
+## 1. Protobuf Compiler installieren
+npm install -g grpc-tools grpc_tools_node_protoc_ts
+
+## 2. Proto zu JavaScript kompilieren
+protoc -I=. \
+  --js_out=import_style=commonjs:./generated \
+  --grpc-web_out=import_style=typescript,mode=grpcwebtext:./generated \
+  grpc-web-example.proto
+
+## 3. Envoy Proxy konfigurieren (grpc-web proxy)
+# envoy.yaml - siehe separate Konfigurationsdatei
+
+## 4. Server starten (z.B. Node.js mit @grpc/grpc-js)
+npm install @grpc/grpc-js @grpc/proto-loader
+
+## 5. Im Browser verwenden
+# Die generierten Dateien importieren:
+# - grpc-web-example_pb.js (Message Klassen)
+# - ExampleServiceClientPb.ts (Service Client)
+
+## Alternative: grpcwebproxy (Go-basiert)
+# https://github.com/nicholasjackson/grpc-web
+grpcwebproxy --backend_addr=localhost:9090 \
+             --run_tls_server=false \
+             --allow_all_origins
+
+## Wichtige Hinweise:
+# - gRPC-Web unterstützt KEINE bidirektionalen Streams
+# - Nur Unary und Server Streaming sind möglich
+# - Ein Proxy (Envoy oder grpcwebproxy) ist erforderlich</code></pre>
+        </div>
+
+        <h2>Protobuf Datenextraktion</h2>
+        <div class="card">
+            <p style="margin-bottom: 1rem;">
+                Die Protobuf-Dateien definieren die Datenstrukturen. Nach der Kompilierung
+                stehen diese als typisierte JavaScript-Klassen zur Verfügung:
+            </p>
+
+            <pre><code>// Aus der Response die Daten extrahieren:
+const response = await client.listProjects(request);
+
+// Protobuf → JavaScript Object
+const projects = response.getProjectsList().map(proj => ({
+    id: proj.getId(),
+    name: proj.getName(),
+    description: proj.getDescription(),
+    ownerId: proj.getOwnerId(),
+    tagIds: proj.getTagIdsList(),
+    status: proj.getStatus()  // Enum-Wert
+}));
+
+// Oder direkt als Plain Object:
+const projectsRaw = response.toObject().projectsList;</code></pre>
+        </div>
+    </div>
+
+    <script>
+        // Simulierte gRPC-Web Client Logik
+        // In einer echten Anwendung würden hier die generierten Proto-Bindings verwendet
+
+        let watchStream = null;
+
+        function updateStatus(connected) {
+            const status = document.getElementById('connectionStatus');
+            if (connected) {
+                status.className = 'status connected';
+                status.innerHTML = '<span class="status-dot"></span><span>Verbunden</span>';
+            } else {
+                status.className = 'status disconnected';
+                status.innerHTML = '<span class="status-dot"></span><span>Nicht verbunden</span>';
+            }
+        }
+
+        function formatOutput(data) {
+            return JSON.stringify(data, null, 2);
+        }
+
+        function setOutput(elementId, data, isError = false) {
+            const el = document.getElementById(elementId);
+            el.classList.remove('empty');
+            if (isError) {
+                el.style.color = '#e94560';
+            } else {
+                el.style.color = '#4ade80';
+            }
+            el.textContent = typeof data === 'string' ? data : formatOutput(data);
+        }
+
+        async function testConnection() {
+            const url = document.getElementById('serverUrl').value;
+            setOutput('getUserOutput', `Teste Verbindung zu ${url}...`);
+
+            // Simuliere Verbindungstest
+            // In einer echten App: gRPC health check
+            setTimeout(() => {
+                // Demo: Simuliere erfolgreiche Verbindung
+                updateStatus(true);
+                setOutput('getUserOutput', {
+                    status: 'connected',
+                    endpoint: url,
+                    protocol: 'grpc-web',
+                    timestamp: new Date().toISOString()
+                });
+            }, 500);
+        }
+
+        async function getUser() {
+            const userId = document.getElementById('userId').value;
+
+            // Simulierte gRPC-Web Response
+            // In echter App: const request = new GetUserRequest(); request.setUserId(userId);
+            const mockResponse = {
+                user: {
+                    id: userId,
+                    name: 'Max Mustermann',
+                    email: 'max@example.com',
+                    createdAt: Date.now()
+                }
+            };
+
+            setOutput('getUserOutput', {
+                request: { userId },
+                response: mockResponse,
+                protobufSize: '42 bytes',
+                latency: '23ms'
+            });
+        }
+
+        async function listProjects() {
+            const ownerId = document.getElementById('ownerId').value;
+            const pageSize = parseInt(document.getElementById('pageSize').value);
+
+            // Simulierte Response
+            const mockResponse = {
+                projects: [
+                    { id: 'proj_1', name: 'Synth Core', description: 'Hauptprojekt', ownerId, status: 'ACTIVE', tagIds: ['tag_1'] },
+                    { id: 'proj_2', name: 'Plugin SDK', description: 'SDK Entwicklung', ownerId, status: 'ACTIVE', tagIds: ['tag_2', 'tag_3'] },
+                    { id: 'proj_3', name: 'Documentation', description: 'Docs', ownerId, status: 'ACTIVE', tagIds: [] }
+                ],
+                nextPageToken: 'token_abc123',
+                totalCount: 15
+            };
+
+            setOutput('listProjectsOutput', {
+                request: { ownerId, pageSize, pageToken: '' },
+                response: mockResponse
+            });
+        }
+
+        async function createProject() {
+            const name = document.getElementById('projectName').value;
+            const description = document.getElementById('projectDesc').value;
+
+            if (!name) {
+                setOutput('createProjectOutput', 'Fehler: Name erforderlich', true);
+                return;
+            }
+
+            const mockResponse = {
+                project: {
+                    id: 'proj_' + Math.random().toString(36).substr(2, 9),
+                    name,
+                    description,
+                    ownerId: 'current_user',
+                    status: 'ACTIVE',
+                    tagIds: []
+                }
+            };
+
+            setOutput('createProjectOutput', {
+                request: { name, description, tagIds: [] },
+                response: mockResponse
+            });
+        }
+
+        function startWatching() {
+            const projectIds = document.getElementById('watchProjectIds').value.split(',').map(s => s.trim());
+
+            document.getElementById('startWatchBtn').disabled = true;
+            document.getElementById('stopWatchBtn').disabled = false;
+
+            const output = document.getElementById('watchOutput');
+            output.classList.remove('empty');
+            output.innerHTML = '<div style="color: var(--success)">Stream gestartet...</div>';
+
+            // Simuliere Server-Streaming
+            let count = 0;
+            watchStream = setInterval(() => {
+                count++;
+                const update = {
+                    projectId: projectIds[Math.floor(Math.random() * projectIds.length)],
+                    updateType: ['CREATED', 'UPDATED', 'DELETED'][Math.floor(Math.random() * 3)],
+                    timestamp: Date.now()
+                };
+
+                const item = document.createElement('div');
+                item.className = 'stream-item';
+                item.textContent = `[${count}] ${update.updateType}: ${update.projectId} @ ${new Date(update.timestamp).toLocaleTimeString()}`;
+                output.appendChild(item);
+                output.scrollTop = output.scrollHeight;
+            }, 2000);
+        }
+
+        function stopWatching() {
+            if (watchStream) {
+                clearInterval(watchStream);
+                watchStream = null;
+            }
+
+            document.getElementById('startWatchBtn').disabled = false;
+            document.getElementById('stopWatchBtn').disabled = true;
+
+            const output = document.getElementById('watchOutput');
+            const endMsg = document.createElement('div');
+            endMsg.style.color = 'var(--accent)';
+            endMsg.textContent = '--- Stream beendet ---';
+            output.appendChild(endMsg);
+        }
+
+        function showTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('[id$="Tab"]').forEach(t => t.style.display = 'none');
+
+            event.target.classList.add('active');
+            document.getElementById(tab + 'Tab').style.display = 'block';
+        }
+    </script>
+</body>
+</html>

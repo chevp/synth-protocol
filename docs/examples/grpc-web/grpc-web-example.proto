@@ -1,0 +1,101 @@
+syntax = "proto3";
+
+package synth.example;
+
+option java_package = "io.synth.protocol.example";
+option java_multiple_files = true;
+
+// =============================================================================
+// GRPC-WEB EXAMPLE SERVICE
+// Demonstrates how to define a gRPC service callable from browser via gRPC-Web
+// =============================================================================
+
+// Simple data objects for demonstration
+message User {
+    string id = 1;
+    string name = 2;
+    string email = 3;
+    int64 created_at = 4;
+}
+
+message Project {
+    string id = 1;
+    string name = 2;
+    string description = 3;
+    string owner_id = 4;
+    repeated string tag_ids = 5;
+    ProjectStatus status = 6;
+}
+
+enum ProjectStatus {
+    PROJECT_STATUS_UNSPECIFIED = 0;
+    PROJECT_STATUS_ACTIVE = 1;
+    PROJECT_STATUS_ARCHIVED = 2;
+    PROJECT_STATUS_DELETED = 3;
+}
+
+// Request/Response messages
+message GetUserRequest {
+    string user_id = 1;
+}
+
+message GetUserResponse {
+    User user = 1;
+}
+
+message ListProjectsRequest {
+    string owner_id = 1;
+    int32 page_size = 2;
+    string page_token = 3;
+}
+
+message ListProjectsResponse {
+    repeated Project projects = 1;
+    string next_page_token = 2;
+    int32 total_count = 3;
+}
+
+message CreateProjectRequest {
+    string name = 1;
+    string description = 2;
+    repeated string tag_ids = 3;
+}
+
+message CreateProjectResponse {
+    Project project = 1;
+}
+
+// The gRPC service definition
+// This will be called from the browser via gRPC-Web
+service ExampleService {
+    // Unary RPC - simple request/response
+    rpc GetUser(GetUserRequest) returns (GetUserResponse);
+
+    // Unary RPC - list with pagination
+    rpc ListProjects(ListProjectsRequest) returns (ListProjectsResponse);
+
+    // Unary RPC - create operation
+    rpc CreateProject(CreateProjectRequest) returns (CreateProjectResponse);
+
+    // Server streaming RPC (supported by gRPC-Web)
+    // Client receives a stream of project updates
+    rpc WatchProjects(WatchProjectsRequest) returns (stream ProjectUpdate);
+}
+
+message WatchProjectsRequest {
+    repeated string project_ids = 1;
+}
+
+message ProjectUpdate {
+    string project_id = 1;
+    ProjectUpdateType update_type = 2;
+    Project project = 3;
+    int64 timestamp = 4;
+}
+
+enum ProjectUpdateType {
+    PROJECT_UPDATE_TYPE_UNSPECIFIED = 0;
+    PROJECT_UPDATE_TYPE_CREATED = 1;
+    PROJECT_UPDATE_TYPE_UPDATED = 2;
+    PROJECT_UPDATE_TYPE_DELETED = 3;
+}

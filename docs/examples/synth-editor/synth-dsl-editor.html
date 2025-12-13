@@ -1,0 +1,1408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Synth DSL Editor</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/foldgutter.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #1a1a2e;
+            color: #eee;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        header {
+            background: #0f0f1a;
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            border-bottom: 1px solid #2a2a4a;
+        }
+        header h1 {
+            font-size: 16px;
+            font-weight: 500;
+            color: #e94560;
+        }
+        header .subtitle {
+            font-size: 12px;
+            color: #666;
+        }
+        .toolbar {
+            background: #16213e;
+            padding: 8px 20px;
+            display: flex;
+            gap: 8px;
+            border-bottom: 1px solid #2a2a4a;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .toolbar button {
+            background: #0f3460;
+            border: none;
+            color: #eee;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .toolbar button:hover { background: #e94560; }
+        .toolbar .separator {
+            width: 1px;
+            height: 24px;
+            background: #2a2a4a;
+            margin: 0 8px;
+        }
+        .toolbar .hint {
+            margin-left: auto;
+            font-size: 11px;
+            color: #666;
+        }
+        .toolbar .hint kbd {
+            background: #0f3460;
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+        .main-container {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+        .editor-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .context-bar {
+            background: #0f3460;
+            padding: 6px 15px;
+            font-size: 11px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            border-bottom: 1px solid #2a2a4a;
+        }
+        .context-bar .breadcrumb {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+        .context-bar .breadcrumb span {
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 10px;
+        }
+        .context-bar .breadcrumb .block { background: #e9456030; color: #e94560; }
+        .context-bar .breadcrumb .section { background: #60a5fa30; color: #60a5fa; }
+        .context-bar .breadcrumb .item { background: #34d39930; color: #34d399; }
+        .context-bar .suggestions {
+            flex: 1;
+            color: #888;
+        }
+        .context-bar .suggestions strong { color: #eee; }
+
+        .CodeMirror {
+            flex: 1;
+            height: auto;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 13px;
+            background: #1a1a2e;
+            color: #eee;
+        }
+        .CodeMirror-gutters {
+            background: #16213e;
+            border-right: 1px solid #2a2a4a;
+        }
+        .CodeMirror-linenumber { color: #555; }
+        .CodeMirror-cursor { border-left: 2px solid #e94560; }
+        .CodeMirror-selected { background: #0f3460 !important; }
+        .CodeMirror-activeline-background { background: #16213e; }
+        .CodeMirror-foldmarker {
+            color: #e94560;
+            background: #0f3460;
+            padding: 0 4px;
+            border-radius: 3px;
+        }
+        .CodeMirror-foldgutter { width: 16px; }
+        .CodeMirror-foldgutter-open,
+        .CodeMirror-foldgutter-folded { cursor: pointer; color: #666; }
+        .CodeMirror-foldgutter-open:after { content: "▼"; font-size: 8px; }
+        .CodeMirror-foldgutter-folded:after { content: "▶"; font-size: 8px; }
+
+        /* Syntax highlighting */
+        .cm-synth-comment { color: #5c6370; font-style: italic; }
+        .cm-synth-block { color: #e94560; font-weight: bold; }
+        .cm-synth-section { color: #60a5fa; font-weight: bold; }
+        .cm-synth-keyword { color: #c084fc; }
+        .cm-synth-identifier { color: #fbbf24; }
+        .cm-synth-property { color: #34d399; }
+        .cm-synth-value { color: #fb923c; }
+        .cm-synth-string { color: #98c379; }
+        .cm-synth-number { color: #d19a66; }
+        .cm-synth-operator { color: #56b6c2; }
+        .cm-synth-domain { color: #60a5fa; font-weight: bold; }
+        .cm-synth-resource { color: #c084fc; }
+        .cm-synth-action { color: #34d399; font-weight: bold; }
+        .cm-synth-modifier { color: #f472b6; }
+        .cm-synth-type { color: #e06c75; }
+
+        /* Autocomplete */
+        .CodeMirror-hints {
+            background: #16213e;
+            border: 1px solid #2a2a4a;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            font-family: 'Consolas', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            padding: 4px 0;
+        }
+        .CodeMirror-hint {
+            padding: 6px 12px;
+            color: #eee;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .CodeMirror-hint:hover { background: #0f3460; }
+        .CodeMirror-hint-active { background: #e94560 !important; }
+        .hint-keyword { font-weight: bold; min-width: 100px; }
+        .hint-type {
+            font-size: 9px;
+            padding: 2px 6px;
+            border-radius: 3px;
+            text-transform: uppercase;
+        }
+        .hint-type.block { background: #e9456030; color: #e94560; }
+        .hint-type.section { background: #60a5fa30; color: #60a5fa; }
+        .hint-type.property { background: #34d39930; color: #34d399; }
+        .hint-type.value { background: #fb923c30; color: #fb923c; }
+        .hint-type.event { background: #c084fc30; color: #c084fc; }
+        .hint-desc { color: #888; font-size: 11px; flex: 1; }
+
+        .output-panel {
+            height: 220px;
+            background: #0f0f1a;
+            border-top: 1px solid #2a2a4a;
+            display: flex;
+            flex-direction: column;
+        }
+        .output-tabs {
+            display: flex;
+            background: #16213e;
+            border-bottom: 1px solid #2a2a4a;
+        }
+        .output-tab {
+            padding: 8px 16px;
+            font-size: 11px;
+            color: #888;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+        }
+        .output-tab:hover { color: #eee; }
+        .output-tab.active {
+            color: #e94560;
+            border-bottom-color: #e94560;
+        }
+        .output-content {
+            flex: 1;
+            overflow: auto;
+            padding: 10px 15px;
+            font-family: 'Consolas', monospace;
+            font-size: 12px;
+        }
+        .output-content pre {
+            white-space: pre-wrap;
+            color: #888;
+        }
+        .output-content .error { color: #ef4444; }
+        .output-content .success { color: #34d399; }
+
+        .sidebar {
+            width: 300px;
+            background: #16213e;
+            border-left: 1px solid #2a2a4a;
+            overflow-y: auto;
+            padding: 15px;
+        }
+        .sidebar h2 {
+            font-size: 14px;
+            color: #e94560;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #2a2a4a;
+        }
+        .sidebar h3 {
+            font-size: 11px;
+            color: #888;
+            text-transform: uppercase;
+            margin: 15px 0 8px 0;
+        }
+        .grammar-block {
+            background: #0f3460;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            font-family: 'Consolas', monospace;
+            font-size: 11px;
+        }
+        .grammar-block .title {
+            color: #e94560;
+            font-weight: bold;
+            margin-bottom: 6px;
+        }
+        .grammar-block code {
+            display: block;
+            color: #888;
+            margin: 2px 0;
+        }
+        .grammar-block .keyword { color: #60a5fa; }
+        .grammar-block .optional { color: #666; }
+        .legend {
+            font-size: 11px;
+            line-height: 1.8;
+        }
+        .legend code {
+            background: #0f3460;
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+        .status-bar {
+            background: #0f3460;
+            padding: 4px 16px;
+            font-size: 11px;
+            color: #888;
+            display: flex;
+            gap: 20px;
+        }
+        .status-bar .valid { color: #34d399; }
+        .status-bar .errors { color: #ef4444; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Synth DSL Editor</h1>
+        <span class="subtitle">Semantic Domain-Specific Language for .synth files</span>
+    </header>
+    <div class="toolbar">
+        <button onclick="parseAndValidate()">Validate</button>
+        <button onclick="generateXml()">Generate XML</button>
+        <button onclick="generateJson()">Generate JSON</button>
+        <div class="separator"></div>
+        <button onclick="loadExample('minimal')">Minimal</button>
+        <button onclick="loadExample('full')">Full Project</button>
+        <button onclick="loadExample('game')">Game Scene</button>
+        <button onclick="loadExample('mcp')">MCP Setup</button>
+        <div class="separator"></div>
+        <button onclick="clearEditor()">Clear</button>
+        <span class="hint"><kbd>Ctrl</kbd>+<kbd>Space</kbd> autocomplete</span>
+    </div>
+    <div class="main-container">
+        <div class="editor-container">
+            <div class="context-bar">
+                <div class="breadcrumb" id="breadcrumb">
+                    <span class="block">synth</span>
+                </div>
+                <div class="suggestions" id="contextSuggestions">
+                    Start with <strong>synth</strong> block or type for suggestions
+                </div>
+            </div>
+            <textarea id="editor"></textarea>
+            <div class="output-panel">
+                <div class="output-tabs">
+                    <div class="output-tab active" data-tab="xml" onclick="switchOutput('xml')">XML Output</div>
+                    <div class="output-tab" data-tab="json" onclick="switchOutput('json')">JSON Output</div>
+                    <div class="output-tab" data-tab="errors" onclick="switchOutput('errors')">Errors</div>
+                    <div class="output-tab" data-tab="events" onclick="switchOutput('events')">Extracted Events</div>
+                </div>
+                <div class="output-content" id="outputContent">
+                    <pre id="outputXml"></pre>
+                    <pre id="outputJson" style="display:none;"></pre>
+                    <pre id="outputErrors" style="display:none;"></pre>
+                    <pre id="outputEvents" style="display:none;"></pre>
+                </div>
+            </div>
+        </div>
+        <div class="sidebar">
+            <h2>Synth DSL Grammar</h2>
+
+            <div class="grammar-block">
+                <div class="title">Document Structure</div>
+                <code><span class="keyword">synth</span> "name" <span class="optional">[version]</span> {</code>
+                <code>  <span class="keyword">meta</span> { ... }</code>
+                <code>  <span class="keyword">scene</span> "id" { ... }</code>
+                <code>  <span class="keyword">mcp</span> { ... }</code>
+                <code>  <span class="keyword">agents</span> { ... }</code>
+                <code>  <span class="keyword">events</span> { ... }</code>
+                <code>}</code>
+            </div>
+
+            <h3>Blocks</h3>
+            <div class="legend">
+                <code>synth</code> Root document<br>
+                <code>meta</code> Project metadata<br>
+                <code>scene</code> Scene definition<br>
+                <code>node</code> Scene graph node<br>
+                <code>folder</code> Node container<br>
+                <code>component</code> Node component<br>
+                <code>mcp</code> MCP servers<br>
+                <code>server</code> MCP server<br>
+                <code>agents</code> AI agents<br>
+                <code>agent</code> Agent definition<br>
+                <code>events</code> Event history<br>
+                <code>assets</code> Asset references
+            </div>
+
+            <h3>Components</h3>
+            <div class="legend">
+                <code>transform</code> Position/rotation/scale<br>
+                <code>material</code> Material reference<br>
+                <code>mesh</code> Mesh reference<br>
+                <code>script</code> Script attachment<br>
+                <code>collider</code> Physics collider<br>
+                <code>light</code> Light source
+            </div>
+
+            <h3>Event Syntax (Subset)</h3>
+            <div class="grammar-block">
+                <code><span class="keyword">event</span> domain [resource] action subject [modifier target] [args]</code>
+            </div>
+
+            <h3>Property Types</h3>
+            <div class="legend">
+                <code>"string"</code> Text value<br>
+                <code>123</code> Number<br>
+                <code>true/false</code> Boolean<br>
+                <code>(x, y, z)</code> Vector3<br>
+                <code>@ref</code> Reference
+            </div>
+        </div>
+    </div>
+    <div class="status-bar">
+        <span id="parseStatus">Ready</span>
+        <span id="lineCount">Lines: 0</span>
+        <span id="blockCount">Blocks: 0</span>
+        <span style="margin-left: auto;">Synth DSL v1.0</span>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/foldcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/foldgutter.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/brace-fold.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+    <script>
+        // DSL Schema
+        const SCHEMA = {
+            blocks: {
+                synth: { desc: 'Root document block', children: ['meta', 'scene', 'mcp', 'agents', 'assets', 'events', 'settings'] },
+                meta: { desc: 'Project metadata', props: ['name', 'version', 'author', 'created', 'modified'] },
+                scene: { desc: 'Scene definition', children: ['node', 'folder'], props: ['name', 'state'] },
+                node: { desc: 'Scene graph node', children: ['component', 'transform', 'material', 'mesh', 'script', 'collider', 'light'], props: ['type', 'name', 'visible', 'locked'] },
+                folder: { desc: 'Node container', children: ['node', 'folder'], props: ['name', 'expanded'] },
+                component: { desc: 'Generic component', props: ['type', 'enabled'] },
+                transform: { desc: 'Transform component', props: ['position', 'rotation', 'scale'] },
+                material: { desc: 'Material component', props: ['ref', 'color', 'shader'] },
+                mesh: { desc: 'Mesh component', props: ['ref', 'cast_shadows', 'receive_shadows'] },
+                script: { desc: 'Script component', props: ['ref', 'class', 'enabled'] },
+                collider: { desc: 'Collider component', props: ['type', 'size', 'is_trigger'] },
+                light: { desc: 'Light component', props: ['type', 'color', 'intensity', 'range'] },
+                mcp: { desc: 'MCP configuration', children: ['server'] },
+                server: { desc: 'MCP server', props: ['transport', 'command', 'args', 'auto_start', 'env'] },
+                agents: { desc: 'Agent definitions', children: ['agent'] },
+                agent: { desc: 'AI agent', props: ['type', 'name', 'mcp_server', 'capabilities', 'auto_start'] },
+                assets: { desc: 'Asset references', children: ['asset'] },
+                asset: { desc: 'Asset definition', props: ['type', 'path', 'preload'] },
+                events: { desc: 'Event history/recording', children: ['event'] },
+                settings: { desc: 'Project settings', props: [] }
+            },
+            // Event domain/resource/action for event syntax
+            domains: ['scene', 'cluster', 'component', 'mcp', 'agent', 'project', 'asset', 'plugin', 'system'],
+            resources: ['node', 'server', 'tool', 'task', 'selection', 'folder', 'file', 'setting', 'session'],
+            actions: ['create', 'update', 'delete', 'start', 'stop', 'enable', 'disable', 'move', 'rename', 'select', 'connect', 'disconnect', 'invoke', 'complete', 'fail', 'cancel', 'progress', 'health', 'error', 'register', 'init', 'open', 'save', 'close'],
+            modifiers: ['to', 'from', 'in', 'with', 'by', 'for', 'on', 'at'],
+            types: {
+                node: ['asset', 'empty', 'camera', 'light', 'mesh', 'prefab'],
+                agent: ['reactive', 'deliberative', 'hybrid'],
+                light: ['point', 'directional', 'spot', 'area'],
+                collider: ['box', 'sphere', 'capsule', 'mesh'],
+                transport: ['stdio', 'sse', 'websocket']
+            }
+        };
+
+        // CodeMirror mode
+        CodeMirror.defineMode('synth-dsl', function() {
+            const blockNames = Object.keys(SCHEMA.blocks);
+            const blockRegex = new RegExp('^(' + blockNames.join('|') + ')\\b');
+            const domainRegex = new RegExp('^(' + SCHEMA.domains.join('|') + ')\\b');
+            const resourceRegex = new RegExp('^(' + SCHEMA.resources.join('|') + ')\\b');
+            const actionRegex = new RegExp('^(' + SCHEMA.actions.join('|') + ')\\b');
+            const modifierRegex = new RegExp('^(' + SCHEMA.modifiers.join('|') + ')\\b');
+
+            return {
+                startState: function() {
+                    return { inEvent: false, inBlock: null };
+                },
+                token: function(stream, state) {
+                    // Comments
+                    if (stream.match(/^\/\/.*/)) return 'synth-comment';
+                    if (stream.match(/^#.*/)) return 'synth-comment';
+
+                    // Strings
+                    if (stream.match(/^"[^"]*"/)) return 'synth-string';
+
+                    // Numbers
+                    if (stream.match(/^-?\d+\.?\d*/)) return 'synth-number';
+
+                    // Booleans
+                    if (stream.match(/^(true|false)\b/)) return 'synth-value';
+
+                    // Vector notation
+                    if (stream.match(/^\([\d\s,.-]+\)/)) return 'synth-number';
+
+                    // Reference
+                    if (stream.match(/^@[a-zA-Z_][a-zA-Z0-9_]*/)) return 'synth-identifier';
+
+                    // Event keyword
+                    if (stream.match(/^event\b/)) {
+                        state.inEvent = true;
+                        return 'synth-keyword';
+                    }
+
+                    // Inside event line
+                    if (state.inEvent) {
+                        if (stream.eol()) {
+                            state.inEvent = false;
+                        }
+                        if (stream.match(domainRegex)) return 'synth-domain';
+                        if (stream.match(resourceRegex)) return 'synth-resource';
+                        if (stream.match(actionRegex)) return 'synth-action';
+                        if (stream.match(modifierRegex)) return 'synth-modifier';
+                        if (stream.match(/^--[a-zA-Z_]+=/)) return 'synth-property';
+                    }
+
+                    // Block keywords (synth, scene, node, etc.)
+                    if (stream.match(blockRegex)) return 'synth-block';
+
+                    // Property names before =
+                    if (stream.match(/^[a-zA-Z_][a-zA-Z0-9_]*(?=\s*[=:])/)) return 'synth-property';
+
+                    // Identifiers
+                    if (stream.match(/^[a-zA-Z_][a-zA-Z0-9_-]*/)) return 'synth-identifier';
+
+                    // Operators
+                    if (stream.match(/^[{}=:,]/)) return 'synth-operator';
+
+                    stream.next();
+                    return null;
+                }
+            };
+        });
+
+        // Autocomplete
+        function synthHint(cm) {
+            const cursor = cm.getCursor();
+            const line = cm.getLine(cursor.line);
+            const token = cm.getTokenAt(cursor);
+
+            let start = token.start;
+            let end = cursor.ch;
+            const prefix = token.string.toLowerCase();
+
+            // Determine context
+            const context = getContext(cm, cursor);
+            let suggestions = [];
+
+            if (context.inEvent) {
+                suggestions = getEventSuggestions(line, cursor.ch, prefix);
+            } else if (context.afterEquals) {
+                suggestions = getValueSuggestions(context.property, prefix);
+            } else if (context.inBlock) {
+                suggestions = getBlockChildSuggestions(context.block, prefix);
+            } else {
+                suggestions = getTopLevelSuggestions(prefix);
+            }
+
+            if (suggestions.length === 0) return null;
+
+            return {
+                list: suggestions.map(s => ({
+                    text: s.text,
+                    displayText: s.text,
+                    render: function(el, self, data) {
+                        el.innerHTML = `
+                            <span class="hint-keyword">${s.text}</span>
+                            <span class="hint-type ${s.type}">${s.type}</span>
+                            <span class="hint-desc">${s.desc}</span>
+                        `;
+                    }
+                })),
+                from: CodeMirror.Pos(cursor.line, start),
+                to: CodeMirror.Pos(cursor.line, end)
+            };
+        }
+
+        function getContext(cm, cursor) {
+            const line = cm.getLine(cursor.line);
+            const beforeCursor = line.substring(0, cursor.ch);
+
+            // Check if in event line
+            if (/^\s*event\s/.test(line)) {
+                return { inEvent: true };
+            }
+
+            // Check if after = or :
+            const equalsMatch = beforeCursor.match(/(\w+)\s*[=:]\s*$/);
+            if (equalsMatch) {
+                return { afterEquals: true, property: equalsMatch[1] };
+            }
+
+            // Find current block context by scanning backwards
+            let braceCount = 0;
+            let currentBlock = null;
+            for (let i = cursor.line; i >= 0; i--) {
+                const l = cm.getLine(i);
+                for (let j = l.length - 1; j >= 0; j--) {
+                    if (l[j] === '}') braceCount++;
+                    if (l[j] === '{') {
+                        braceCount--;
+                        if (braceCount < 0) {
+                            const blockMatch = l.match(/(\w+)\s*(".*?")?\s*\{/);
+                            if (blockMatch) {
+                                return { inBlock: true, block: blockMatch[1] };
+                            }
+                        }
+                    }
+                }
+            }
+
+            return { inBlock: false };
+        }
+
+        function getTopLevelSuggestions(prefix) {
+            return Object.entries(SCHEMA.blocks)
+                .filter(([name]) => name.startsWith(prefix))
+                .map(([name, info]) => ({
+                    text: name,
+                    type: 'block',
+                    desc: info.desc
+                }));
+        }
+
+        function getBlockChildSuggestions(blockName, prefix) {
+            const block = SCHEMA.blocks[blockName];
+            if (!block) return getTopLevelSuggestions(prefix);
+
+            const suggestions = [];
+
+            // Child blocks
+            if (block.children) {
+                block.children.filter(c => c.startsWith(prefix)).forEach(c => {
+                    const childBlock = SCHEMA.blocks[c];
+                    suggestions.push({
+                        text: c,
+                        type: 'section',
+                        desc: childBlock ? childBlock.desc : ''
+                    });
+                });
+            }
+
+            // Properties
+            if (block.props) {
+                block.props.filter(p => p.startsWith(prefix)).forEach(p => {
+                    suggestions.push({
+                        text: p,
+                        type: 'property',
+                        desc: `${blockName} property`
+                    });
+                });
+            }
+
+            // Event keyword in events block
+            if (blockName === 'events' && 'event'.startsWith(prefix)) {
+                suggestions.push({
+                    text: 'event',
+                    type: 'event',
+                    desc: 'Compact event definition'
+                });
+            }
+
+            return suggestions;
+        }
+
+        function getValueSuggestions(property, prefix) {
+            // Check if property has known values
+            for (const [typeName, values] of Object.entries(SCHEMA.types)) {
+                if (property === 'type' || property === typeName || property === 'transport') {
+                    return values.filter(v => v.startsWith(prefix)).map(v => ({
+                        text: `"${v}"`,
+                        type: 'value',
+                        desc: `${typeName} type`
+                    }));
+                }
+            }
+
+            // Boolean properties
+            if (['enabled', 'visible', 'locked', 'auto_start', 'preload', 'cast_shadows', 'receive_shadows', 'is_trigger', 'expanded'].includes(property)) {
+                return ['true', 'false'].filter(v => v.startsWith(prefix)).map(v => ({
+                    text: v,
+                    type: 'value',
+                    desc: 'Boolean'
+                }));
+            }
+
+            return [];
+        }
+
+        function getEventSuggestions(line, ch, prefix) {
+            const tokens = line.trim().split(/\s+/);
+            const eventIdx = tokens.indexOf('event');
+            const tokenCount = tokens.length - eventIdx - 1;
+
+            if (tokenCount === 0 || (tokenCount === 1 && !line.endsWith(' '))) {
+                // Domain
+                return SCHEMA.domains.filter(d => d.startsWith(prefix)).map(d => ({
+                    text: d,
+                    type: 'event',
+                    desc: 'Domain'
+                }));
+            } else if (tokenCount === 1 || (tokenCount === 2 && !line.endsWith(' '))) {
+                // Resource or Action
+                return [
+                    ...SCHEMA.resources.filter(r => r.startsWith(prefix)).map(r => ({
+                        text: r,
+                        type: 'event',
+                        desc: 'Resource'
+                    })),
+                    ...SCHEMA.actions.filter(a => a.startsWith(prefix)).map(a => ({
+                        text: a,
+                        type: 'event',
+                        desc: 'Action'
+                    }))
+                ];
+            } else if (tokenCount >= 3) {
+                // Modifier
+                return SCHEMA.modifiers.filter(m => m.startsWith(prefix)).map(m => ({
+                    text: m,
+                    type: 'event',
+                    desc: 'Modifier'
+                }));
+            }
+
+            return [];
+        }
+
+        // Parse DSL to AST
+        function parseDSL(text) {
+            const lines = text.split('\n');
+            const ast = { type: 'root', children: [], errors: [] };
+            const stack = [ast];
+            let lineNum = 0;
+
+            for (const line of lines) {
+                lineNum++;
+                const trimmed = line.trim();
+
+                // Skip empty lines and comments
+                if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('#')) continue;
+
+                // Closing brace
+                if (trimmed === '}') {
+                    if (stack.length > 1) {
+                        stack.pop();
+                    } else {
+                        ast.errors.push({ line: lineNum, msg: 'Unexpected }' });
+                    }
+                    continue;
+                }
+
+                // Block definition: blockname "id" { or blockname {
+                const blockMatch = trimmed.match(/^(\w+)\s*(?:"([^"]*)")?\s*\{?\s*$/);
+                if (blockMatch && trimmed.includes('{')) {
+                    const blockName = blockMatch[1];
+                    const blockId = blockMatch[2] || null;
+
+                    const node = {
+                        type: 'block',
+                        name: blockName,
+                        id: blockId,
+                        props: {},
+                        children: [],
+                        line: lineNum
+                    };
+
+                    stack[stack.length - 1].children.push(node);
+                    if (!trimmed.endsWith('}')) {
+                        stack.push(node);
+                    }
+                    continue;
+                }
+
+                // Event line
+                const eventMatch = trimmed.match(/^event\s+(.+)$/);
+                if (eventMatch) {
+                    const eventNode = parseEventLine(eventMatch[1], lineNum);
+                    stack[stack.length - 1].children.push(eventNode);
+                    continue;
+                }
+
+                // Property: name = value or name: value
+                const propMatch = trimmed.match(/^(\w+)\s*[=:]\s*(.+)$/);
+                if (propMatch) {
+                    const propName = propMatch[1];
+                    let propValue = propMatch[2].trim();
+
+                    // Parse value
+                    if (propValue.startsWith('"') && propValue.endsWith('"')) {
+                        propValue = propValue.slice(1, -1);
+                    } else if (propValue === 'true') {
+                        propValue = true;
+                    } else if (propValue === 'false') {
+                        propValue = false;
+                    } else if (/^-?\d+\.?\d*$/.test(propValue)) {
+                        propValue = parseFloat(propValue);
+                    } else if (propValue.startsWith('(') && propValue.endsWith(')')) {
+                        // Vector
+                        propValue = propValue.slice(1, -1).split(',').map(v => parseFloat(v.trim()));
+                    }
+
+                    const parent = stack[stack.length - 1];
+                    if (parent.type === 'block' || parent.type === 'root') {
+                        if (!parent.props) parent.props = {};
+                        parent.props[propName] = propValue;
+                    }
+                    continue;
+                }
+
+                // Unknown line
+                if (trimmed && !trimmed.endsWith('{')) {
+                    ast.errors.push({ line: lineNum, msg: `Unknown syntax: ${trimmed}` });
+                }
+            }
+
+            // Check unclosed blocks
+            if (stack.length > 1) {
+                ast.errors.push({ line: lineNum, msg: `Unclosed block: ${stack[stack.length - 1].name}` });
+            }
+
+            return ast;
+        }
+
+        function parseEventLine(eventStr, lineNum) {
+            const parts = eventStr.trim().split(/\s+/);
+            const event = {
+                type: 'event',
+                domain: parts[0] || '',
+                resource: '',
+                action: '',
+                subject: '',
+                modifier: '',
+                target: '',
+                args: {},
+                line: lineNum
+            };
+
+            let idx = 1;
+
+            // Check if next is resource or action
+            if (idx < parts.length && SCHEMA.resources.includes(parts[idx])) {
+                event.resource = parts[idx++];
+            }
+
+            if (idx < parts.length && SCHEMA.actions.includes(parts[idx])) {
+                event.action = parts[idx++];
+            }
+
+            if (idx < parts.length && !parts[idx].startsWith('--')) {
+                event.subject = parts[idx++];
+            }
+
+            if (idx < parts.length && SCHEMA.modifiers.includes(parts[idx])) {
+                event.modifier = parts[idx++];
+                if (idx < parts.length && !parts[idx].startsWith('--')) {
+                    event.target = parts[idx++];
+                }
+            }
+
+            // Parse args
+            while (idx < parts.length) {
+                const argMatch = parts[idx].match(/^--(\w+)=(.*)$/);
+                if (argMatch) {
+                    event.args[argMatch[1]] = argMatch[2].replace(/^"|"$/g, '');
+                }
+                idx++;
+            }
+
+            return event;
+        }
+
+        // Generate XML from AST
+        function astToXml(ast, indent = 0) {
+            let xml = '';
+            const spaces = '  '.repeat(indent);
+
+            for (const child of ast.children) {
+                if (child.type === 'block') {
+                    const attrs = [];
+                    if (child.id) attrs.push(`id="${child.id}"`);
+                    for (const [k, v] of Object.entries(child.props || {})) {
+                        if (Array.isArray(v)) {
+                            attrs.push(`${k}="${v.join(',')}"`);
+                        } else {
+                            attrs.push(`${k}="${v}"`);
+                        }
+                    }
+                    const attrStr = attrs.length ? ' ' + attrs.join(' ') : '';
+
+                    if (child.children.length === 0) {
+                        xml += `${spaces}<${child.name}${attrStr}/>\n`;
+                    } else {
+                        xml += `${spaces}<${child.name}${attrStr}>\n`;
+                        xml += astToXml(child, indent + 1);
+                        xml += `${spaces}</${child.name}>\n`;
+                    }
+                } else if (child.type === 'event') {
+                    xml += `${spaces}<event domain="${child.domain}"`;
+                    if (child.resource) xml += ` resource="${child.resource}"`;
+                    xml += ` action="${child.action}" subject="${child.subject}"`;
+                    if (child.modifier) xml += ` modifier="${child.modifier}" target="${child.target}"`;
+                    if (Object.keys(child.args).length > 0) {
+                        xml += '>\n';
+                        for (const [k, v] of Object.entries(child.args)) {
+                            xml += `${spaces}  <arg key="${k}" value="${v}"/>\n`;
+                        }
+                        xml += `${spaces}</event>\n`;
+                    } else {
+                        xml += '/>\n';
+                    }
+                }
+            }
+
+            return xml;
+        }
+
+        function generateXml() {
+            const text = editor.getValue();
+            const ast = parseDSL(text);
+
+            if (ast.errors.length > 0) {
+                showErrors(ast.errors);
+                return;
+            }
+
+            let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+            xml += astToXml(ast);
+
+            document.getElementById('outputXml').textContent = xml;
+            switchOutput('xml');
+        }
+
+        function generateJson() {
+            const text = editor.getValue();
+            const ast = parseDSL(text);
+
+            if (ast.errors.length > 0) {
+                showErrors(ast.errors);
+                return;
+            }
+
+            const json = JSON.stringify(ast, null, 2);
+            document.getElementById('outputJson').textContent = json;
+            switchOutput('json');
+        }
+
+        function parseAndValidate() {
+            const text = editor.getValue();
+            const ast = parseDSL(text);
+
+            const statusEl = document.getElementById('parseStatus');
+            if (ast.errors.length === 0) {
+                statusEl.className = 'valid';
+                statusEl.textContent = '✓ Valid';
+                document.getElementById('outputErrors').innerHTML = '<span class="success">No errors found.</span>';
+            } else {
+                statusEl.className = 'errors';
+                statusEl.textContent = `✗ ${ast.errors.length} error(s)`;
+                showErrors(ast.errors);
+            }
+
+            // Count blocks
+            let blockCount = 0;
+            function countBlocks(node) {
+                if (node.type === 'block') blockCount++;
+                (node.children || []).forEach(countBlocks);
+            }
+            ast.children.forEach(countBlocks);
+            document.getElementById('blockCount').textContent = `Blocks: ${blockCount}`;
+
+            // Extract events
+            const events = [];
+            function extractEvents(node) {
+                if (node.type === 'event') events.push(node);
+                (node.children || []).forEach(extractEvents);
+            }
+            ast.children.forEach(extractEvents);
+
+            const eventsHtml = events.map(e => {
+                let str = `<span style="color:#60a5fa">${e.domain}</span>`;
+                if (e.resource) str += ` <span style="color:#c084fc">${e.resource}</span>`;
+                str += ` <span style="color:#34d399">${e.action}</span>`;
+                str += ` <span style="color:#fbbf24">${e.subject}</span>`;
+                if (e.modifier) str += ` <span style="color:#f472b6">${e.modifier}</span> <span style="color:#fb923c">${e.target}</span>`;
+                return str;
+            }).join('\n');
+            document.getElementById('outputEvents').innerHTML = events.length > 0 ? eventsHtml : '<span style="color:#666">No events found</span>';
+        }
+
+        function showErrors(errors) {
+            const html = errors.map(e =>
+                `<span class="error">Line ${e.line}: ${e.msg}</span>`
+            ).join('\n');
+            document.getElementById('outputErrors').innerHTML = html;
+            switchOutput('errors');
+        }
+
+        function switchOutput(tab) {
+            document.querySelectorAll('.output-tab').forEach(t => t.classList.remove('active'));
+            document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+
+            document.getElementById('outputXml').style.display = tab === 'xml' ? 'block' : 'none';
+            document.getElementById('outputJson').style.display = tab === 'json' ? 'block' : 'none';
+            document.getElementById('outputErrors').style.display = tab === 'errors' ? 'block' : 'none';
+            document.getElementById('outputEvents').style.display = tab === 'events' ? 'block' : 'none';
+        }
+
+        // Update context bar on cursor move
+        function updateContext(cm) {
+            const cursor = cm.getCursor();
+            const context = getContext(cm, cursor);
+            const breadcrumb = document.getElementById('breadcrumb');
+            const suggestions = document.getElementById('contextSuggestions');
+
+            let html = '<span class="block">synth</span>';
+            if (context.inBlock && context.block) {
+                html += ` <span style="color:#666">›</span> <span class="section">${context.block}</span>`;
+            }
+            if (context.inEvent) {
+                html += ` <span style="color:#666">›</span> <span class="item">event</span>`;
+            }
+            breadcrumb.innerHTML = html;
+
+            // Update suggestions text
+            if (context.inEvent) {
+                suggestions.innerHTML = 'Event: <strong>domain</strong> [resource] <strong>action subject</strong> [modifier target]';
+            } else if (context.afterEquals) {
+                suggestions.innerHTML = `Enter value for <strong>${context.property}</strong>`;
+            } else if (context.inBlock) {
+                const block = SCHEMA.blocks[context.block];
+                if (block) {
+                    const children = block.children ? block.children.join(', ') : '';
+                    const props = block.props ? block.props.join(', ') : '';
+                    suggestions.innerHTML = children ? `Children: <strong>${children}</strong>` : `Props: <strong>${props}</strong>`;
+                }
+            } else {
+                suggestions.innerHTML = 'Start with <strong>synth</strong> block';
+            }
+
+            document.getElementById('lineCount').textContent = `Lines: ${cm.lineCount()}`;
+        }
+
+        // Initialize editor
+        const editor = CodeMirror.fromTextArea(document.getElementById('editor'), {
+            mode: 'synth-dsl',
+            lineNumbers: true,
+            matchBrackets: true,
+            foldGutter: true,
+            gutters: ['CodeMirror-linenumbers', 'CodeMirror-foldgutter'],
+            extraKeys: {
+                'Ctrl-Space': function(cm) {
+                    cm.showHint({ hint: synthHint, completeSingle: false });
+                }
+            }
+        });
+
+        editor.on('cursorActivity', function() { updateContext(editor); });
+        editor.on('inputRead', function(cm, change) {
+            if (change.text[0] && /[a-zA-Z]/.test(change.text[0])) {
+                cm.showHint({ hint: synthHint, completeSingle: false });
+            }
+        });
+        editor.on('change', function() {
+            clearTimeout(editor.validateTimeout);
+            editor.validateTimeout = setTimeout(parseAndValidate, 800);
+        });
+
+        // Load examples
+        function loadExample(type) {
+            const examples = {
+                minimal: `// Minimal Synth DSL Example
+synth "my_project" {
+    meta {
+        name = "My Project"
+        version = "1.0.0"
+    }
+
+    scene "main" {
+        name = "Main Scene"
+        state = "active"
+
+        node "player" {
+            type = "empty"
+            name = "Player"
+
+            transform {
+                position = (0, 0, 0)
+                rotation = (0, 0, 0)
+                scale = (1, 1, 1)
+            }
+        }
+    }
+}`,
+
+                full: `// Full Synth Project Example
+synth "game_project" {
+    meta {
+        name = "Adventure Game"
+        version = "1.0.0"
+        author = "Developer"
+    }
+
+    scene "outdoor" {
+        name = "Outdoor Scene"
+        state = "active"
+
+        folder "environment" {
+            name = "Environment"
+            expanded = true
+
+            node "terrain" {
+                type = "mesh"
+                name = "Terrain"
+
+                transform {
+                    position = (0, 0, 0)
+                    rotation = (0, 0, 0)
+                    scale = (100, 1, 100)
+                }
+
+                mesh {
+                    ref = @assets/terrain.fbx
+                    cast_shadows = false
+                    receive_shadows = true
+                }
+
+                collider {
+                    type = "mesh"
+                }
+            }
+
+            node "tree_01" {
+                type = "asset"
+                name = "Oak Tree"
+                visible = true
+
+                transform {
+                    position = (10, 0, 5)
+                    rotation = (0, 45, 0)
+                    scale = (1, 1, 1)
+                }
+
+                material {
+                    ref = @materials/bark_pbr
+                }
+            }
+        }
+
+        folder "characters" {
+            name = "Characters"
+
+            node "player" {
+                type = "prefab"
+                name = "Player Character"
+
+                transform {
+                    position = (0, 0, 0)
+                    rotation = (0, 0, 0)
+                    scale = (1, 1, 1)
+                }
+
+                script {
+                    ref = @scripts/PlayerController
+                    enabled = true
+                }
+
+                collider {
+                    type = "capsule"
+                    is_trigger = false
+                }
+            }
+        }
+
+        node "sun" {
+            type = "light"
+            name = "Sun"
+
+            transform {
+                position = (0, 100, 0)
+                rotation = (-45, 30, 0)
+            }
+
+            light {
+                type = "directional"
+                color = (1, 0.95, 0.8)
+                intensity = 1.5
+            }
+        }
+    }
+
+    assets {
+        asset "terrain" {
+            type = "mesh"
+            path = "assets/meshes/terrain.fbx"
+            preload = true
+        }
+
+        asset "bark_material" {
+            type = "material"
+            path = "assets/materials/bark_pbr.mat"
+        }
+    }
+
+    mcp {
+        server "vision" {
+            transport = "stdio"
+            command = "python"
+            args = "-m mcp_vision_server"
+            auto_start = true
+        }
+
+        server "audio" {
+            transport = "stdio"
+            command = "node"
+            args = "mcp_audio_server.js"
+            auto_start = false
+        }
+    }
+
+    agents {
+        agent "vision_analyzer" {
+            type = "reactive"
+            name = "Vision Analyzer"
+            mcp_server = @mcp/vision
+            capabilities = "analyze, segment, upscale"
+            auto_start = true
+        }
+    }
+
+    events {
+        // Events are a subset of the DSL - same grammar!
+        event scene create outdoor --name="Outdoor Scene"
+        event cluster node create tree_01 in outdoor --name="Oak Tree"
+        event component create transform on tree_01 --type=transform
+        event mcp server start vision --transport=stdio
+        event agent start vision_analyzer
+    }
+
+    settings {
+        theme = "dark"
+        auto_save = true
+        undo_limit = 100
+    }
+}`,
+
+                game: `// Game Scene Example
+synth "game_scene" {
+    meta {
+        name = "Battle Arena"
+    }
+
+    scene "arena" {
+        name = "Battle Arena"
+        state = "active"
+
+        node "floor" {
+            type = "mesh"
+            name = "Arena Floor"
+
+            transform {
+                position = (0, 0, 0)
+                scale = (50, 1, 50)
+            }
+
+            mesh {
+                ref = @meshes/arena_floor
+            }
+
+            collider {
+                type = "box"
+                size = (50, 1, 50)
+            }
+        }
+
+        folder "players" {
+            name = "Players"
+
+            node "player_1" {
+                type = "prefab"
+                name = "Player 1"
+
+                transform {
+                    position = (-10, 0, 0)
+                    rotation = (0, 90, 0)
+                }
+
+                script {
+                    class = "PlayerController"
+                    enabled = true
+                }
+            }
+
+            node "player_2" {
+                type = "prefab"
+                name = "Player 2"
+
+                transform {
+                    position = (10, 0, 0)
+                    rotation = (0, -90, 0)
+                }
+
+                script {
+                    class = "PlayerController"
+                    enabled = true
+                }
+            }
+        }
+
+        folder "lighting" {
+            node "main_light" {
+                type = "light"
+
+                light {
+                    type = "directional"
+                    intensity = 1.2
+                    color = (1, 1, 1)
+                }
+            }
+
+            node "ambient" {
+                type = "light"
+
+                light {
+                    type = "point"
+                    intensity = 0.3
+                    range = 100
+                }
+            }
+        }
+    }
+
+    events {
+        event scene create arena --name="Battle Arena"
+        event cluster node create player_1 in arena
+        event cluster node create player_2 in arena
+        event agent task create match_start for game_manager
+    }
+}`,
+
+                mcp: `// MCP Server Setup Example
+synth "mcp_setup" {
+    meta {
+        name = "MCP Configuration"
+    }
+
+    mcp {
+        server "vision" {
+            transport = "stdio"
+            command = "python"
+            args = "-m mcp_vision"
+            auto_start = true
+            env = "CUDA_VISIBLE_DEVICES=0"
+        }
+
+        server "audio" {
+            transport = "stdio"
+            command = "node"
+            args = "audio-server/index.js"
+            auto_start = true
+        }
+
+        server "code" {
+            transport = "sse"
+            command = "http://localhost:3000/mcp"
+            auto_start = false
+        }
+    }
+
+    agents {
+        agent "vision_analyzer" {
+            type = "reactive"
+            name = "Vision Analyzer"
+            mcp_server = @mcp/vision
+            capabilities = "analyze, detect, segment"
+        }
+
+        agent "audio_processor" {
+            type = "reactive"
+            name = "Audio Processor"
+            mcp_server = @mcp/audio
+            capabilities = "transcribe, tts, effects"
+        }
+
+        agent "planner" {
+            type = "deliberative"
+            name = "Task Planner"
+            capabilities = "plan, schedule, optimize"
+        }
+    }
+
+    events {
+        // MCP lifecycle events
+        event mcp server start vision --transport=stdio
+        event mcp server health vision --healthy=true --latency=45
+        event mcp tool register analyze on vision --version=1.0
+
+        event mcp server start audio --transport=stdio
+        event mcp tool register transcribe on audio
+
+        // Agent events
+        event agent create vision_analyzer --type=reactive
+        event agent start vision_analyzer
+
+        // Tool invocations
+        event mcp tool invoke analyze on vision --invocation=inv_001
+        event mcp tool complete analyze by vision --duration=1234
+
+        event agent task create analyze_image for vision_analyzer --priority=high
+        event agent task progress analyze_image by vision_analyzer --percent=50
+        event agent task complete analyze_image by vision_analyzer --duration=2000
+    }
+}`
+            };
+
+            editor.setValue(examples[type] || '');
+            parseAndValidate();
+        }
+
+        function clearEditor() {
+            editor.setValue('');
+            document.getElementById('outputXml').textContent = '';
+            document.getElementById('outputJson').textContent = '';
+            document.getElementById('outputErrors').textContent = '';
+            document.getElementById('outputEvents').textContent = '';
+            document.getElementById('parseStatus').textContent = 'Ready';
+            document.getElementById('parseStatus').className = '';
+        }
+
+        // Initialize
+        loadExample('minimal');
+    </script>
+</body>
+</html>

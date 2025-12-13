@@ -108,6 +108,130 @@ enum EventPriority {
 }
 
 // =============================================================================
+// COMPACT EVENT GRAMMAR
+// Fixed 5-slot sentence structure for efficient event encoding
+// Format: [Domain] [Resource] [Action] [Subject] [Modifier]
+// =============================================================================
+
+// Slot 1: Domain - Top-level event category
+enum Domain {
+    DOMAIN_UNSPECIFIED = 0;
+    DOMAIN_SCENE = 1;
+    DOMAIN_CLUSTER = 2;
+    DOMAIN_COMPONENT = 3;
+    DOMAIN_MCP = 4;
+    DOMAIN_AGENT = 5;
+    DOMAIN_PROJECT = 6;
+    DOMAIN_ASSET = 7;
+    DOMAIN_PLUGIN = 8;
+    DOMAIN_SYSTEM = 9;
+}
+
+// Slot 2: Resource - Target resource type within domain
+enum Resource {
+    RESOURCE_NONE = 0;          // Domain-level action (no specific resource)
+    RESOURCE_NODE = 1;
+    RESOURCE_SERVER = 2;
+    RESOURCE_TOOL = 3;
+    RESOURCE_TASK = 4;
+    RESOURCE_SELECTION = 5;
+    RESOURCE_FOLDER = 6;
+    RESOURCE_FILE = 7;
+    RESOURCE_SETTING = 8;
+    RESOURCE_SESSION = 9;
+}
+
+// Slot 3: Action - What happened or should happen
+enum Action {
+    ACTION_UNSPECIFIED = 0;
+    // Lifecycle
+    ACTION_CREATE = 1;
+    ACTION_UPDATE = 2;
+    ACTION_DELETE = 3;
+    // State
+    ACTION_START = 4;
+    ACTION_STOP = 5;
+    ACTION_ENABLE = 6;
+    ACTION_DISABLE = 7;
+    // Movement
+    ACTION_MOVE = 8;
+    ACTION_RENAME = 9;
+    ACTION_SELECT = 10;
+    // Connection
+    ACTION_CONNECT = 11;
+    ACTION_DISCONNECT = 12;
+    ACTION_RECONNECT = 13;
+    // Execution
+    ACTION_INVOKE = 14;
+    ACTION_COMPLETE = 15;
+    ACTION_FAIL = 16;
+    ACTION_CANCEL = 17;
+    // Progress
+    ACTION_PROGRESS = 18;
+    ACTION_HEALTH = 19;
+    ACTION_ERROR = 20;
+    // Registration
+    ACTION_REGISTER = 21;
+    ACTION_UNREGISTER = 22;
+    // Project
+    ACTION_INIT = 23;
+    ACTION_OPEN = 24;
+    ACTION_SAVE = 25;
+    ACTION_CLOSE = 26;
+}
+
+// Slot 5: Modifier - Contextual preposition/relationship
+enum Modifier {
+    MODIFIER_NONE = 0;
+    MODIFIER_TO = 1;            // target destination
+    MODIFIER_FROM = 2;          // source origin
+    MODIFIER_IN = 3;            // container context
+    MODIFIER_WITH = 4;          // accompanying element
+    MODIFIER_BY = 5;            // actor/agent
+    MODIFIER_FOR = 6;           // purpose/beneficiary
+    MODIFIER_ON = 7;            // surface/trigger
+    MODIFIER_AT = 8;            // location/time
+}
+
+// Compact event using fixed 5-slot grammar
+// Wire format: 4 bytes header + variable subject_id
+message CompactEvent {
+    // Slot 1: Domain (4-bit = max 16 values)
+    Domain domain = 1;
+
+    // Slot 2: Resource (4-bit = max 16 values)
+    Resource resource = 2;
+
+    // Slot 3: Action (5-bit = max 32 values)
+    Action action = 3;
+
+    // Slot 4: Subject ID (variable length string)
+    string subject_id = 4;
+
+    // Slot 5: Modifier (4-bit = max 16 values)
+    Modifier modifier = 5;
+
+    // Modifier target (the object of the preposition)
+    string modifier_target = 6;
+
+    // Additional key-value arguments
+    map<string, string> args = 7;
+
+    // Timestamp (Unix ms)
+    int64 timestamp = 8;
+
+    // Correlation ID for tracing
+    string correlation_id = 9;
+}
+
+// Batch of compact events for efficient transmission
+message CompactEventBatch {
+    repeated CompactEvent events = 1;
+    string batch_id = 2;
+    int64 timestamp = 3;
+}
+
+// =============================================================================
 // EVENT BATCH
 // For efficient transmission of multiple events
 // =============================================================================

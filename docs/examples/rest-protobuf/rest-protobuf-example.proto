@@ -1,0 +1,80 @@
+syntax = "proto3";
+
+package synth.example;
+
+option java_package = "io.synth.protocol.example";
+option java_multiple_files = true;
+
+// =============================================================================
+// REST + PROTOBUF HYBRID
+// Standard REST API mit Protobuf-serialisierten Payloads
+// Kein gRPC, kein Proxy - nur HTTP mit application/x-protobuf
+// =============================================================================
+
+// Datenobjekte (identisch zu gRPC-Variante)
+message User {
+    string id = 1;
+    string name = 2;
+    string email = 3;
+    int64 created_at = 4;
+}
+
+message Project {
+    string id = 1;
+    string name = 2;
+    string description = 3;
+    string owner_id = 4;
+    repeated string tag_ids = 5;
+    ProjectStatus status = 6;
+}
+
+enum ProjectStatus {
+    PROJECT_STATUS_UNSPECIFIED = 0;
+    PROJECT_STATUS_ACTIVE = 1;
+    PROJECT_STATUS_ARCHIVED = 2;
+    PROJECT_STATUS_DELETED = 3;
+}
+
+// =============================================================================
+// REST ENDPOINT PAYLOADS
+// Diese werden als Binary über HTTP gesendet
+// =============================================================================
+
+// GET /api/users/{id} -> Response Body
+message UserResponse {
+    User user = 1;
+}
+
+// GET /api/projects?owner_id=xxx&page_size=10 -> Response Body
+message ProjectListResponse {
+    repeated Project projects = 1;
+    string next_page_token = 2;
+    int32 total_count = 3;
+}
+
+// POST /api/projects -> Request Body
+message CreateProjectRequest {
+    string name = 1;
+    string description = 2;
+    repeated string tag_ids = 3;
+}
+
+// POST /api/projects -> Response Body
+message CreateProjectResponse {
+    Project project = 1;
+}
+
+// PUT /api/projects/{id} -> Request Body
+message UpdateProjectRequest {
+    string name = 1;
+    string description = 2;
+    repeated string tag_ids = 3;
+    ProjectStatus status = 4;
+}
+
+// Generic Error Response
+message ErrorResponse {
+    string code = 1;
+    string message = 2;
+    map<string, string> details = 3;
+}

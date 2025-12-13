@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Synth Compact Event Editor</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/lint/lint.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #1a1a2e;
+            color: #eee;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        header {
+            background: #16213e;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            border-bottom: 1px solid #0f3460;
+        }
+        header h1 {
+            font-size: 18px;
+            font-weight: 500;
+            color: #e94560;
+        }
+        header .info {
+            font-size: 12px;
+            color: #888;
+            font-family: 'Consolas', monospace;
+        }
+        .toolbar {
+            background: #16213e;
+            padding: 8px 20px;
+            display: flex;
+            gap: 10px;
+            border-bottom: 1px solid #0f3460;
+        }
+        .toolbar button {
+            background: #0f3460;
+            border: none;
+            color: #eee;
+            padding: 6px 14px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .toolbar button:hover {
+            background: #e94560;
+        }
+        .toolbar .separator {
+            width: 1px;
+            background: #0f3460;
+            margin: 0 5px;
+        }
+        .container {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+        .editor-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .CodeMirror {
+            flex: 1;
+            height: auto;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 14px;
+            background: #1a1a2e;
+            color: #eee;
+        }
+        .CodeMirror-gutters {
+            background: #16213e;
+            border-right: 1px solid #0f3460;
+        }
+        .CodeMirror-linenumber {
+            color: #666;
+        }
+        .CodeMirror-cursor {
+            border-left: 2px solid #e94560;
+        }
+        .CodeMirror-selected {
+            background: #0f3460 !important;
+        }
+        .CodeMirror-activeline-background {
+            background: #16213e;
+        }
+        /* Syntax highlighting */
+        .cm-synth-comment { color: #5c6370; font-style: italic; }
+        .cm-synth-domain { color: #60a5fa; font-weight: bold; }
+        .cm-synth-resource { color: #c084fc; }
+        .cm-synth-action { color: #34d399; font-weight: bold; }
+        .cm-synth-subject { color: #fbbf24; }
+        .cm-synth-modifier { color: #f472b6; }
+        .cm-synth-target { color: #fb923c; }
+        .cm-synth-arg-key { color: #e06c75; }
+        .cm-synth-arg-value { color: #d19a66; }
+        .cm-synth-error { color: #ef4444; text-decoration: wavy underline; }
+        /* Lint markers */
+        .CodeMirror-lint-marker-error {
+            background: #ef4444;
+        }
+        .CodeMirror-lint-message-error {
+            background: #2d1f1f;
+            color: #ef4444;
+        }
+        .output-panel {
+            height: 200px;
+            background: #16213e;
+            border-top: 1px solid #0f3460;
+            display: flex;
+            flex-direction: column;
+        }
+        .output-panel h3 {
+            font-size: 12px;
+            color: #888;
+            padding: 10px 15px;
+            text-transform: uppercase;
+            border-bottom: 1px solid #0f3460;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .output-panel h3 .count {
+            color: #e94560;
+        }
+        .output-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px 15px;
+            font-family: 'Consolas', monospace;
+            font-size: 12px;
+        }
+        .output-item {
+            padding: 8px 12px;
+            margin-bottom: 6px;
+            background: #0f3460;
+            border-radius: 4px;
+            border-left: 3px solid #34d399;
+        }
+        .output-item.error {
+            border-left-color: #ef4444;
+            background: #2d1f1f;
+        }
+        .output-item .line-num {
+            color: #666;
+            font-size: 10px;
+        }
+        .output-item .human {
+            margin-top: 4px;
+        }
+        .output-item .human .domain { color: #60a5fa; }
+        .output-item .human .resource { color: #c084fc; }
+        .output-item .human .action { color: #34d399; }
+        .output-item .human .subject { color: #fbbf24; }
+        .output-item .human .modifier { color: #f472b6; }
+        .output-item .human .target { color: #fb923c; }
+        .output-item .binary {
+            margin-top: 4px;
+            color: #888;
+            font-size: 11px;
+        }
+        .output-item .binary span {
+            background: #1a1a2e;
+            padding: 2px 5px;
+            border-radius: 3px;
+            margin-right: 3px;
+        }
+        .output-item .json {
+            margin-top: 4px;
+            color: #666;
+            font-size: 11px;
+        }
+        .sidebar {
+            width: 300px;
+            background: #16213e;
+            border-left: 1px solid #0f3460;
+            padding: 15px;
+            overflow-y: auto;
+        }
+        .sidebar h2 {
+            font-size: 14px;
+            color: #e94560;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #0f3460;
+        }
+        .sidebar h3 {
+            font-size: 12px;
+            color: #888;
+            margin: 15px 0 8px 0;
+            text-transform: uppercase;
+        }
+        .schema-section {
+            background: #0f3460;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+        }
+        .schema-section code {
+            display: block;
+            font-family: 'Consolas', monospace;
+            font-size: 11px;
+            color: #eee;
+            margin-bottom: 8px;
+        }
+        .schema-section .note {
+            font-size: 10px;
+            color: #888;
+            font-style: italic;
+        }
+        .legend {
+            font-size: 11px;
+            line-height: 1.8;
+        }
+        .legend code {
+            background: #0f3460;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Consolas', monospace;
+        }
+        .legend .domain { color: #60a5fa; }
+        .legend .resource { color: #c084fc; }
+        .legend .action { color: #34d399; }
+        .legend .subject { color: #fbbf24; }
+        .legend .modifier { color: #f472b6; }
+        .legend .target { color: #fb923c; }
+        .enum-list {
+            font-size: 10px;
+            color: #888;
+            line-height: 1.6;
+            columns: 2;
+            column-gap: 10px;
+        }
+        .status {
+            background: #0f3460;
+            padding: 8px 20px;
+            font-size: 12px;
+            color: #888;
+            display: flex;
+            justify-content: space-between;
+        }
+        .status .valid {
+            color: #4ade80;
+        }
+        .status .errors {
+            color: #ef4444;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Compact Event Editor</h1>
+        <span class="info">&lt;domain&gt; [resource] &lt;action&gt; &lt;subject&gt; [modifier target] [--args]</span>
+    </header>
+    <div class="toolbar">
+        <button onclick="validateAll()">Validate</button>
+        <button onclick="parseAll()">Parse to JSON</button>
+        <div class="separator"></div>
+        <button onclick="loadExample('basic')">Basic Example</button>
+        <button onclick="loadExample('scene')">Scene Workflow</button>
+        <button onclick="loadExample('mcp')">MCP Workflow</button>
+        <button onclick="loadExample('agent')">Agent Workflow</button>
+        <div class="separator"></div>
+        <button onclick="clearEditor()">Clear</button>
+    </div>
+    <div class="container">
+        <div class="editor-panel">
+            <textarea id="editor"></textarea>
+            <div class="output-panel">
+                <h3>
+                    <span>Parsed Events</span>
+                    <span class="count" id="eventCount">0 events</span>
+                </h3>
+                <div class="output-content" id="outputContent"></div>
+            </div>
+        </div>
+        <div class="sidebar">
+            <h2>Grammar Schema</h2>
+
+            <div class="schema-section">
+                <code>&lt;domain&gt; [resource] &lt;action&gt; &lt;subject&gt; [modifier target] [--key=value...]</code>
+                <div class="note">Required: domain, action, subject</div>
+            </div>
+
+            <h3>Slot 1: Domain (required)</h3>
+            <div class="enum-list domain">
+                scene, cluster, component, mcp, agent, project, asset, plugin, system
+            </div>
+
+            <h3>Slot 2: Resource (optional)</h3>
+            <div class="enum-list resource">
+                node, server, tool, task, selection, folder, file, setting, session
+            </div>
+
+            <h3>Slot 3: Action (required)</h3>
+            <div class="enum-list action">
+                create, update, delete, start, stop, enable, disable, move, rename, select, connect, disconnect, reconnect, invoke, complete, fail, cancel, progress, health, error, register, unregister, init, open, save, close
+            </div>
+
+            <h3>Slot 4: Subject (required)</h3>
+            <div class="legend">
+                <span class="subject">Identifier string</span><br>
+                e.g., node_tree_01, mcp_vision
+            </div>
+
+            <h3>Slot 5: Modifier + Target</h3>
+            <div class="enum-list modifier">
+                to, from, in, with, by, for, on, at
+            </div>
+            <div class="legend" style="margin-top: 5px;">
+                <span class="target">+ target identifier</span>
+            </div>
+
+            <h3>Arguments</h3>
+            <div class="legend">
+                <code>--key=value</code> pairs<br>
+                <span style="color:#888">e.g., --name="Oak Tree"</span>
+            </div>
+
+            <h3>Examples</h3>
+            <div class="legend" style="font-size: 10px;">
+                <code>cluster node create node_01 in scene_01</code><br>
+                <code>mcp server start mcp_vision --transport=stdio</code><br>
+                <code>agent task complete task_01 by agent_01</code>
+            </div>
+        </div>
+    </div>
+    <div class="status">
+        <span id="cursorPos">Line 1, Col 1</span>
+        <span id="validationStatus">Ready</span>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/lint/lint.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/selection/active-line.min.js"></script>
+    <script>
+        // Schema definitions
+        const SCHEMA = {
+            domains: ['scene', 'cluster', 'component', 'mcp', 'agent', 'project', 'asset', 'plugin', 'system'],
+            resources: ['node', 'server', 'tool', 'task', 'selection', 'folder', 'file', 'setting', 'session'],
+            actions: ['create', 'update', 'delete', 'start', 'stop', 'enable', 'disable', 'move', 'rename', 'select', 'connect', 'disconnect', 'reconnect', 'invoke', 'complete', 'fail', 'cancel', 'progress', 'health', 'error', 'register', 'unregister', 'init', 'open', 'save', 'close'],
+            modifiers: ['to', 'from', 'in', 'with', 'by', 'for', 'on', 'at']
+        };
+
+        const DOMAIN_MAP = { scene: 1, cluster: 2, component: 3, mcp: 4, agent: 5, project: 6, asset: 7, plugin: 8, system: 9 };
+        const RESOURCE_MAP = { node: 1, server: 2, tool: 3, task: 4, selection: 5, folder: 6, file: 7, setting: 8, session: 9 };
+        const ACTION_MAP = { create: 1, update: 2, delete: 3, start: 4, stop: 5, enable: 6, disable: 7, move: 8, rename: 9, select: 10, connect: 11, disconnect: 12, reconnect: 13, invoke: 14, complete: 15, fail: 16, cancel: 17, progress: 18, health: 19, error: 20, register: 21, unregister: 22, init: 23, open: 24, save: 25, close: 26 };
+        const MODIFIER_MAP = { to: 1, from: 2, in: 3, with: 4, by: 5, for: 6, on: 7, at: 8 };
+
+        // Parse a single line into a CompactEvent
+        function parseLine(line, lineNum) {
+            const trimmed = line.trim();
+
+            // Skip empty lines and comments
+            if (!trimmed || trimmed.startsWith('#')) {
+                return { type: 'skip', line: lineNum };
+            }
+
+            const result = {
+                type: 'event',
+                line: lineNum,
+                raw: trimmed,
+                errors: [],
+                event: null
+            };
+
+            // Tokenize: split by spaces but respect quoted strings
+            const tokens = [];
+            const args = {};
+            let current = '';
+            let inQuote = false;
+            let quoteChar = '';
+
+            for (let i = 0; i < trimmed.length; i++) {
+                const char = trimmed[i];
+                if ((char === '"' || char === "'") && !inQuote) {
+                    inQuote = true;
+                    quoteChar = char;
+                } else if (char === quoteChar && inQuote) {
+                    inQuote = false;
+                    quoteChar = '';
+                } else if (char === ' ' && !inQuote) {
+                    if (current) {
+                        tokens.push(current);
+                        current = '';
+                    }
+                } else {
+                    current += char;
+                }
+            }
+            if (current) tokens.push(current);
+
+            // Separate args (--key=value) from positional tokens
+            const positional = [];
+            tokens.forEach(token => {
+                if (token.startsWith('--')) {
+                    const match = token.match(/^--([^=]+)=(.*)$/);
+                    if (match) {
+                        args[match[1]] = match[2].replace(/^["']|["']$/g, '');
+                    } else {
+                        result.errors.push(`Invalid argument format: ${token}`);
+                    }
+                } else {
+                    positional.push(token.toLowerCase());
+                }
+            });
+
+            if (positional.length < 3) {
+                result.errors.push('Minimum required: <domain> <action> <subject>');
+                return result;
+            }
+
+            // Parse positional tokens
+            let idx = 0;
+            const event = {
+                domain: 0,
+                resource: 0,
+                action: 0,
+                subject_id: '',
+                modifier: 0,
+                modifier_target: '',
+                args: args,
+                timestamp: Date.now()
+            };
+
+            // Slot 1: Domain (required)
+            const domainToken = positional[idx++];
+            if (!SCHEMA.domains.includes(domainToken)) {
+                result.errors.push(`Invalid domain: "${domainToken}". Valid: ${SCHEMA.domains.join(', ')}`);
+            } else {
+                event.domain = DOMAIN_MAP[domainToken];
+            }
+
+            // Slot 2: Check if next token is resource or action
+            const nextToken = positional[idx];
+            if (SCHEMA.resources.includes(nextToken)) {
+                event.resource = RESOURCE_MAP[nextToken];
+                idx++;
+            }
+
+            // Slot 3: Action (required)
+            if (idx >= positional.length) {
+                result.errors.push('Missing action');
+                return result;
+            }
+            const actionToken = positional[idx++];
+            if (!SCHEMA.actions.includes(actionToken)) {
+                result.errors.push(`Invalid action: "${actionToken}". Valid: ${SCHEMA.actions.join(', ')}`);
+            } else {
+                event.action = ACTION_MAP[actionToken];
+            }
+
+            // Slot 4: Subject (required)
+            if (idx >= positional.length) {
+                result.errors.push('Missing subject');
+                return result;
+            }
+            // Subject is case-sensitive, get from original tokens
+            const subjectIdx = tokens.findIndex(t => !t.startsWith('--') && t.toLowerCase() === positional[idx]);
+            event.subject_id = tokens[subjectIdx] || positional[idx];
+            idx++;
+
+            // Slot 5: Modifier + Target (optional)
+            if (idx < positional.length) {
+                const modToken = positional[idx];
+                if (SCHEMA.modifiers.includes(modToken)) {
+                    event.modifier = MODIFIER_MAP[modToken];
+                    idx++;
+                    if (idx < positional.length) {
+                        // Get original case for target
+                        const targetIdx = tokens.findIndex(t => !t.startsWith('--') && t.toLowerCase() === positional[idx]);
+                        event.modifier_target = tokens[targetIdx] || positional[idx];
+                        idx++;
+                    } else {
+                        result.errors.push(`Modifier "${modToken}" requires a target`);
+                    }
+                } else {
+                    result.errors.push(`Unexpected token: "${modToken}". Expected modifier (${SCHEMA.modifiers.join(', ')}) or end of line`);
+                }
+            }
+
+            // Check for extra tokens
+            if (idx < positional.length) {
+                result.errors.push(`Unexpected tokens after target: ${positional.slice(idx).join(' ')}`);
+            }
+
+            result.event = event;
+            return result;
+        }
+
+        // Custom CodeMirror mode for syntax highlighting
+        CodeMirror.defineMode('synth-compact', function() {
+            return {
+                token: function(stream, state) {
+                    // Comments
+                    if (stream.match(/^#.*/)) {
+                        return 'synth-comment';
+                    }
+
+                    // Arguments --key=value
+                    if (stream.match(/^--[a-zA-Z_][a-zA-Z0-9_]*=/)) {
+                        return 'synth-arg-key';
+                    }
+                    if (stream.match(/^"[^"]*"/)) {
+                        return 'synth-arg-value';
+                    }
+                    if (stream.match(/^'[^']*'/)) {
+                        return 'synth-arg-value';
+                    }
+
+                    // Domain keywords
+                    if (stream.match(/^(scene|cluster|component|mcp|agent|project|asset|plugin|system)\b/i)) {
+                        return 'synth-domain';
+                    }
+
+                    // Resource keywords
+                    if (stream.match(/^(node|server|tool|task|selection|folder|file|setting|session)\b/i)) {
+                        return 'synth-resource';
+                    }
+
+                    // Action keywords
+                    if (stream.match(/^(create|update|delete|start|stop|enable|disable|move|rename|select|connect|disconnect|reconnect|invoke|complete|fail|cancel|progress|health|error|register|unregister|init|open|save|close)\b/i)) {
+                        return 'synth-action';
+                    }
+
+                    // Modifier keywords
+                    if (stream.match(/^(to|from|in|with|by|for|on|at)\b/i)) {
+                        return 'synth-modifier';
+                    }
+
+                    // Identifiers (subject/target)
+                    if (stream.match(/^[a-zA-Z_][a-zA-Z0-9_-]*/)) {
+                        return 'synth-subject';
+                    }
+
+                    // Argument values after =
+                    if (stream.match(/^[^\s]+/)) {
+                        return 'synth-arg-value';
+                    }
+
+                    stream.next();
+                    return null;
+                }
+            };
+        });
+
+        // Linter for validation
+        function synthLinter(text) {
+            const lines = text.split('\n');
+            const errors = [];
+
+            lines.forEach((line, i) => {
+                const result = parseLine(line, i);
+                if (result.type === 'event' && result.errors.length > 0) {
+                    result.errors.forEach(err => {
+                        errors.push({
+                            from: CodeMirror.Pos(i, 0),
+                            to: CodeMirror.Pos(i, line.length),
+                            message: err,
+                            severity: 'error'
+                        });
+                    });
+                }
+            });
+
+            return errors;
+        }
+
+        // Initialize CodeMirror
+        const editor = CodeMirror.fromTextArea(document.getElementById('editor'), {
+            mode: 'synth-compact',
+            theme: 'default',
+            lineNumbers: true,
+            lineWrapping: false,
+            styleActiveLine: true,
+            lint: {
+                getAnnotations: synthLinter,
+                async: false
+            },
+            gutters: ['CodeMirror-lint-markers', 'CodeMirror-linenumbers']
+        });
+
+        // Update cursor position
+        editor.on('cursorActivity', function() {
+            const pos = editor.getCursor();
+            document.getElementById('cursorPos').textContent = `Line ${pos.line + 1}, Col ${pos.ch + 1}`;
+        });
+
+        // Auto-validate on change
+        let validateTimeout;
+        editor.on('change', function() {
+            clearTimeout(validateTimeout);
+            validateTimeout = setTimeout(validateAll, 500);
+        });
+
+        // Validate all lines
+        function validateAll() {
+            const text = editor.getValue();
+            const lines = text.split('\n');
+            let errorCount = 0;
+            let validCount = 0;
+
+            lines.forEach((line, i) => {
+                const result = parseLine(line, i);
+                if (result.type === 'event') {
+                    if (result.errors.length > 0) {
+                        errorCount++;
+                    } else {
+                        validCount++;
+                    }
+                }
+            });
+
+            const statusEl = document.getElementById('validationStatus');
+            if (errorCount === 0) {
+                statusEl.className = 'valid';
+                statusEl.textContent = `✓ ${validCount} valid event(s)`;
+            } else {
+                statusEl.className = 'errors';
+                statusEl.textContent = `✗ ${errorCount} error(s), ${validCount} valid`;
+            }
+        }
+
+        // Parse all and show output
+        function parseAll() {
+            const text = editor.getValue();
+            const lines = text.split('\n');
+            const outputEl = document.getElementById('outputContent');
+            outputEl.innerHTML = '';
+
+            let eventCount = 0;
+
+            lines.forEach((line, i) => {
+                const result = parseLine(line, i);
+                if (result.type === 'skip') return;
+
+                eventCount++;
+                const item = document.createElement('div');
+                item.className = result.errors.length > 0 ? 'output-item error' : 'output-item';
+
+                if (result.errors.length > 0) {
+                    item.innerHTML = `
+                        <div class="line-num">Line ${i + 1}</div>
+                        <div style="color: #ef4444;">${result.errors.join('; ')}</div>
+                        <div class="json">${result.raw}</div>
+                    `;
+                } else {
+                    const e = result.event;
+                    const domainName = Object.keys(DOMAIN_MAP).find(k => DOMAIN_MAP[k] === e.domain) || 'unknown';
+                    const resourceName = Object.keys(RESOURCE_MAP).find(k => RESOURCE_MAP[k] === e.resource) || '';
+                    const actionName = Object.keys(ACTION_MAP).find(k => ACTION_MAP[k] === e.action) || 'unknown';
+                    const modifierName = Object.keys(MODIFIER_MAP).find(k => MODIFIER_MAP[k] === e.modifier) || '';
+
+                    let humanHtml = `<span class="domain">${domainName}</span>`;
+                    if (resourceName) humanHtml += ` <span class="resource">${resourceName}</span>`;
+                    humanHtml += ` <span class="action">${actionName}</span>`;
+                    humanHtml += ` <span class="subject">${e.subject_id}</span>`;
+                    if (modifierName) humanHtml += ` <span class="modifier">${modifierName}</span> <span class="target">${e.modifier_target}</span>`;
+
+                    const d = e.domain.toString(16);
+                    const r = e.resource.toString(16);
+                    const a = e.action.toString(16).padStart(2, '0');
+                    const m = e.modifier.toString(16);
+                    const binaryHtml = `<span>0x${d}</span><span>0x${r}</span><span>0x${a}</span><span>0x${m}</span><span>"${e.subject_id}"</span>${e.modifier_target ? `<span>"${e.modifier_target}"</span>` : ''}`;
+
+                    item.innerHTML = `
+                        <div class="line-num">Line ${i + 1}</div>
+                        <div class="human">${humanHtml}</div>
+                        <div class="binary">${binaryHtml}</div>
+                        <div class="json">${JSON.stringify(e)}</div>
+                    `;
+                }
+
+                outputEl.appendChild(item);
+            });
+
+            document.getElementById('eventCount').textContent = `${eventCount} event(s)`;
+        }
+
+        // Load examples
+        function loadExample(type) {
+            const examples = {
+                basic: `# Basic Compact Event Examples
+# Format: <domain> [resource] <action> <subject> [modifier target] [--args]
+
+# Simple events (no resource, no modifier)
+project init demo_project --path=/projects/demo.synth
+project open project_main
+project save project_main
+project close project_main
+
+# With resource
+cluster node create node_tree_01 --name="Oak Tree" --type=asset
+mcp server start mcp_vision --transport=stdio --version=1.0.0
+
+# With modifier
+cluster node create node_tree_01 in scene_outdoor
+cluster node move node_tree_01 to folder_vegetation
+component node create comp_transform on node_tree_01 --type=transform
+
+# Full example with all slots
+agent task complete task_001 by agent_vision_01 --duration=2000 --status=success`,
+
+                scene: `# Scene Workflow Example
+# Creating and managing a 3D scene with nodes and components
+
+# Initialize scene
+scene create scene_outdoor --name="Outdoor Scene" --state=active
+
+# Create nodes in scene
+cluster node create node_tree_01 in scene_outdoor --name="Oak Tree" --type=asset
+cluster node create node_tree_02 in scene_outdoor --name="Pine Tree" --type=asset
+cluster node create node_rock_01 in scene_outdoor --name="Boulder" --type=asset
+
+# Add components to nodes
+component node create comp_transform_tree1 on node_tree_01 --type=transform
+component node create comp_material_tree1 on node_tree_01 --type=material --name=bark_pbr
+component node create comp_mesh_tree1 on node_tree_01 --type=mesh
+
+# Organize with folders
+cluster folder create folder_vegetation in scene_outdoor --name="Vegetation"
+cluster node move node_tree_01 to folder_vegetation
+cluster node move node_tree_02 to folder_vegetation
+
+# Update component
+component node update comp_transform_tree1 on node_tree_01 --field=position --value="10,0,5"
+
+# Selection
+cluster selection create sel_trees in scene_outdoor --nodes=node_tree_01,node_tree_02
+
+# Rename
+cluster node rename node_tree_01 --name="Ancient Oak"
+
+# Enable/disable
+component node disable comp_material_tree1 on node_tree_01
+component node enable comp_material_tree1 on node_tree_01`,
+
+                mcp: `# MCP Server Workflow Example
+# Managing MCP servers and tool invocations
+
+# Start MCP servers
+mcp server start mcp_vision --transport=stdio --version=1.0.0 --name="Vision Server"
+mcp server start mcp_audio --transport=stdio --version=1.0.0 --name="Audio Server"
+
+# Health checks
+mcp server health mcp_vision --healthy=true --latency=45
+mcp server health mcp_audio --healthy=true --latency=32
+
+# Register tools
+mcp tool register vision_analyze on mcp_vision --version=1.0.0
+mcp tool register vision_segment on mcp_vision --version=1.0.0
+mcp tool register vision_upscale on mcp_vision --version=2.0.0
+mcp tool register audio_transcribe on mcp_audio --version=1.0.0
+
+# Invoke tools
+mcp tool invoke vision_analyze on mcp_vision --invocation=inv_001 --input=image_001
+mcp tool progress vision_analyze by mcp_vision --invocation=inv_001 --percent=50
+mcp tool complete vision_analyze by mcp_vision --invocation=inv_001 --duration=1234
+
+# Error handling
+mcp tool invoke vision_segment on mcp_vision --invocation=inv_002
+mcp tool fail vision_segment by mcp_vision --invocation=inv_002 --error=timeout --duration=30000
+
+# Server disconnect and reconnect
+mcp server disconnect mcp_vision --reason=crash --exit_code=1
+mcp server reconnect mcp_vision --attempt=1 --max_attempts=3
+mcp server connect mcp_vision --status=connected
+
+# Unregister and stop
+mcp tool unregister vision_analyze on mcp_vision
+mcp server stop mcp_audio --reason=user_request`,
+
+                agent: `# Agent Task Workflow Example
+# Managing AI agents and their task execution
+
+# Create agents
+agent create agent_vision_01 --type=reactive --name="Vision Analyzer" --capabilities=analyze,segment
+agent create agent_planning_01 --type=deliberative --name="Task Planner"
+
+# Start agents
+agent start agent_vision_01
+agent start agent_planning_01
+
+# Create tasks
+agent task create task_analyze_001 for agent_vision_01 --type=analyze --priority=high
+agent task create task_segment_001 for agent_vision_01 --type=segment --priority=normal
+agent task create task_plan_001 for agent_planning_01 --type=plan --priority=normal
+
+# Task execution
+agent task start task_analyze_001 by agent_vision_01
+agent task progress task_analyze_001 by agent_vision_01 --percent=25 --msg="Loading image"
+agent task progress task_analyze_001 by agent_vision_01 --percent=50 --msg="Detecting objects"
+agent task progress task_analyze_001 by agent_vision_01 --percent=75 --msg="Classifying"
+agent task complete task_analyze_001 by agent_vision_01 --duration=2500 --result=success
+
+# Task failure and cancellation
+agent task start task_segment_001 by agent_vision_01
+agent task fail task_segment_001 by agent_vision_01 --error=out_of_memory --duration=500
+
+agent task start task_plan_001 by agent_planning_01
+agent task cancel task_plan_001 by agent_planning_01 --reason=user_request
+
+# Agent error
+agent error agent_vision_01 --error=gpu_failure --recoverable=true
+
+# Stop agents
+agent stop agent_vision_01
+agent stop agent_planning_01`
+            };
+
+            editor.setValue(examples[type] || '');
+            parseAll();
+        }
+
+        function clearEditor() {
+            editor.setValue('');
+            document.getElementById('outputContent').innerHTML = '';
+            document.getElementById('eventCount').textContent = '0 events';
+            document.getElementById('validationStatus').textContent = 'Ready';
+        }
+
+        // Load basic example on start
+        loadExample('basic');
+    </script>
+</body>
+</html>

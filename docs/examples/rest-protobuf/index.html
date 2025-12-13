@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>REST + Protobuf Example - Synth Protocol</title>
+    <!-- protobuf.js für Browser -->
+    <script src="https://cdn.jsdelivr.net/npm/protobufjs@7.2.6/dist/protobuf.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-card: #21262d;
+            --text-primary: #e6edf3;
+            --text-secondary: #8b949e;
+            --accent: #58a6ff;
+            --success: #3fb950;
+            --warning: #d29922;
+            --error: #f85149;
+            --border: #30363d;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 2rem;
+            line-height: 1.5;
+        }
+
+        .container { max-width: 1200px; margin: 0 auto; }
+
+        h1 { color: var(--accent); margin-bottom: 0.5rem; }
+        h2 {
+            color: var(--text-primary);
+            font-size: 1.1rem;
+            margin: 2rem 0 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+        h3 { color: var(--accent); font-size: 0.95rem; margin-bottom: 1rem; }
+
+        .subtitle { color: var(--text-secondary); margin-bottom: 1.5rem; }
+
+        .highlight-box {
+            background: linear-gradient(135deg, #1a3a1a 0%, #0d1117 100%);
+            border: 1px solid var(--success);
+            border-radius: 8px;
+            padding: 1.25rem;
+            margin-bottom: 2rem;
+        }
+
+        .highlight-box h3 { color: var(--success); margin-bottom: 0.75rem; }
+        .highlight-box ul { margin-left: 1.5rem; color: var(--text-secondary); }
+        .highlight-box li { margin: 0.25rem 0; }
+
+        .comparison {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+
+        .comparison-item {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .comparison-item.recommended {
+            border-color: var(--success);
+            background: linear-gradient(180deg, #1a3a1a 0%, var(--bg-secondary) 100%);
+        }
+
+        .comparison-item h4 {
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .comparison-item .size {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--accent);
+        }
+
+        .comparison-item.recommended .size { color: var(--success); }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.5rem;
+        }
+
+        label {
+            display: block;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin-bottom: 0.25rem;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            margin-bottom: 0.75rem;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.9rem;
+        }
+
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        button {
+            background: var(--accent);
+            color: var(--bg-primary);
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        button:hover { opacity: 0.9; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .btn-group { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
+
+        .output {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 1rem;
+            margin-top: 1rem;
+            font-family: 'SF Mono', 'Consolas', monospace;
+            font-size: 0.8rem;
+            max-height: 280px;
+            overflow-y: auto;
+        }
+
+        .output-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem;
+            background: var(--bg-card);
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+            font-size: 0.75rem;
+        }
+
+        .output-size {
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+
+        .size-json { background: rgba(210, 153, 34, 0.2); color: var(--warning); }
+        .size-proto { background: rgba(63, 185, 80, 0.2); color: var(--success); }
+
+        pre {
+            background: var(--bg-card);
+            padding: 1rem;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 0.8rem;
+            border: 1px solid var(--border);
+        }
+
+        code {
+            font-family: 'SF Mono', 'Consolas', monospace;
+        }
+
+        .inline-code {
+            background: var(--bg-card);
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+        }
+
+        .method-badge {
+            display: inline-block;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-right: 0.5rem;
+        }
+
+        .method-get { background: rgba(88, 166, 255, 0.2); color: var(--accent); }
+        .method-post { background: rgba(63, 185, 80, 0.2); color: var(--success); }
+        .method-put { background: rgba(210, 153, 34, 0.2); color: var(--warning); }
+        .method-delete { background: rgba(248, 81, 73, 0.2); color: var(--error); }
+
+        .tabs {
+            display: flex;
+            gap: 0.25rem;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0;
+        }
+
+        .tab {
+            padding: 0.5rem 1rem;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -1px;
+        }
+
+        .tab.active {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+        }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>REST + Protobuf Hybrid</h1>
+        <p class="subtitle">Kompakte Binary-Payloads ohne gRPC-Infrastruktur</p>
+
+        <div class="highlight-box">
+            <h3>Warum REST + Protobuf?</h3>
+            <ul>
+                <li><strong>Kein Proxy nötig</strong> - Direkter HTTP-Aufruf zum Server</li>
+                <li><strong>Bekannte REST-Semantik</strong> - GET, POST, PUT, DELETE wie gewohnt</li>
+                <li><strong>Kompakte Payloads</strong> - ~30-50% kleiner als JSON</li>
+                <li><strong>Typsicherheit</strong> - Generierte Klassen aus .proto Dateien</li>
+                <li><strong>Einfache Migration</strong> - Bestehende REST-APIs schrittweise umstellen</li>
+            </ul>
+        </div>
+
+        <h2>Payload-Größenvergleich</h2>
+        <div class="comparison">
+            <div class="comparison-item">
+                <h4>JSON (uncompressed)</h4>
+                <div class="size" id="jsonSize">-</div>
+                <div style="color: var(--text-secondary); font-size: 0.8rem;">text/json</div>
+            </div>
+            <div class="comparison-item recommended">
+                <h4>Protobuf</h4>
+                <div class="size" id="protoSize">-</div>
+                <div style="color: var(--text-secondary); font-size: 0.8rem;">application/x-protobuf</div>
+            </div>
+            <div class="comparison-item">
+                <h4>Ersparnis</h4>
+                <div class="size" id="savings">-</div>
+                <div style="color: var(--text-secondary); font-size: 0.8rem;">weniger Bytes</div>
+            </div>
+        </div>
+
+        <h2>API Endpunkte</h2>
+
+        <div class="grid">
+            <!-- GET User -->
+            <div class="card">
+                <h3><span class="method-badge method-get">GET</span>/api/users/{id}</h3>
+                <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1rem;">
+                    User-Daten abrufen
+                </p>
+
+                <label for="getUserId">User ID:</label>
+                <input type="text" id="getUserId" value="user_123">
+
+                <div class="btn-group">
+                    <button onclick="getUser('json')">JSON</button>
+                    <button onclick="getUser('protobuf')">Protobuf</button>
+                </div>
+
+                <div class="output" id="getUserOutput">
+                    <div style="color: var(--text-secondary);">Klicke einen Button...</div>
+                </div>
+            </div>
+
+            <!-- GET Projects -->
+            <div class="card">
+                <h3><span class="method-badge method-get">GET</span>/api/projects</h3>
+                <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1rem;">
+                    Projekt-Liste mit Paginierung
+                </p>
+
+                <label for="ownerId">Owner ID:</label>
+                <input type="text" id="ownerId" value="user_123">
+
+                <label for="pageSize">Page Size:</label>
+                <input type="number" id="pageSize" value="10" min="1" max="100">
+
+                <div class="btn-group">
+                    <button onclick="listProjects('json')">JSON</button>
+                    <button onclick="listProjects('protobuf')">Protobuf</button>
+                </div>
+
+                <div class="output" id="listProjectsOutput">
+                    <div style="color: var(--text-secondary);">Klicke einen Button...</div>
+                </div>
+            </div>
+
+            <!-- POST Project -->
+            <div class="card">
+                <h3><span class="method-badge method-post">POST</span>/api/projects</h3>
+                <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1rem;">
+                    Neues Projekt erstellen
+                </p>
+
+                <label for="projectName">Name:</label>
+                <input type="text" id="projectName" value="Neues Projekt">
+
+                <label for="projectDesc">Beschreibung:</label>
+                <textarea id="projectDesc" rows="2">Ein Beispielprojekt mit Protobuf-Payload</textarea>
+
+                <div class="btn-group">
+                    <button onclick="createProject('json')">JSON senden</button>
+                    <button onclick="createProject('protobuf')">Protobuf senden</button>
+                </div>
+
+                <div class="output" id="createProjectOutput">
+                    <div style="color: var(--text-secondary);">Klicke einen Button...</div>
+                </div>
+            </div>
+
+            <!-- Live Comparison -->
+            <div class="card">
+                <h3>Live Größenvergleich</h3>
+                <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1rem;">
+                    Eigene Daten eingeben und Größe vergleichen
+                </p>
+
+                <label for="customData">JSON Daten:</label>
+                <textarea id="customData" rows="5">{
+  "id": "proj_12345",
+  "name": "Mein Projekt",
+  "description": "Eine längere Beschreibung mit mehr Text",
+  "owner_id": "user_abc",
+  "tag_ids": ["tag_1", "tag_2", "tag_3"],
+  "status": 1
+}</textarea>
+
+                <button onclick="compareSize()">Größe vergleichen</button>
+
+                <div class="output" id="compareOutput">
+                    <div style="color: var(--text-secondary);">JSON eingeben und vergleichen...</div>
+                </div>
+            </div>
+        </div>
+
+        <h2>Implementierung</h2>
+
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('browser')">Browser (JS)</button>
+            <button class="tab" onclick="showTab('java')">Java Server</button>
+            <button class="tab" onclick="showTab('headers')">HTTP Headers</button>
+        </div>
+
+        <div id="browserTab" class="tab-content active">
+            <pre><code>// Browser-Client mit protobuf.js
+
+// 1. Proto-Definition laden (oder als generierte JS-Datei)
+const root = await protobuf.load('rest-protobuf-example.proto');
+const Project = root.lookupType('synth.example.Project');
+const CreateProjectRequest = root.lookupType('synth.example.CreateProjectRequest');
+
+// 2. Request mit Protobuf-Payload senden
+async function createProject(data) {
+    // Objekt zu Protobuf serialisieren
+    const message = CreateProjectRequest.create(data);
+    const buffer = CreateProjectRequest.encode(message).finish();
+
+    const response = await fetch('/api/projects', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-protobuf',
+            'Accept': 'application/x-protobuf'
+        },
+        body: buffer
+    });
+
+    // Protobuf Response dekodieren
+    const responseBuffer = await response.arrayBuffer();
+    const decoded = CreateProjectResponse.decode(new Uint8Array(responseBuffer));
+
+    return decoded.toJSON();
+}
+
+// 3. Oder JSON anfordern (Server entscheidet via Accept-Header)
+async function getProjectAsJson(id) {
+    const response = await fetch(`/api/projects/${id}`, {
+        headers: { 'Accept': 'application/json' }
+    });
+    return response.json();
+}</code></pre>
+        </div>
+
+        <div id="javaTab" class="tab-content">
+            <pre><code>// Java Spring Boot Controller mit Protobuf Support
+
+@RestController
+@RequestMapping("/api")
+public class ProjectController {
+
+    // Protobuf HTTP Message Converter registrieren
+    @Bean
+    public ProtobufHttpMessageConverter protobufHttpMessageConverter() {
+        return new ProtobufHttpMessageConverter();
+    }
+
+    // GET mit Content Negotiation (JSON oder Protobuf)
+    @GetMapping(value = "/projects/{id}",
+                produces = { "application/x-protobuf", "application/json" })
+    public Project getProject(@PathVariable String id) {
+        return projectService.findById(id);
+    }
+
+    // POST mit Protobuf Request Body
+    @PostMapping(value = "/projects",
+                 consumes = "application/x-protobuf",
+                 produces = "application/x-protobuf")
+    public CreateProjectResponse createProject(
+            @RequestBody CreateProjectRequest request) {
+
+        Project project = projectService.create(
+            request.getName(),
+            request.getDescription(),
+            request.getTagIdsList()
+        );
+
+        return CreateProjectResponse.newBuilder()
+            .setProject(project)
+            .build();
+    }
+
+    // Endpoint der beides akzeptiert
+    @PostMapping(value = "/projects/flexible",
+                 consumes = { "application/x-protobuf", "application/json" },
+                 produces = { "application/x-protobuf", "application/json" })
+    public CreateProjectResponse createFlexible(
+            @RequestBody CreateProjectRequest request) {
+        // Gleiche Logik - Spring handelt Serialisierung automatisch
+        return createProject(request);
+    }
+}</code></pre>
+        </div>
+
+        <div id="headersTab" class="tab-content">
+            <pre><code>// HTTP Request mit Protobuf
+
+POST /api/projects HTTP/1.1
+Host: api.example.com
+Content-Type: application/x-protobuf
+Accept: application/x-protobuf
+Content-Length: 42
+
+[Binary Protobuf Data]
+
+---
+
+// HTTP Response
+
+HTTP/1.1 201 Created
+Content-Type: application/x-protobuf
+Content-Length: 67
+
+[Binary Protobuf Data]
+
+---
+
+// Content Negotiation - Server wählt Format basierend auf Accept
+
+// Client will Protobuf:
+Accept: application/x-protobuf
+
+// Client will JSON:
+Accept: application/json
+
+// Client akzeptiert beides (Protobuf bevorzugt):
+Accept: application/x-protobuf, application/json;q=0.9
+
+---
+
+// MIME Types:
+// - application/x-protobuf (Standard)
+// - application/protobuf
+// - application/vnd.google.protobuf</code></pre>
+        </div>
+
+        <h2>Vorteile dieses Ansatzes</h2>
+        <div class="card">
+            <table style="width: 100%; border-collapse: collapse;">
+                <tr style="border-bottom: 1px solid var(--border);">
+                    <td style="padding: 0.75rem; color: var(--text-secondary);">Proxy</td>
+                    <td style="padding: 0.75rem;"><span style="color: var(--success);">Nicht nötig</span> - Direkter HTTP-Aufruf</td>
+                </tr>
+                <tr style="border-bottom: 1px solid var(--border);">
+                    <td style="padding: 0.75rem; color: var(--text-secondary);">Migration</td>
+                    <td style="padding: 0.75rem;">Schrittweise möglich - einzelne Endpoints umstellen</td>
+                </tr>
+                <tr style="border-bottom: 1px solid var(--border);">
+                    <td style="padding: 0.75rem; color: var(--text-secondary);">Debugging</td>
+                    <td style="padding: 0.75rem;">JSON-Fallback für Browser DevTools</td>
+                </tr>
+                <tr style="border-bottom: 1px solid var(--border);">
+                    <td style="padding: 0.75rem; color: var(--text-secondary);">Caching</td>
+                    <td style="padding: 0.75rem;">Standard HTTP-Caching funktioniert</td>
+                </tr>
+                <tr>
+                    <td style="padding: 0.75rem; color: var(--text-secondary);">Load Balancing</td>
+                    <td style="padding: 0.75rem;">Jeder HTTP Load Balancer funktioniert</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        let protoRoot = null;
+        let types = {};
+
+        // Proto-Definition inline (in echter App: aus .proto Datei laden)
+        const protoDefinition = `
+            syntax = "proto3";
+            package synth.example;
+
+            message User {
+                string id = 1;
+                string name = 2;
+                string email = 3;
+                int64 created_at = 4;
+            }
+
+            message Project {
+                string id = 1;
+                string name = 2;
+                string description = 3;
+                string owner_id = 4;
+                repeated string tag_ids = 5;
+                int32 status = 6;
+            }
+
+            message UserResponse {
+                User user = 1;
+            }
+
+            message ProjectListResponse {
+                repeated Project projects = 1;
+                string next_page_token = 2;
+                int32 total_count = 3;
+            }
+
+            message CreateProjectRequest {
+                string name = 1;
+                string description = 2;
+                repeated string tag_ids = 3;
+            }
+
+            message CreateProjectResponse {
+                Project project = 1;
+            }
+        `;
+
+        // Proto initialisieren
+        async function initProto() {
+            protoRoot = protobuf.parse(protoDefinition).root;
+            types = {
+                User: protoRoot.lookupType('synth.example.User'),
+                Project: protoRoot.lookupType('synth.example.Project'),
+                UserResponse: protoRoot.lookupType('synth.example.UserResponse'),
+                ProjectListResponse: protoRoot.lookupType('synth.example.ProjectListResponse'),
+                CreateProjectRequest: protoRoot.lookupType('synth.example.CreateProjectRequest'),
+                CreateProjectResponse: protoRoot.lookupType('synth.example.CreateProjectResponse')
+            };
+            console.log('Protobuf types loaded');
+        }
+
+        initProto();
+
+        // Simulierte Server-Daten
+        function getMockUser(id) {
+            return {
+                user: {
+                    id: id,
+                    name: 'Max Mustermann',
+                    email: 'max.mustermann@example.com',
+                    createdAt: Date.now()
+                }
+            };
+        }
+
+        function getMockProjects() {
+            return {
+                projects: [
+                    { id: 'proj_1', name: 'Synth Core', description: 'Das Hauptprojekt für die Synth-Plattform', ownerId: 'user_123', tagIds: ['important', 'active'], status: 1 },
+                    { id: 'proj_2', name: 'Plugin SDK', description: 'SDK für Plugin-Entwicklung', ownerId: 'user_123', tagIds: ['sdk'], status: 1 },
+                    { id: 'proj_3', name: 'Documentation', description: 'Technische Dokumentation', ownerId: 'user_123', tagIds: ['docs'], status: 1 }
+                ],
+                nextPageToken: 'token_xyz',
+                totalCount: 15
+            };
+        }
+
+        function formatOutput(elementId, format, data, jsonSize, protoSize) {
+            const el = document.getElementById(elementId);
+
+            const savings = jsonSize > 0 ? Math.round((1 - protoSize / jsonSize) * 100) : 0;
+
+            el.innerHTML = `
+                <div class="output-header">
+                    <span>Format: ${format.toUpperCase()}</span>
+                    <span>
+                        <span class="output-size size-json">JSON: ${jsonSize} bytes</span>
+                        <span class="output-size size-proto">Proto: ${protoSize} bytes</span>
+                        <span style="margin-left: 0.5rem; color: var(--success);">-${savings}%</span>
+                    </span>
+                </div>
+                <pre style="margin: 0; background: transparent; border: none; padding: 0;">${JSON.stringify(data, null, 2)}</pre>
+            `;
+
+            // Update comparison
+            document.getElementById('jsonSize').textContent = jsonSize + ' B';
+            document.getElementById('protoSize').textContent = protoSize + ' B';
+            document.getElementById('savings').textContent = savings + '%';
+        }
+
+        async function getUser(format) {
+            const userId = document.getElementById('getUserId').value;
+            const data = getMockUser(userId);
+
+            // JSON Größe
+            const jsonStr = JSON.stringify(data);
+            const jsonSize = new TextEncoder().encode(jsonStr).length;
+
+            // Protobuf Größe
+            const message = types.UserResponse.create(data);
+            const protoBuffer = types.UserResponse.encode(message).finish();
+            const protoSize = protoBuffer.length;
+
+            formatOutput('getUserOutput', format, data, jsonSize, protoSize);
+        }
+
+        async function listProjects(format) {
+            const data = getMockProjects();
+
+            const jsonStr = JSON.stringify(data);
+            const jsonSize = new TextEncoder().encode(jsonStr).length;
+
+            const message = types.ProjectListResponse.create(data);
+            const protoBuffer = types.ProjectListResponse.encode(message).finish();
+            const protoSize = protoBuffer.length;
+
+            formatOutput('listProjectsOutput', format, data, jsonSize, protoSize);
+        }
+
+        async function createProject(format) {
+            const name = document.getElementById('projectName').value;
+            const description = document.getElementById('projectDesc').value;
+
+            const requestData = { name, description, tagIds: [] };
+            const responseData = {
+                project: {
+                    id: 'proj_' + Math.random().toString(36).substr(2, 8),
+                    name,
+                    description,
+                    ownerId: 'current_user',
+                    tagIds: [],
+                    status: 1
+                }
+            };
+
+            // Request-Größen
+            const reqJsonSize = new TextEncoder().encode(JSON.stringify(requestData)).length;
+            const reqMessage = types.CreateProjectRequest.create(requestData);
+            const reqProtoSize = types.CreateProjectRequest.encode(reqMessage).finish().length;
+
+            // Response-Größen
+            const resJsonSize = new TextEncoder().encode(JSON.stringify(responseData)).length;
+            const resMessage = types.CreateProjectResponse.create(responseData);
+            const resProtoSize = types.CreateProjectResponse.encode(resMessage).finish().length;
+
+            const el = document.getElementById('createProjectOutput');
+            el.innerHTML = `
+                <div class="output-header">
+                    <span>Request (${format.toUpperCase()})</span>
+                    <span>
+                        <span class="output-size size-json">JSON: ${reqJsonSize}B</span>
+                        <span class="output-size size-proto">Proto: ${reqProtoSize}B</span>
+                    </span>
+                </div>
+                <pre style="margin: 0 0 1rem; background: transparent; border: none; padding: 0;">${JSON.stringify(requestData, null, 2)}</pre>
+                <div class="output-header">
+                    <span>Response</span>
+                    <span>
+                        <span class="output-size size-json">JSON: ${resJsonSize}B</span>
+                        <span class="output-size size-proto">Proto: ${resProtoSize}B</span>
+                    </span>
+                </div>
+                <pre style="margin: 0; background: transparent; border: none; padding: 0;">${JSON.stringify(responseData, null, 2)}</pre>
+            `;
+        }
+
+        async function compareSize() {
+            const jsonInput = document.getElementById('customData').value;
+
+            try {
+                const data = JSON.parse(jsonInput);
+                const jsonSize = new TextEncoder().encode(jsonInput).length;
+
+                // Als Project serialisieren
+                const message = types.Project.create(data);
+                const protoBuffer = types.Project.encode(message).finish();
+                const protoSize = protoBuffer.length;
+
+                const savings = Math.round((1 - protoSize / jsonSize) * 100);
+
+                document.getElementById('compareOutput').innerHTML = `
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; text-align: center;">
+                        <div>
+                            <div style="color: var(--text-secondary); font-size: 0.8rem;">JSON</div>
+                            <div style="font-size: 1.5rem; color: var(--warning);">${jsonSize} B</div>
+                        </div>
+                        <div>
+                            <div style="color: var(--text-secondary); font-size: 0.8rem;">Protobuf</div>
+                            <div style="font-size: 1.5rem; color: var(--success);">${protoSize} B</div>
+                        </div>
+                        <div>
+                            <div style="color: var(--text-secondary); font-size: 0.8rem;">Ersparnis</div>
+                            <div style="font-size: 1.5rem; color: var(--accent);">${savings}%</div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+                        <div style="color: var(--text-secondary); font-size: 0.8rem; margin-bottom: 0.5rem;">Protobuf Hex:</div>
+                        <code style="word-break: break-all; font-size: 0.75rem;">${Array.from(protoBuffer).map(b => b.toString(16).padStart(2, '0')).join(' ')}</code>
+                    </div>
+                `;
+
+                // Update header comparison
+                document.getElementById('jsonSize').textContent = jsonSize + ' B';
+                document.getElementById('protoSize').textContent = protoSize + ' B';
+                document.getElementById('savings').textContent = savings + '%';
+
+            } catch (e) {
+                document.getElementById('compareOutput').innerHTML = `
+                    <div style="color: var(--error);">JSON Parse Error: ${e.message}</div>
+                `;
+            }
+        }
+
+        function showTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+
+            event.target.classList.add('active');
+            document.getElementById(tab + 'Tab').classList.add('active');
+        }
+    </script>
+</body>
+</html>

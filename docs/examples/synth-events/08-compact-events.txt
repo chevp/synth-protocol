@@ -1,0 +1,302 @@
+# =============================================================================
+# SYNTH EVENTS - Compact Event Grammar
+# =============================================================================
+#
+# Fixed 5-Slot Sentence Structure:
+#   [Domain] [Resource] [Action] [Subject] [Modifier + Target]
+#
+# Wire Format:
+#   ┌─────────┬──────────┬────────┬──────────┬──────────────────┐
+#   │ Domain  │ Resource │ Action │ Modifier │ Subject + Target │
+#   │ 4 bits  │ 4 bits   │ 5 bits │ 4 bits   │ variable         │
+#   └─────────┴──────────┴────────┴──────────┴──────────────────┘
+#   Total header: ~2 bytes + variable strings
+#
+# =============================================================================
+
+# =============================================================================
+# ENUM REFERENCE
+# =============================================================================
+#
+# Domain (Slot 1):
+#   0=UNSPECIFIED, 1=SCENE, 2=CLUSTER, 3=COMPONENT, 4=MCP,
+#   5=AGENT, 6=PROJECT, 7=ASSET, 8=PLUGIN, 9=SYSTEM
+#
+# Resource (Slot 2):
+#   0=NONE, 1=NODE, 2=SERVER, 3=TOOL, 4=TASK,
+#   5=SELECTION, 6=FOLDER, 7=FILE, 8=SETTING, 9=SESSION
+#
+# Action (Slot 3):
+#   0=UNSPECIFIED, 1=CREATE, 2=UPDATE, 3=DELETE,
+#   4=START, 5=STOP, 6=ENABLE, 7=DISABLE,
+#   8=MOVE, 9=RENAME, 10=SELECT,
+#   11=CONNECT, 12=DISCONNECT, 13=RECONNECT,
+#   14=INVOKE, 15=COMPLETE, 16=FAIL, 17=CANCEL,
+#   18=PROGRESS, 19=HEALTH, 20=ERROR,
+#   21=REGISTER, 22=UNREGISTER,
+#   23=INIT, 24=OPEN, 25=SAVE, 26=CLOSE
+#
+# Modifier (Slot 5):
+#   0=NONE, 1=TO, 2=FROM, 3=IN, 4=WITH, 5=BY, 6=FOR, 7=ON, 8=AT
+#
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# FORMAT: Human-readable vs Binary
+# -----------------------------------------------------------------------------
+#
+# Human-readable (CLI/Debug):
+#   cluster node create node_tree_01 in scene_outdoor
+#   ─────── ──── ────── ──────────── ── ─────────────
+#   Domain  Res  Action Subject      Mod Target
+#
+# Binary (Wire):
+#   [0x02][0x01][0x01][0x03]["node_tree_01"]["scene_outdoor"]
+#   Cluster Node Create  In   Subject        Target
+#
+# Protobuf (CompactEvent):
+#   {
+#     domain: DOMAIN_CLUSTER,
+#     resource: RESOURCE_NODE,
+#     action: ACTION_CREATE,
+#     subject_id: "node_tree_01",
+#     modifier: MODIFIER_IN,
+#     modifier_target: "scene_outdoor"
+#   }
+#
+# -----------------------------------------------------------------------------
+
+# =============================================================================
+# CLUSTER EVENTS
+# =============================================================================
+
+# Create node in scene
+cluster node create node_tree_01 in scene_outdoor
+# Binary: [2][1][1][3]["node_tree_01"]["scene_outdoor"]
+
+# Move node to folder
+cluster node move node_tree_01 to folder_vegetation
+# Binary: [2][1][8][1]["node_tree_01"]["folder_vegetation"]
+
+# Rename node (no modifier needed)
+cluster node rename node_tree_01
+# Binary: [2][1][9][0]["node_tree_01"][]
+# Note: new name goes in args: {"name": "Ancient Oak"}
+
+# Delete node from scene
+cluster node delete node_tree_01 from scene_outdoor
+# Binary: [2][1][3][2]["node_tree_01"]["scene_outdoor"]
+
+# Select multiple nodes
+cluster selection create selection_001 in scene_outdoor
+# Binary: [2][5][1][3]["selection_001"]["scene_outdoor"]
+# Note: node list goes in args: {"nodes": "node_01,node_02,node_03"}
+
+# =============================================================================
+# COMPONENT EVENTS
+# =============================================================================
+
+# Create component on node
+component node create comp_transform_01 on node_tree_01
+# Binary: [3][1][1][7]["comp_transform_01"]["node_tree_01"]
+# Note: type goes in args: {"type": "transform"}
+
+# Update component with new values
+component node update comp_transform_01 on node_tree_01
+# Binary: [3][1][2][7]["comp_transform_01"]["node_tree_01"]
+# Note: changed field goes in args: {"field": "position"}
+
+# Enable/Disable component
+component node enable comp_material_01 on node_tree_01
+# Binary: [3][1][6][7]["comp_material_01"]["node_tree_01"]
+
+component node disable comp_material_01 on node_tree_01
+# Binary: [3][1][7][7]["comp_material_01"]["node_tree_01"]
+
+# =============================================================================
+# MCP SERVER EVENTS
+# =============================================================================
+
+# Start MCP server
+mcp server start mcp_vision
+# Binary: [4][2][4][0]["mcp_vision"][]
+# Note: transport goes in args: {"transport": "stdio", "version": "1.0.0"}
+
+# Server health check
+mcp server health mcp_vision
+# Binary: [4][2][19][0]["mcp_vision"][]
+# Note: health info in args: {"healthy": "true", "latency": "45"}
+
+# Invoke MCP tool on server
+mcp tool invoke vision_analyze on mcp_vision
+# Binary: [4][3][14][7]["vision_analyze"]["mcp_vision"]
+# Note: invocation ID in args: {"invocation": "inv_001"}
+
+# Tool completed
+mcp tool complete vision_analyze by mcp_vision
+# Binary: [4][3][15][5]["vision_analyze"]["mcp_vision"]
+# Note: result in args: {"invocation": "inv_001", "duration": "1234"}
+
+# Tool failed
+mcp tool fail vision_segment on mcp_vision
+# Binary: [4][3][16][7]["vision_segment"]["mcp_vision"]
+# Note: error in args: {"error": "timeout", "duration": "30000"}
+
+# Server disconnected
+mcp server disconnect mcp_vision
+# Binary: [4][2][12][0]["mcp_vision"][]
+# Note: reason in args: {"reason": "crash", "exit_code": "1"}
+
+# Register new tool
+mcp tool register vision_upscale on mcp_vision
+# Binary: [4][3][21][7]["vision_upscale"]["mcp_vision"]
+
+# =============================================================================
+# AGENT EVENTS
+# =============================================================================
+
+# Create agent
+agent none create agent_vision_01
+# Binary: [5][0][1][0]["agent_vision_01"][]
+# Note: type in args: {"type": "reactive", "name": "Vision Analyzer"}
+
+# Start agent
+agent none start agent_vision_01
+# Binary: [5][0][4][0]["agent_vision_01"][]
+
+# Create task for agent
+agent task create task_001 for agent_vision_01
+# Binary: [5][4][1][6]["task_001"]["agent_vision_01"]
+# Note: task info in args: {"type": "analyze", "priority": "normal"}
+
+# Task progress
+agent task progress task_001 by agent_vision_01
+# Binary: [5][4][18][5]["task_001"]["agent_vision_01"]
+# Note: progress in args: {"progress": "50", "msg": "Analyzing"}
+
+# Task complete
+agent task complete task_001 by agent_vision_01
+# Binary: [5][4][15][5]["task_001"]["agent_vision_01"]
+# Note: result in args: {"duration": "2000"}
+
+# Task failed
+agent task fail task_002 by agent_vision_01
+# Binary: [5][4][16][5]["task_002"]["agent_vision_01"]
+# Note: error in args: {"error": "out_of_memory"}
+
+# Agent error
+agent none error agent_vision_01
+# Binary: [5][0][20][0]["agent_vision_01"][]
+# Note: error in args: {"error": "gpu_failure"}
+
+# =============================================================================
+# PROJECT EVENTS
+# =============================================================================
+
+# Initialize project
+project none init demo_project
+# Binary: [6][0][23][0]["demo_project"][]
+# Note: path in args: {"path": "/path/to/demo.synth"}
+
+# Open project
+project file open project_main at /path/to/project.synth
+# Binary: [6][7][24][8]["project_main"]["/path/to/project.synth"]
+
+# Save project
+project none save project_main
+# Binary: [6][0][25][0]["project_main"][]
+
+# Close project
+project none close project_main
+# Binary: [6][0][26][0]["project_main"][]
+
+# =============================================================================
+# ASSET EVENTS
+# =============================================================================
+
+# Load asset
+asset file load asset_car_model
+# Binary: [7][7][24][0]["asset_car_model"][]
+# Note: priority in args: {"priority": "high"}
+
+# Asset ready
+asset file complete asset_car_model
+# Binary: [7][7][15][0]["asset_car_model"][]
+# Note: size in args: {"size": "5242880", "from_cache": "false"}
+
+# Asset error
+asset file error asset_car_model
+# Binary: [7][7][20][0]["asset_car_model"][]
+# Note: error in args: {"code": "not_found", "retriable": "false"}
+
+# =============================================================================
+# SYSTEM EVENTS
+# =============================================================================
+
+# System session start
+system session start session_001
+# Binary: [9][9][4][0]["session_001"][]
+
+# System setting update
+system setting update setting_theme
+# Binary: [9][8][2][0]["setting_theme"][]
+# Note: value in args: {"value": "dark"}
+
+# =============================================================================
+# BATCH EXAMPLE (JSON)
+# =============================================================================
+#
+# {
+#   "batch_id": "batch_001",
+#   "timestamp": 1702468800000,
+#   "events": [
+#     {
+#       "domain": 2, "resource": 1, "action": 1,
+#       "subject_id": "node_01", "modifier": 3, "modifier_target": "scene_01"
+#     },
+#     {
+#       "domain": 3, "resource": 1, "action": 1,
+#       "subject_id": "comp_01", "modifier": 7, "modifier_target": "node_01",
+#       "args": {"type": "transform"}
+#     },
+#     {
+#       "domain": 5, "resource": 4, "action": 4,
+#       "subject_id": "task_01", "modifier": 6, "modifier_target": "agent_01"
+#     }
+#   ]
+# }
+#
+# =============================================================================
+
+# =============================================================================
+# URI MAPPING
+# =============================================================================
+#
+# Compact Event → URI:
+#   cluster node create node_01 in scene_01
+#   → synth://cluster/node/create#node_01?in=scene_01
+#
+# URI → Compact Event:
+#   synth://mcp/tool/invoke#vision_analyze?on=mcp_vision
+#   → mcp tool invoke vision_analyze on mcp_vision
+#
+# =============================================================================
+
+# =============================================================================
+# WIRE FORMAT EFFICIENCY
+# =============================================================================
+#
+# Comparison for "cluster node create node_tree_01 in scene_outdoor":
+#
+# Format          | Size (bytes) | Notes
+# ----------------|--------------|----------------------------------
+# Full URI String |     ~60      | synth://cluster/node/create#...
+# JSON            |     ~120     | {"domain":"cluster",...}
+# Protobuf (full) |     ~45      | Full Event message
+# CompactEvent    |     ~35      | Optimized 5-slot grammar
+# Binary (packed) |     ~25      | Hand-optimized binary
+#
+# CompactEvent provides ~40% size reduction vs full URI strings
+# while maintaining full type safety via protobuf.
+#
+# =============================================================================
