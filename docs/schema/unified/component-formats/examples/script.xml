@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="script" version="1.0"
+           xmlns="http://synth.io/component/1.0">
+    <asset uuid="asset-script-001" path="scripts/player_controller.lua"/>
+    <class>PlayerController</class>
+    <enabled>true</enabled>
+
+    <properties>
+        <property name="moveSpeed" type="float">5.0</property>
+        <property name="jumpForce" type="float">8.0</property>
+        <property name="turnSpeed" type="float">180</property>
+        <property name="groundLayer" type="int">1</property>
+        <property name="playerName" type="string">Hero</property>
+    </properties>
+</component>

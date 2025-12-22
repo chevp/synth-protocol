@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="material" version="1.0"
+           xmlns="http://synth.io/component/1.0">
+    <asset uuid="asset-mat-001"/>
+    <shader id="pbr_standard"/>
+
+    <properties>
+        <property name="roughness" type="float">0.5</property>
+        <property name="metallic" type="float">0.0</property>
+        <property name="tint" type="color">#FF8800FF</property>
+    </properties>
+
+    <textures>
+        <texture slot="albedo">
+            <asset uuid="asset-tex-001" path="textures/character_albedo.png"/>
+            <tiling x="1" y="1"/>
+            <offset x="0" y="0"/>
+        </texture>
+        <texture slot="normal">
+            <asset uuid="asset-tex-002" path="textures/character_normal.png"/>
+        </texture>
+        <texture slot="roughness">
+            <asset uuid="asset-tex-003" path="textures/character_roughness.png"/>
+        </texture>
+    </textures>
+</component>

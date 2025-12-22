@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="mesh" version="1.0"
+           xmlns="http://synth.io/component/1.0">
+    <asset uuid="asset-mesh-001" path="models/character.gltf"/>
+    <lod level="0" bias="0"/>
+    <shadows cast="true" receive="true"/>
+</component>

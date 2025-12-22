@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="camera" version="1.0"
+           xmlns="http://synth.io/component/1.0">
+    <projection>perspective</projection>
+    <fov>60</fov>
+    <near>0.1</near>
+    <far>1000</far>
+
+    <viewport x="0" y="0" z="1" w="1"/>
+    <clear-color r="0.1" g="0.1" b="0.15" a="1"/>
+    <clear>solid-color</clear>
+
+    <depth>0</depth>
+</component>

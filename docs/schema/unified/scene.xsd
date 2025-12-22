@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Synth Scene Schema (scene.xsd)
+
+    Defines the full scene format for synth (.scene.synth.xml)
+    Used by: synth-sdk, imkaluk game engine, frost-studio
+
+    Root element: <synth>
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           targetNamespace="https://chevp.github.io/synth-protocol/schema/unified/scene/1.0"
+           xmlns:s="https://chevp.github.io/synth-protocol/schema/unified/scene/1.0"
+           elementFormDefault="qualified">
+
+    <!-- =================================================================== -->
+    <!-- ROOT ELEMENT                                                        -->
+    <!-- =================================================================== -->
+
+    <xs:element name="synth" type="s:SynthSceneType"/>
+
+    <xs:complexType name="SynthSceneType">
+        <xs:sequence>
+            <xs:element name="metadata" type="s:MetadataType" minOccurs="0"/>
+            <xs:element name="settings" type="s:SettingsType" minOccurs="0"/>
+            <xs:element name="environment" type="s:EnvironmentType" minOccurs="0"/>
+            <xs:element name="entities" type="s:EntitiesContainerType"/>
+            <xs:element name="assets" type="s:AssetsContainerType" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="uuid" type="xs:string" use="required"/>
+        <xs:attribute name="version" type="xs:string" default="1"/>
+    </xs:complexType>
+
+    <!-- =================================================================== -->
+    <!-- METADATA                                                            -->
+    <!-- =================================================================== -->
+
+    <xs:complexType name="MetadataType">
+        <xs:sequence>
+            <xs:element name="name" type="xs:string"/>
+            <xs:element name="description" type="xs:string" minOccurs="0"/>
+            <xs:element name="created-at" type="xs:long" minOccurs="0"/>
+            <xs:element name="updated-at" type="xs:long" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- =================================================================== -->
+    <!-- SETTINGS                                                            -->
+    <!-- =================================================================== -->
+
+    <xs:complexType name="SettingsType">
+        <xs:sequence>
+            <xs:element name="gravity" type="s:Vec3Type" minOccurs="0"/>
+            <xs:element name="time-scale" type="xs:float" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- =================================================================== -->
+    <!-- ENVIRONMENT                                                         -->
+    <!-- =================================================================== -->
+
+    <xs:complexType name="EnvironmentType">
+        <xs:sequence>
+            <xs:element name="ambient-color" type="s:ColorType" minOccurs="0"/>
+            <xs:element name="fog" minOccurs="0">
+                <xs:complexType>
+                    <xs:attribute name="enabled" type="xs:boolean" default="false"/>
+                    <xs:attribute name="density" type="xs:float" default="0.01"/>
+                    <xs:attribute name="color" type="xs:string"/>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="skybox" minOccurs="0">
+                <xs:complexType>
+                    <xs:attribute name="asset" type="xs:string"/>
+                </xs:complexType>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- =================================================================== -->
+    <!-- ENTITIES                                                            -->
+    <!-- =================================================================== -->
+
+    <xs:complexType name="EntitiesContainerType">
+        <xs:sequence>
+            <xs:element name="entity" type="s:EntityType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="EntityType">
+        <xs:sequence>
+            <xs:element name="components" type="s:ComponentsContainerType" minOccurs="0"/>
+            <!-- Nested entities for hierarchy -->
+            <xs:element name="entity" type="s:EntityType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="uuid" type="xs:string" use="required"/>
+        <xs:attribute name="name" type="xs:string"/>
+        <xs:attribute name="type" type="xs:string" default="prop"/>
+        <xs:attribute name="state" type="xs:string" default="active"/>
+    </xs:complexType>
+
+    <!-- =================================================================== -->
+    <!-- COMPONENTS                                                          -->
+    <!-- =================================================================== -->
+
+    <xs:complexType name="ComponentsContainerType">
+        <xs:sequence>
+            <xs:element name="component" type="s:ComponentType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="ComponentType" mixed="true">
+        <xs:sequence>
+            <!-- Allow any child elements for flexible component content -->
+            <xs:any minOccurs="0" maxOccurs="unbounded" processContents="lax"/>
+        </xs:sequence>
+        <xs:attribute name="uuid" type="xs:string" use="required"/>
+        <xs:attribute name="type" type="xs:string" use="required"/>
+        <xs:attribute name="content-type" type="xs:string" default="application/xml"/>
+    </xs:complexType>
+
+    <!-- =================================================================== -->
+    <!-- ASSETS                                                              -->
+    <!-- =================================================================== -->
+
+    <xs:complexType name="AssetsContainerType">
+        <xs:sequence>
+            <xs:element name="asset" type="s:AssetType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="AssetType">
+        <xs:attribute name="uuid" type="xs:string" use="required"/>
+        <xs:attribute name="type" type="xs:string" use="required"/>
+        <xs:attribute name="path" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <!-- =================================================================== -->
+    <!-- COMMON TYPES                                                        -->
+    <!-- =================================================================== -->
+
+    <xs:complexType name="Vec3Type">
+        <xs:attribute name="x" type="xs:float" use="required"/>
+        <xs:attribute name="y" type="xs:float" use="required"/>
+        <xs:attribute name="z" type="xs:float" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="Vec4Type">
+        <xs:attribute name="x" type="xs:float" use="required"/>
+        <xs:attribute name="y" type="xs:float" use="required"/>
+        <xs:attribute name="z" type="xs:float" use="required"/>
+        <xs:attribute name="w" type="xs:float" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="QuatType">
+        <xs:attribute name="x" type="xs:float" default="0"/>
+        <xs:attribute name="y" type="xs:float" default="0"/>
+        <xs:attribute name="z" type="xs:float" default="0"/>
+        <xs:attribute name="w" type="xs:float" default="1"/>
+    </xs:complexType>
+
+    <xs:complexType name="ColorType">
+        <xs:attribute name="r" type="xs:float" default="1"/>
+        <xs:attribute name="g" type="xs:float" default="1"/>
+        <xs:attribute name="b" type="xs:float" default="1"/>
+        <xs:attribute name="a" type="xs:float" default="1"/>
+    </xs:complexType>
+
+</xs:schema>

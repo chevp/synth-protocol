@@ -1,0 +1,158 @@
+<!--
+    Component: state_machine
+    Content-Type: application/xml
+    Entity: player-001 (oder als Template für EntityType)
+-->
+<component type="state_machine" version="1.0"
+           xmlns="http://synth.io/component/1.0">
+
+    <state-machine name="movement" initial="IDLE">
+
+        <!-- States -->
+        <states>
+            <state id="IDLE" display="Idle">
+                <properties>
+                    <property name="canInteract" type="bool">true</property>
+                    <property name="animationBlend" type="float">0</property>
+                </properties>
+            </state>
+
+            <state id="WALKING" display="Walking">
+                <properties>
+                    <property name="moveSpeed" type="float">2.5</property>
+                    <property name="canInteract" type="bool">true</property>
+                </properties>
+            </state>
+
+            <state id="RUNNING" display="Running">
+                <properties>
+                    <property name="moveSpeed" type="float">5.0</property>
+                    <property name="staminaDrain" type="float">10</property>
+                </properties>
+            </state>
+
+            <state id="SPRINTING" display="Sprinting">
+                <properties>
+                    <property name="moveSpeed" type="float">8.0</property>
+                    <property name="staminaDrain" type="float">25</property>
+                </properties>
+            </state>
+
+            <state id="JUMPING" display="Jumping">
+                <properties>
+                    <property name="canControl" type="bool">false</property>
+                </properties>
+            </state>
+
+            <state id="FALLING" display="Falling">
+                <properties>
+                    <property name="canControl" type="bool">false</property>
+                </properties>
+            </state>
+        </states>
+
+        <!-- Transitions -->
+        <transitions>
+            <!-- IDLE transitions -->
+            <transition from="IDLE" to="WALKING">
+                <triggers>
+                    <trigger>input_move</trigger>
+                </triggers>
+                <conditions>
+                    <condition type="input" axis="movement" op="gt" value="0.1"/>
+                </conditions>
+            </transition>
+
+            <transition from="IDLE" to="JUMPING">
+                <triggers>
+                    <trigger>input_jump</trigger>
+                </triggers>
+                <conditions>
+                    <condition type="grounded" value="true"/>
+                </conditions>
+            </transition>
+
+            <!-- WALKING transitions -->
+            <transition from="WALKING" to="IDLE">
+                <conditions>
+                    <condition type="input" axis="movement" op="lt" value="0.1"/>
+                </conditions>
+            </transition>
+
+            <transition from="WALKING" to="RUNNING">
+                <triggers>
+                    <trigger>input_sprint</trigger>
+                </triggers>
+                <conditions>
+                    <condition type="resource" name="stamina" op="gt" value="10"/>
+                </conditions>
+            </transition>
+
+            <transition from="WALKING" to="JUMPING">
+                <triggers>
+                    <trigger>input_jump</trigger>
+                </triggers>
+                <conditions>
+                    <condition type="grounded" value="true"/>
+                </conditions>
+            </transition>
+
+            <!-- RUNNING transitions -->
+            <transition from="RUNNING" to="WALKING">
+                <triggers>
+                    <trigger>input_sprint_release</trigger>
+                </triggers>
+            </transition>
+
+            <transition from="RUNNING" to="SPRINTING">
+                <conditions>
+                    <condition type="input" axis="movement" op="gt" value="0.9"/>
+                    <condition type="resource" name="stamina" op="gt" value="25"/>
+                </conditions>
+            </transition>
+
+            <transition from="RUNNING" to="IDLE">
+                <conditions>
+                    <condition type="input" axis="movement" op="lt" value="0.1"/>
+                </conditions>
+            </transition>
+
+            <!-- SPRINTING transitions -->
+            <transition from="SPRINTING" to="RUNNING">
+                <conditions>
+                    <condition type="resource" name="stamina" op="lt" value="5"/>
+                </conditions>
+            </transition>
+
+            <!-- JUMPING/FALLING -->
+            <transition from="JUMPING" to="FALLING">
+                <conditions>
+                    <condition type="velocity" axis="y" op="lt" value="0"/>
+                </conditions>
+            </transition>
+
+            <transition from="FALLING" to="IDLE">
+                <conditions>
+                    <condition type="grounded" value="true"/>
+                </conditions>
+            </transition>
+
+            <!-- Any state can fall -->
+            <transition from="*" to="FALLING">
+                <conditions>
+                    <condition type="grounded" value="false"/>
+                    <condition type="velocity" axis="y" op="lt" value="-1"/>
+                </conditions>
+                <priority>-1</priority>
+            </transition>
+        </transitions>
+
+        <!-- Authority (for multiplayer) -->
+        <authority default="owner">
+            <!-- Server can force certain transitions -->
+            <override state="*" to="IDLE" authority="server"/>
+        </authority>
+
+    </state-machine>
+
+</component>

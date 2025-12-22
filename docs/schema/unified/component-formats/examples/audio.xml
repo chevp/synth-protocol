@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="audio" version="1.0"
+           xmlns="http://synth.io/component/1.0">
+    <asset uuid="asset-audio-001" path="audio/ambient_forest.ogg"/>
+
+    <volume>0.7</volume>
+    <pitch>1.0</pitch>
+    <loop>true</loop>
+    <play-on-awake>true</play-on-awake>
+
+    <!-- 3D Spatial Audio -->
+    <spatial>true</spatial>
+    <min-distance>1</min-distance>
+    <max-distance>50</max-distance>
+    <rolloff>logarithmic</rolloff>
+</component>

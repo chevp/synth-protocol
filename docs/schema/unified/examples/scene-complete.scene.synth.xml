@@ -1,0 +1,441 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="../scene.xsd" type="application/xml" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<!--
+    Synth Scene Export Format
+
+    Dieses XML enthält eine komplette Scene mit:
+    - Scene-Metadaten
+    - Alle Entities (hierarchisch)
+    - Alle Components pro Entity
+
+    Kann direkt vom C++ Renderer geladen werden.
+    Entspricht 1:1 dem SQLite-Schema (unified-schema.sql)
+-->
+<synth xmlns="https://chevp.github.io/synth-protocol/schema/unified/scene/1.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://chevp.github.io/synth-protocol/schema/unified/scene/1.0 ../scene.xsd" uuid="scene-001" version="1">
+
+    <metadata>
+        <name>Main Level</name>
+        <description>The main game level with player, NPCs and environment</description>
+        <created-at>1703155200000</created-at>
+        <updated-at>1703241600000</updated-at>
+    </metadata>
+
+    <settings>
+        <gravity x="0" y="-9.81" z="0"/>
+        <time-scale>1.0</time-scale>
+    </settings>
+
+    <environment>
+        <ambient-color r="0.1" g="0.1" b="0.15"/>
+        <fog enabled="true" density="0.02" color="#8899aa"/>
+        <skybox asset="asset://textures/skybox_day.ktx2"/>
+    </environment>
+
+    <!-- =================================================================== -->
+    <!-- ENTITIES (hierarchisch) -->
+    <!-- =================================================================== -->
+
+    <entities>
+
+        <!-- WORLD ROOT -->
+        <entity uuid="world-root" name="World" type="root" state="active">
+
+            <!-- =========================================================== -->
+            <!-- ENVIRONMENT -->
+            <!-- =========================================================== -->
+
+            <entity uuid="env-sun" name="Sun" type="light" state="active">
+                <components>
+                    <component uuid="comp-sun-transform" type="transform" content-type="application/xml">
+                        <position x="0" y="100" z="0"/>
+                        <rotation x="-0.5" y="0.1" z="0" w="0.86"/>
+                        <scale x="1" y="1" z="1"/>
+                    </component>
+                    <component uuid="comp-sun-light" type="light" content-type="application/xml">
+                        <light-type>directional</light-type>
+                        <color r="1.0" g="0.95" b="0.8"/>
+                        <intensity>1.5</intensity>
+                        <shadows enabled="true" resolution="2048" bias="0.001"/>
+                    </component>
+                </components>
+            </entity>
+
+            <entity uuid="env-ambient" name="Ambient Audio" type="audio" state="active">
+                <components>
+                    <component uuid="comp-ambient-audio" type="audio" content-type="application/xml">
+                        <asset uuid="asset-audio-forest" path="audio/ambient_forest.ogg"/>
+                        <volume>0.3</volume>
+                        <loop>true</loop>
+                        <play-on-awake>true</play-on-awake>
+                        <spatial>false</spatial>
+                    </component>
+                </components>
+            </entity>
+
+            <!-- =========================================================== -->
+            <!-- PLAYER -->
+            <!-- =========================================================== -->
+
+            <entity uuid="player-001" name="Player" type="player" state="active">
+                <components>
+                    <component uuid="comp-player-transform" type="transform" content-type="application/xml">
+                        <position x="0" y="1.0" z="5"/>
+                        <rotation x="0" y="0" z="0" w="1"/>
+                        <scale x="1" y="1" z="1"/>
+                    </component>
+
+                    <component uuid="comp-player-mesh" type="mesh" content-type="application/xml">
+                        <asset uuid="asset-mesh-player" path="models/characters/player.gltf"/>
+                        <lod level="0" bias="0"/>
+                        <shadows cast="true" receive="true"/>
+                        <render-layer>default</render-layer>
+                    </component>
+
+                    <component uuid="comp-player-physics" type="physics" content-type="application/xml">
+                        <body-type>dynamic</body-type>
+                        <mass>70</mass>
+                        <drag>0.1</drag>
+                        <angular-drag>0.05</angular-drag>
+                        <use-gravity>true</use-gravity>
+                        <freeze-rotation x="true" y="false" z="true"/>
+                        <collider type="capsule">
+                            <center x="0" y="0.9" z="0"/>
+                            <radius>0.3</radius>
+                            <height>1.8</height>
+                        </collider>
+                    </component>
+
+                    <component uuid="comp-player-fsm" type="state_machine" content-type="application/xml">
+                        <state-machine name="movement" initial="IDLE">
+                            <states>
+                                <state id="IDLE" display="Idle">
+                                    <properties>
+                                        <property name="canInteract" type="bool">true</property>
+                                    </properties>
+                                </state>
+                                <state id="WALKING" display="Walking">
+                                    <properties>
+                                        <property name="moveSpeed" type="float">2.5</property>
+                                    </properties>
+                                </state>
+                                <state id="RUNNING" display="Running">
+                                    <properties>
+                                        <property name="moveSpeed" type="float">5.0</property>
+                                        <property name="staminaDrain" type="float">10</property>
+                                    </properties>
+                                </state>
+                                <state id="JUMPING" display="Jumping"/>
+                            </states>
+                            <transitions>
+                                <transition from="IDLE" to="WALKING">
+                                    <triggers>
+                                        <trigger>input_move</trigger>
+                                    </triggers>
+                                </transition>
+                                <transition from="WALKING" to="RUNNING">
+                                    <triggers>
+                                        <trigger>input_sprint</trigger>
+                                    </triggers>
+                                </transition>
+                                <transition from="*" to="JUMPING">
+                                    <triggers>
+                                        <trigger>input_jump</trigger>
+                                    </triggers>
+                                    <conditions>
+                                        <condition type="grounded" value="true"/>
+                                    </conditions>
+                                </transition>
+                            </transitions>
+                        </state-machine>
+                    </component>
+
+                    <!-- Lua Script braucht CDATA wegen < > Zeichen -->
+                    <component uuid="comp-player-script" type="script" content-type="text/x-lua"><![CDATA[
+local PlayerController = {}
+PlayerController.__index = PlayerController
+
+PlayerController.moveSpeed = 5.0
+PlayerController.jumpForce = 8.0
+
+function PlayerController:new(entity)
+    local self = setmetatable({}, PlayerController)
+    self.entity = entity
+    self.isGrounded = false
+    return self
+end
+
+function PlayerController:update(deltaTime)
+    local moveX = Input.getAxis("Horizontal")
+    local moveZ = Input.getAxis("Vertical")
+    local move = Vec3(moveX, 0, moveZ):normalize() * self.moveSpeed
+
+    local transform = self.entity:getComponent("transform")
+    if transform then
+        transform.position = transform.position + move * deltaTime
+    end
+
+    if Input.getButtonDown("Jump") and self.isGrounded then
+        self.entity:requestStateTransition("movement", "JUMPING")
+    end
+end
+
+return PlayerController
+]]>                    </component>
+                </components>
+
+                <!-- Player Child: Camera -->
+                <entity uuid="player-camera" name="Main Camera" type="camera" state="active">
+                    <components>
+                        <component uuid="comp-camera-transform" type="transform" content-type="application/xml">
+                            <position x="0" y="1.6" z="-3"/>
+                            <rotation x="0.1" y="0" z="0" w="0.995"/>
+                            <scale x="1" y="1" z="1"/>
+                        </component>
+                        <component uuid="comp-camera-camera" type="camera" content-type="application/xml">
+                            <projection>perspective</projection>
+                            <fov>60</fov>
+                            <near>0.1</near>
+                            <far>1000</far>
+                            <clear-color r="0.1" g="0.1" b="0.15" a="1"/>
+                        </component>
+                    </components>
+                </entity>
+
+                <!-- Player Child: Weapon Holder -->
+                <entity uuid="player-weapon-holder" name="Weapon Holder" type="prop" state="active">
+                    <components>
+                        <component uuid="comp-weapon-holder-transform" type="transform" content-type="application/xml">
+                            <position x="0.3" y="1.2" z="0.2"/>
+                            <rotation x="0" y="0" z="0" w="1"/>
+                            <scale x="1" y="1" z="1"/>
+                        </component>
+                    </components>
+
+                    <!-- Weapon -->
+                    <entity uuid="player-sword" name="Sword" type="item" state="active">
+                        <components>
+                            <component uuid="comp-sword-transform" type="transform" content-type="application/xml">
+                                <position x="0" y="0" z="0"/>
+                                <rotation x="0" y="0" z="0" w="1"/>
+                                <scale x="1" y="1" z="1"/>
+                            </component>
+                            <component uuid="comp-sword-mesh" type="mesh" content-type="application/xml">
+                                <asset uuid="asset-mesh-sword" path="models/weapons/sword.gltf"/>
+                                <shadows cast="true" receive="false"/>
+                            </component>
+                        </components>
+                    </entity>
+                </entity>
+            </entity>
+
+            <!-- =========================================================== -->
+            <!-- NPC: Guard -->
+            <!-- =========================================================== -->
+
+            <entity uuid="npc-guard-001" name="Guard" type="npc" state="active">
+                <components>
+                    <component uuid="comp-guard-transform" type="transform" content-type="application/xml">
+                        <position x="10" y="0" z="-5"/>
+                        <rotation x="0" y="0.707" z="0" w="0.707"/>
+                        <scale x="1" y="1" z="1"/>
+                    </component>
+
+                    <component uuid="comp-guard-mesh" type="mesh" content-type="application/xml">
+                        <asset uuid="asset-mesh-guard" path="models/characters/guard.gltf"/>
+                        <shadows cast="true" receive="true"/>
+                    </component>
+
+                    <component uuid="comp-guard-fsm" type="state_machine" content-type="application/xml">
+                        <state-machine name="ai_behavior" initial="PATROL">
+                            <states>
+                                <state id="PATROL" display="Patrolling">
+                                    <properties>
+                                        <property name="moveSpeed" type="float">1.5</property>
+                                    </properties>
+                                </state>
+                                <state id="ALERT" display="Alert">
+                                    <properties>
+                                        <property name="lookAroundTime" type="float">3.0</property>
+                                    </properties>
+                                </state>
+                                <state id="CHASE" display="Chasing">
+                                    <properties>
+                                        <property name="moveSpeed" type="float">4.0</property>
+                                    </properties>
+                                </state>
+                                <state id="ATTACK" display="Attacking"/>
+                            </states>
+                            <transitions>
+                                <transition from="PATROL" to="ALERT">
+                                    <conditions>
+                                        <condition type="perception" target="player" op="lt" value="15"/>
+                                    </conditions>
+                                </transition>
+                                <transition from="ALERT" to="CHASE">
+                                    <conditions>
+                                        <condition type="perception" target="player" op="lt" value="10"/>
+                                    </conditions>
+                                </transition>
+                                <transition from="CHASE" to="ATTACK">
+                                    <conditions>
+                                        <condition type="distance" target="player" op="lt" value="2"/>
+                                    </conditions>
+                                </transition>
+                            </transitions>
+                        </state-machine>
+                    </component>
+
+                    <component uuid="comp-guard-script" type="script" content-type="text/x-lua"><![CDATA[
+local GuardAI = {}
+GuardAI.__index = GuardAI
+
+function GuardAI:new(entity)
+    local self = setmetatable({}, GuardAI)
+    self.entity = entity
+    self.patrolIndex = 1
+    return self
+end
+
+function GuardAI:update(deltaTime)
+    local state = self.entity:getCurrentState("ai_behavior")
+    if state == "PATROL" then
+        self:patrol(deltaTime)
+    elseif state == "CHASE" then
+        self:chasePlayer(deltaTime)
+    end
+end
+
+function GuardAI:chasePlayer(deltaTime)
+    local player = Scene.findEntity("player-001")
+    if player then
+        local dir = (player.position - self.entity.position):normalize()
+        self.entity.position = self.entity.position + dir * 4.0 * deltaTime
+    end
+end
+
+return GuardAI
+]]>                    </component>
+                </components>
+            </entity>
+
+            <!-- =========================================================== -->
+            <!-- ENVIRONMENT PROPS -->
+            <!-- =========================================================== -->
+
+            <entity uuid="env-ground" name="Ground" type="prop" state="active">
+                <components>
+                    <component uuid="comp-ground-transform" type="transform" content-type="application/xml">
+                        <position x="0" y="0" z="0"/>
+                        <rotation x="0" y="0" z="0" w="1"/>
+                        <scale x="100" y="1" z="100"/>
+                    </component>
+                    <component uuid="comp-ground-mesh" type="mesh" content-type="application/xml">
+                        <asset uuid="asset-mesh-plane" path="models/primitives/plane.gltf"/>
+                        <shadows cast="false" receive="true"/>
+                    </component>
+                    <component uuid="comp-ground-material" type="material" content-type="application/xml">
+                        <asset uuid="asset-mat-grass" path="materials/terrain/grass.mat"/>
+                        <properties>
+                            <property name="tiling" type="vec2">50 50</property>
+                        </properties>
+                    </component>
+                    <component uuid="comp-ground-physics" type="physics" content-type="application/xml">
+                        <body-type>static</body-type>
+                        <collider type="box">
+                            <center x="0" y="-0.5" z="0"/>
+                            <size x="100" y="1" z="100"/>
+                        </collider>
+                        <physics-material>
+                            <friction>0.6</friction>
+                            <bounciness>0</bounciness>
+                        </physics-material>
+                    </component>
+                </components>
+            </entity>
+
+            <!-- Trees Container -->
+            <entity uuid="env-trees" name="Trees" type="container" state="active">
+
+                <entity uuid="tree-001" name="Oak Tree 1" type="prop" state="active">
+                    <components>
+                        <component uuid="comp-tree1-transform" type="transform" content-type="application/xml">
+                            <position x="-15" y="0" z="10"/>
+                            <rotation x="0" y="0.3" z="0" w="0.95"/>
+                            <scale x="1.2" y="1.2" z="1.2"/>
+                        </component>
+                        <component uuid="comp-tree1-mesh" type="mesh" content-type="application/xml">
+                            <asset uuid="asset-mesh-oak" path="models/nature/oak_tree.gltf"/>
+                            <shadows cast="true" receive="true"/>
+                        </component>
+                    </components>
+                </entity>
+
+                <entity uuid="tree-002" name="Oak Tree 2" type="prop" state="active">
+                    <components>
+                        <component uuid="comp-tree2-transform" type="transform" content-type="application/xml">
+                            <position x="20" y="0" z="-8"/>
+                            <rotation x="0" y="0.7" z="0" w="0.71"/>
+                            <scale x="0.9" y="1.1" z="0.9"/>
+                        </component>
+                        <component uuid="comp-tree2-mesh" type="mesh" content-type="application/xml">
+                            <asset uuid="asset-mesh-oak" path="models/nature/oak_tree.gltf"/>
+                            <shadows cast="true" receive="true"/>
+                        </component>
+                    </components>
+                </entity>
+
+            </entity>
+
+            <!-- =========================================================== -->
+            <!-- TRIGGER ZONES -->
+            <!-- =========================================================== -->
+
+            <entity uuid="trigger-checkpoint" name="Checkpoint" type="trigger" state="active">
+                <components>
+                    <component uuid="comp-checkpoint-transform" type="transform" content-type="application/xml">
+                        <position x="25" y="1" z="0"/>
+                        <rotation x="0" y="0" z="0" w="1"/>
+                        <scale x="5" y="2" z="5"/>
+                    </component>
+                    <component uuid="comp-checkpoint-physics" type="physics" content-type="application/xml">
+                        <body-type>static</body-type>
+                        <collider type="box" trigger="true">
+                            <center x="0" y="0" z="0"/>
+                            <size x="1" y="1" z="1"/>
+                        </collider>
+                    </component>
+                    <component uuid="comp-checkpoint-script" type="script" content-type="text/x-lua"><![CDATA[
+local Checkpoint = {}
+
+function Checkpoint:onTriggerEnter(other)
+    if other.tag == "player" then
+        Game.setCheckpoint(self.entity.position)
+        Audio.play("sfx/checkpoint.ogg")
+    end
+end
+
+return Checkpoint
+]]>                    </component>
+                </components>
+            </entity>
+
+        </entity>        <!-- End World Root -->
+
+    </entities>
+
+    <!-- =================================================================== -->
+    <!-- ASSETS (Referenzen) -->
+    <!-- =================================================================== -->
+
+    <assets>
+        <asset uuid="asset-mesh-player" type="mesh" path="models/characters/player.gltf"/>
+        <asset uuid="asset-mesh-guard" type="mesh" path="models/characters/guard.gltf"/>
+        <asset uuid="asset-mesh-sword" type="mesh" path="models/weapons/sword.gltf"/>
+        <asset uuid="asset-mesh-plane" type="mesh" path="models/primitives/plane.gltf"/>
+        <asset uuid="asset-mesh-oak" type="mesh" path="models/nature/oak_tree.gltf"/>
+        <asset uuid="asset-mat-grass" type="material" path="materials/terrain/grass.mat"/>
+        <asset uuid="asset-audio-forest" type="audio" path="audio/ambient_forest.ogg"/>
+    </assets>
+
+</synth>

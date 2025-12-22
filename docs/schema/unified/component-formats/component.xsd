@@ -1,0 +1,291 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           targetNamespace="http://synth.io/component/1.0"
+           xmlns:c="http://synth.io/component/1.0"
+           elementFormDefault="qualified">
+
+    <!-- =================================================================== -->
+    <!-- COMPONENT ROOT                                                      -->
+    <!-- Jedes Component-XML hat ein <component> Root-Element                -->
+    <!-- =================================================================== -->
+
+    <xs:element name="component" type="c:ComponentType"/>
+
+    <xs:complexType name="ComponentType">
+        <xs:sequence>
+            <!-- Beliebige Kind-Elemente erlaubt - flexibles Schema -->
+            <xs:any minOccurs="0" maxOccurs="unbounded" processContents="lax"/>
+        </xs:sequence>
+        <xs:attribute name="type" type="xs:string" use="required"/>
+        <xs:attribute name="version" type="xs:string" default="1.0"/>
+    </xs:complexType>
+
+    <!-- =================================================================== -->
+    <!-- COMMON TYPES                                                        -->
+    <!-- =================================================================== -->
+
+    <!-- Vector Types -->
+    <xs:complexType name="Vec2Type">
+        <xs:attribute name="x" type="xs:float" use="required"/>
+        <xs:attribute name="y" type="xs:float" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="Vec3Type">
+        <xs:attribute name="x" type="xs:float" use="required"/>
+        <xs:attribute name="y" type="xs:float" use="required"/>
+        <xs:attribute name="z" type="xs:float" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="Vec4Type">
+        <xs:attribute name="x" type="xs:float" use="required"/>
+        <xs:attribute name="y" type="xs:float" use="required"/>
+        <xs:attribute name="z" type="xs:float" use="required"/>
+        <xs:attribute name="w" type="xs:float" use="required"/>
+    </xs:complexType>
+
+    <!-- Quaternion (rotation) -->
+    <xs:complexType name="QuatType">
+        <xs:attribute name="x" type="xs:float" default="0"/>
+        <xs:attribute name="y" type="xs:float" default="0"/>
+        <xs:attribute name="z" type="xs:float" default="0"/>
+        <xs:attribute name="w" type="xs:float" default="1"/>
+    </xs:complexType>
+
+    <!-- Color -->
+    <xs:complexType name="ColorType">
+        <xs:attribute name="r" type="xs:float" default="1"/>
+        <xs:attribute name="g" type="xs:float" default="1"/>
+        <xs:attribute name="b" type="xs:float" default="1"/>
+        <xs:attribute name="a" type="xs:float" default="1"/>
+    </xs:complexType>
+
+    <!-- Alternative: Hex Color -->
+    <xs:simpleType name="HexColorType">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="#[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Asset Reference -->
+    <xs:complexType name="AssetRefType">
+        <xs:attribute name="uuid" type="xs:string"/>
+        <xs:attribute name="path" type="xs:string"/>
+    </xs:complexType>
+
+    <!-- =================================================================== -->
+    <!-- TRANSFORM COMPONENT                                                 -->
+    <!-- =================================================================== -->
+
+    <xs:complexType name="TransformType">
+        <xs:sequence>
+            <xs:element name="position" type="c:Vec3Type" minOccurs="0"/>
+            <xs:element name="rotation" type="c:QuatType" minOccurs="0"/>
+            <xs:element name="scale" type="c:Vec3Type" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- =================================================================== -->
+    <!-- MESH COMPONENT                                                      -->
+    <!-- =================================================================== -->
+
+    <xs:complexType name="MeshType">
+        <xs:sequence>
+            <xs:element name="asset" type="c:AssetRefType"/>
+            <xs:element name="lod" minOccurs="0">
+                <xs:complexType>
+                    <xs:attribute name="level" type="xs:int" default="0"/>
+                    <xs:attribute name="bias" type="xs:float" default="0"/>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="shadows" minOccurs="0">
+                <xs:complexType>
+                    <xs:attribute name="cast" type="xs:boolean" default="true"/>
+                    <xs:attribute name="receive" type="xs:boolean" default="true"/>
+                </xs:complexType>
+            </xs:element>
+        </xs:sequence>
+        <xs:attribute name="layer" type="xs:string" default="default"/>
+    </xs:complexType>
+
+    <!-- =================================================================== -->
+    <!-- MATERIAL COMPONENT                                                  -->
+    <!-- =================================================================== -->
+
+    <xs:complexType name="MaterialType">
+        <xs:sequence>
+            <xs:element name="asset" type="c:AssetRefType" minOccurs="0"/>
+            <xs:element name="shader" minOccurs="0">
+                <xs:complexType>
+                    <xs:attribute name="id" type="xs:string"/>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="properties" minOccurs="0">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element name="property" maxOccurs="unbounded">
+                            <xs:complexType mixed="true">
+                                <xs:attribute name="name" type="xs:string" use="required"/>
+                                <xs:attribute name="type" type="xs:string"/>
+                            </xs:complexType>
+                        </xs:element>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="textures" minOccurs="0">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element name="texture" maxOccurs="unbounded">
+                            <xs:complexType>
+                                <xs:sequence>
+                                    <xs:element name="asset" type="c:AssetRefType"/>
+                                    <xs:element name="tiling" type="c:Vec2Type" minOccurs="0"/>
+                                    <xs:element name="offset" type="c:Vec2Type" minOccurs="0"/>
+                                </xs:sequence>
+                                <xs:attribute name="slot" type="xs:string" use="required"/>
+                            </xs:complexType>
+                        </xs:element>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- =================================================================== -->
+    <!-- LIGHT COMPONENT                                                     -->
+    <!-- =================================================================== -->
+
+    <xs:complexType name="LightType">
+        <xs:sequence>
+            <xs:element name="color" type="c:ColorType" minOccurs="0"/>
+            <xs:element name="shadows" minOccurs="0">
+                <xs:complexType>
+                    <xs:attribute name="enabled" type="xs:boolean" default="true"/>
+                    <xs:attribute name="bias" type="xs:float" default="0.005"/>
+                    <xs:attribute name="resolution" type="xs:int" default="1024"/>
+                </xs:complexType>
+            </xs:element>
+            <!-- Type-specific settings -->
+            <xs:choice minOccurs="0">
+                <xs:element name="directional">
+                    <xs:complexType>
+                        <xs:element name="direction" type="c:Vec3Type" minOccurs="0"/>
+                    </xs:complexType>
+                </xs:element>
+                <xs:element name="point">
+                    <xs:complexType>
+                        <xs:attribute name="range" type="xs:float" default="10"/>
+                        <xs:attribute name="falloff" type="xs:float" default="1"/>
+                    </xs:complexType>
+                </xs:element>
+                <xs:element name="spot">
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:element name="direction" type="c:Vec3Type" minOccurs="0"/>
+                        </xs:sequence>
+                        <xs:attribute name="range" type="xs:float" default="10"/>
+                        <xs:attribute name="inner-angle" type="xs:float" default="30"/>
+                        <xs:attribute name="outer-angle" type="xs:float" default="45"/>
+                    </xs:complexType>
+                </xs:element>
+            </xs:choice>
+        </xs:sequence>
+        <xs:attribute name="type" type="xs:string" default="point"/>
+        <xs:attribute name="intensity" type="xs:float" default="1"/>
+    </xs:complexType>
+
+    <!-- =================================================================== -->
+    <!-- PHYSICS COMPONENT                                                   -->
+    <!-- =================================================================== -->
+
+    <xs:complexType name="PhysicsType">
+        <xs:sequence>
+            <xs:element name="collider" minOccurs="0">
+                <xs:complexType>
+                    <xs:choice>
+                        <xs:element name="box">
+                            <xs:complexType>
+                                <xs:element name="center" type="c:Vec3Type" minOccurs="0"/>
+                                <xs:element name="size" type="c:Vec3Type"/>
+                            </xs:complexType>
+                        </xs:element>
+                        <xs:element name="sphere">
+                            <xs:complexType>
+                                <xs:element name="center" type="c:Vec3Type" minOccurs="0"/>
+                                <xs:attribute name="radius" type="xs:float" use="required"/>
+                            </xs:complexType>
+                        </xs:element>
+                        <xs:element name="capsule">
+                            <xs:complexType>
+                                <xs:element name="center" type="c:Vec3Type" minOccurs="0"/>
+                                <xs:attribute name="radius" type="xs:float" use="required"/>
+                                <xs:attribute name="height" type="xs:float" use="required"/>
+                                <xs:attribute name="direction" type="xs:string" default="y"/>
+                            </xs:complexType>
+                        </xs:element>
+                        <xs:element name="mesh">
+                            <xs:complexType>
+                                <xs:element name="asset" type="c:AssetRefType"/>
+                                <xs:attribute name="convex" type="xs:boolean" default="false"/>
+                            </xs:complexType>
+                        </xs:element>
+                    </xs:choice>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="constraints" minOccurs="0">
+                <xs:complexType>
+                    <xs:attribute name="freeze-position" type="xs:string"/>
+                    <xs:attribute name="freeze-rotation" type="xs:string"/>
+                </xs:complexType>
+            </xs:element>
+        </xs:sequence>
+        <xs:attribute name="body-type" type="xs:string" default="static"/>
+        <xs:attribute name="mass" type="xs:float" default="1"/>
+        <xs:attribute name="friction" type="xs:float" default="0.5"/>
+        <xs:attribute name="restitution" type="xs:float" default="0"/>
+        <xs:attribute name="layer" type="xs:int" default="0"/>
+        <xs:attribute name="mask" type="xs:int" default="-1"/>
+    </xs:complexType>
+
+    <!-- =================================================================== -->
+    <!-- CAMERA COMPONENT                                                    -->
+    <!-- =================================================================== -->
+
+    <xs:complexType name="CameraType">
+        <xs:sequence>
+            <xs:element name="viewport" type="c:Vec4Type" minOccurs="0"/>
+            <xs:element name="clear-color" type="c:ColorType" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="projection" type="xs:string" default="perspective"/>
+        <xs:attribute name="fov" type="xs:float" default="60"/>
+        <xs:attribute name="ortho-size" type="xs:float" default="5"/>
+        <xs:attribute name="near" type="xs:float" default="0.1"/>
+        <xs:attribute name="far" type="xs:float" default="1000"/>
+        <xs:attribute name="clear" type="xs:string" default="skybox"/>
+        <xs:attribute name="depth" type="xs:int" default="0"/>
+    </xs:complexType>
+
+    <!-- =================================================================== -->
+    <!-- SCRIPT COMPONENT                                                    -->
+    <!-- =================================================================== -->
+
+    <xs:complexType name="ScriptType">
+        <xs:sequence>
+            <xs:element name="asset" type="c:AssetRefType" minOccurs="0"/>
+            <xs:element name="properties" minOccurs="0">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element name="property" maxOccurs="unbounded">
+                            <xs:complexType mixed="true">
+                                <xs:attribute name="name" type="xs:string" use="required"/>
+                                <xs:attribute name="type" type="xs:string"/>
+                            </xs:complexType>
+                        </xs:element>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+        </xs:sequence>
+        <xs:attribute name="class" type="xs:string"/>
+        <xs:attribute name="enabled" type="xs:boolean" default="true"/>
+    </xs:complexType>
+
+</xs:schema>

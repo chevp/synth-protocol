@@ -1,0 +1,19 @@
+<!-- Dynamic Physics Body with Capsule Collider -->
+<component type="physics" version="1.0"
+           xmlns="http://synth.io/component/1.0">
+    <body-type>dynamic</body-type>
+    <mass>70</mass>
+    <friction>0.6</friction>
+    <restitution>0</restitution>
+
+    <collider>
+        <capsule radius="0.3" height="1.8" direction="y">
+            <center x="0" y="0.9" z="0"/>
+        </capsule>
+    </collider>
+
+    <constraints freeze-rotation="xz"/>
+
+    <layer>1</layer>
+    <mask>-1</mask>
+</component>

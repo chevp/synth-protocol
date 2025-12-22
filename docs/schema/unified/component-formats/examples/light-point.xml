@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Point Light (Torch, Lamp) -->
+<component type="light" version="1.0"
+           xmlns="http://synth.io/component/1.0">
+    <color r="1" g="0.7" b="0.3" a="1"/>
+    <intensity>2.0</intensity>
+
+    <point range="15" falloff="2"/>
+
+    <shadows enabled="false"/>
+</component>
