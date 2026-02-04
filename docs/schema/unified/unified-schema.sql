@@ -52,7 +52,7 @@ CREATE TABLE IF NOT EXISTS scenes (
     thumbnail_blob BLOB                     -- PNG image
 );
 
-CREATE INDEX idx_scenes_name ON scenes(name);
+CREATE INDEX IF NOT EXISTS idx_scenes_name ON scenes(name);
 
 -- =============================================================================
 -- ENTITIES
@@ -93,17 +93,18 @@ CREATE TABLE IF NOT EXISTS entities (
     scene_uuid TEXT,                        -- FK to scenes
 
     -- Metadata (Editor-spezifisch: collapsed, locked, color, etc.)
-    metadata_json TEXT,
+    -- Example: <metadata><collapsed>false</collapsed><locked>true</locked><color>#ff0000</color></metadata>
+    metadata_xml TEXT,
 
     -- Foreign Keys
     FOREIGN KEY (parent_uuid) REFERENCES entities(uuid) ON DELETE CASCADE,
     FOREIGN KEY (scene_uuid) REFERENCES scenes(uuid) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_entities_scene ON entities(scene_uuid);
-CREATE INDEX idx_entities_parent ON entities(parent_uuid);
-CREATE INDEX idx_entities_type ON entities(entity_type);
-CREATE INDEX idx_entities_state ON entities(state);
+CREATE INDEX IF NOT EXISTS idx_entities_scene ON entities(scene_uuid);
+CREATE INDEX IF NOT EXISTS idx_entities_parent ON entities(parent_uuid);
+CREATE INDEX IF NOT EXISTS idx_entities_type ON entities(entity_type);
+CREATE INDEX IF NOT EXISTS idx_entities_state ON entities(state);
 
 -- =============================================================================
 -- COMPONENTS
@@ -154,9 +155,9 @@ CREATE TABLE IF NOT EXISTS components (
     FOREIGN KEY (entity_uuid) REFERENCES entities(uuid) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_components_entity ON components(entity_uuid);
-CREATE INDEX idx_components_type ON components(component_type);
-CREATE UNIQUE INDEX idx_components_entity_type ON components(entity_uuid, component_type);
+CREATE INDEX IF NOT EXISTS idx_components_entity ON components(entity_uuid);
+CREATE INDEX IF NOT EXISTS idx_components_type ON components(component_type);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_components_entity_type ON components(entity_uuid, component_type);
 
 -- =============================================================================
 -- ASSETS
@@ -181,7 +182,8 @@ CREATE TABLE IF NOT EXISTS assets (
     -- Metadata
     size_bytes INTEGER,
     checksum TEXT,                          -- SHA256
-    metadata_json TEXT
+    -- Example: <metadata><author>chevp</author><license>MIT</license></metadata>
+    metadata_xml TEXT
 );
 
 -- AssetType enum values:
@@ -197,9 +199,9 @@ CREATE TABLE IF NOT EXISTS assets (
 -- 9 = FONT
 -- 10 = PREFAB
 
-CREATE INDEX idx_assets_type ON assets(asset_type);
-CREATE INDEX idx_assets_uri ON assets(uri);
-CREATE INDEX idx_assets_name ON assets(name);
+CREATE INDEX IF NOT EXISTS idx_assets_type ON assets(asset_type);
+CREATE INDEX IF NOT EXISTS idx_assets_uri ON assets(uri);
+CREATE INDEX IF NOT EXISTS idx_assets_name ON assets(name);
 
 -- =============================================================================
 -- STATE MACHINE DEFINITIONS
@@ -333,31 +335,27 @@ ORDER BY scene_uuid, root_uuid, depth, sibling_order;
 
 -- Auto-update updated_at
 CREATE TRIGGER IF NOT EXISTS tr_entities_updated_at
-AFTER UPDATE ON entities
+AFTER UPDATE ON entities FOR EACH ROW
 BEGIN
-    UPDATE entities SET updated_at = strftime('%s', 'now') * 1000
-    WHERE uuid = NEW.uuid;
+    UPDATE entities SET updated_at = strftime('%s', 'now') * 1000 WHERE uuid = NEW.uuid;
 END;
 
 CREATE TRIGGER IF NOT EXISTS tr_components_updated_at
-AFTER UPDATE ON components
+AFTER UPDATE ON components FOR EACH ROW
 BEGIN
-    UPDATE components SET updated_at = strftime('%s', 'now') * 1000
-    WHERE uuid = NEW.uuid;
+    UPDATE components SET updated_at = strftime('%s', 'now') * 1000 WHERE uuid = NEW.uuid;
 END;
 
 CREATE TRIGGER IF NOT EXISTS tr_scenes_updated_at
-AFTER UPDATE ON scenes
+AFTER UPDATE ON scenes FOR EACH ROW
 BEGIN
-    UPDATE scenes SET updated_at = strftime('%s', 'now') * 1000
-    WHERE uuid = NEW.uuid;
+    UPDATE scenes SET updated_at = strftime('%s', 'now') * 1000 WHERE uuid = NEW.uuid;
 END;
 
 CREATE TRIGGER IF NOT EXISTS tr_assets_updated_at
-AFTER UPDATE ON assets
+AFTER UPDATE ON assets FOR EACH ROW
 BEGIN
-    UPDATE assets SET updated_at = strftime('%s', 'now') * 1000
-    WHERE uuid = NEW.uuid;
+    UPDATE assets SET updated_at = strftime('%s', 'now') * 1000 WHERE uuid = NEW.uuid;
 END;
 
 -- =============================================================================

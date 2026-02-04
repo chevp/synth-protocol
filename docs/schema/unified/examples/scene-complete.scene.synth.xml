@@ -86,10 +86,14 @@
                     </component>
 
                     <component uuid="comp-player-mesh" type="mesh" content-type="application/xml">
-                        <asset uuid="asset-mesh-player" path="models/characters/player.gltf"/>
-                        <lod level="0" bias="0"/>
+                        <source path="assets/source/characters/player.blend"/>
+                        <runtime path="models/characters/player.glb"/>
+                    </component>
+
+                    <component uuid="comp-player-renderer" type="renderer" content-type="application/xml">
                         <shadows cast="true" receive="true"/>
                         <render-layer>default</render-layer>
+                        <lod level="0" bias="0"/>
                     </component>
 
                     <component uuid="comp-player-physics" type="physics" content-type="application/xml">
@@ -221,7 +225,11 @@ return PlayerController
                                 <scale x="1" y="1" z="1"/>
                             </component>
                             <component uuid="comp-sword-mesh" type="mesh" content-type="application/xml">
-                                <asset uuid="asset-mesh-sword" path="models/weapons/sword.gltf"/>
+                                <source path="assets/source/weapons/sword.blend"/>
+                                <runtime path="models/weapons/sword.glb"/>
+                            </component>
+
+                            <component uuid="comp-sword-renderer" type="renderer" content-type="application/xml">
                                 <shadows cast="true" receive="false"/>
                             </component>
                         </components>
@@ -242,7 +250,11 @@ return PlayerController
                     </component>
 
                     <component uuid="comp-guard-mesh" type="mesh" content-type="application/xml">
-                        <asset uuid="asset-mesh-guard" path="models/characters/guard.gltf"/>
+                        <source path="assets/source/characters/guard.blend"/>
+                        <runtime path="models/characters/guard.glb"/>
+                    </component>
+
+                    <component uuid="comp-guard-renderer" type="renderer" content-type="application/xml">
                         <shadows cast="true" receive="true"/>
                     </component>
 
@@ -331,10 +343,16 @@ return GuardAI
                         <scale x="100" y="1" z="100"/>
                     </component>
                     <component uuid="comp-ground-mesh" type="mesh" content-type="application/xml">
-                        <asset uuid="asset-mesh-plane" path="models/primitives/plane.gltf"/>
+                        <source path="assets/source/primitives/plane.blend"/>
+                        <runtime path="models/primitives/plane.glb"/>
+                    </component>
+
+                    <component uuid="comp-ground-renderer" type="renderer" content-type="application/xml">
                         <shadows cast="false" receive="true"/>
                     </component>
-                    <component uuid="comp-ground-material" type="material" content-type="application/xml">
+
+                    <!-- Material-Override: überschreibt das im glTF eingebettete Material -->
+                    <component uuid="comp-ground-material-override" type="material_override" content-type="application/xml">
                         <asset uuid="asset-mat-grass" path="materials/terrain/grass.mat"/>
                         <properties>
                             <property name="tiling" type="vec2">50 50</property>
@@ -365,7 +383,11 @@ return GuardAI
                             <scale x="1.2" y="1.2" z="1.2"/>
                         </component>
                         <component uuid="comp-tree1-mesh" type="mesh" content-type="application/xml">
-                            <asset uuid="asset-mesh-oak" path="models/nature/oak_tree.gltf"/>
+                            <source path="assets/source/nature/oak_tree.blend"/>
+                            <runtime path="models/nature/oak_tree.glb"/>
+                        </component>
+
+                        <component uuid="comp-tree1-renderer" type="renderer" content-type="application/xml">
                             <shadows cast="true" receive="true"/>
                         </component>
                     </components>
@@ -379,7 +401,11 @@ return GuardAI
                             <scale x="0.9" y="1.1" z="0.9"/>
                         </component>
                         <component uuid="comp-tree2-mesh" type="mesh" content-type="application/xml">
-                            <asset uuid="asset-mesh-oak" path="models/nature/oak_tree.gltf"/>
+                            <source path="assets/source/nature/oak_tree.blend"/>
+                            <runtime path="models/nature/oak_tree.glb"/>
+                        </component>
+
+                        <component uuid="comp-tree2-renderer" type="renderer" content-type="application/xml">
                             <shadows cast="true" receive="true"/>
                         </component>
                     </components>
@@ -425,17 +451,19 @@ return Checkpoint
     </entities>
 
     <!-- =================================================================== -->
-    <!-- ASSETS (Referenzen) -->
+    <!-- ASSETS (Optional: für zentrale Asset-Registry) -->
+    <!-- Bei inline <source>/<runtime> nicht zwingend benötigt -->
     <!-- =================================================================== -->
 
     <assets>
-        <asset uuid="asset-mesh-player" type="mesh" path="models/characters/player.gltf"/>
-        <asset uuid="asset-mesh-guard" type="mesh" path="models/characters/guard.gltf"/>
-        <asset uuid="asset-mesh-sword" type="mesh" path="models/weapons/sword.gltf"/>
-        <asset uuid="asset-mesh-plane" type="mesh" path="models/primitives/plane.gltf"/>
-        <asset uuid="asset-mesh-oak" type="mesh" path="models/nature/oak_tree.gltf"/>
+        <!-- Materials (kein .blend, nur runtime) -->
         <asset uuid="asset-mat-grass" type="material" path="materials/terrain/grass.mat"/>
+
+        <!-- Audio -->
         <asset uuid="asset-audio-forest" type="audio" path="audio/ambient_forest.ogg"/>
+
+        <!-- Textures -->
+        <asset uuid="asset-tex-skybox" type="texture" path="textures/skybox_day.ktx2"/>
     </assets>
 
 </synth>
