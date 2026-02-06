@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Synth 2.0 Scene Editor</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            arctic: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              200: '#bae6fd',
+              300: '#7dd3fc',
+              400: '#38bdf8',
+              500: '#0ea5e9',
+              600: '#0284c7',
+              700: '#0369a1',
+              800: '#075985',
+              900: '#0c4a6e',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+    * { font-family: 'Inter', sans-serif; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+
+    .glass {
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .gradient-text {
+      background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 50%, #2563eb 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .tree-item:hover { background: rgba(59, 130, 246, 0.1); }
+    .tree-item.selected { background: rgba(59, 130, 246, 0.2); border-left: 2px solid #3b82f6; }
+
+    .processor-card:hover { border-color: rgba(59, 130, 246, 0.5); }
+    .processor-card.disabled { opacity: 0.5; }
+
+    .stage-badge { font-size: 10px; letter-spacing: 0.05em; }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+    ::-webkit-scrollbar-thumb { background: rgba(100,100,100,0.5); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(100,100,100,0.7); }
+
+    .tab-btn.active { border-bottom: 2px solid #3b82f6; color: #60a5fa; }
+    .tab-btn { border-bottom: 2px solid transparent; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen overflow-hidden">
+
+  <!-- Header -->
+  <header class="h-12 glass border-b border-slate-800 flex items-center justify-between px-4">
+    <div class="flex items-center gap-4">
+      <h1 class="text-lg font-semibold gradient-text">Synth 2.0 Editor</h1>
+      <span class="text-xs text-slate-500 mono">game-scene.synth.xml</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <button class="px-3 py-1 text-xs rounded bg-slate-800 hover:bg-slate-700 transition-colors">
+        <span class="text-green-400">&#9679;</span> Auto-Save On
+      </button>
+      <button class="px-3 py-1 text-xs rounded bg-blue-600 hover:bg-blue-500 transition-colors">
+        &#9658; Play
+      </button>
+      <button id="studioModeToggle" class="px-3 py-1 text-xs rounded bg-slate-800 hover:bg-slate-700 transition-colors">
+        Studio Mode: <span id="studioModeLabel">OFF</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Layout -->
+  <div class="flex h-[calc(100vh-48px)]">
+
+    <!-- Left Panel: Scene Hierarchy -->
+    <aside class="w-64 glass border-r border-slate-800 flex flex-col">
+      <div class="p-3 border-b border-slate-800">
+        <h2 class="text-sm font-semibold text-slate-300 mb-2">Scene Hierarchy</h2>
+        <input type="text" placeholder="Search entities..."
+               class="w-full px-2 py-1 text-xs bg-slate-900 rounded border border-slate-700 focus:border-blue-500 focus:outline-none">
+      </div>
+      <div class="flex-1 overflow-y-auto p-2" id="sceneTree">
+        <!-- Scene tree populated by JS -->
+      </div>
+      <div class="p-2 border-t border-slate-800 flex gap-1">
+        <button class="flex-1 px-2 py-1 text-xs bg-slate-800 hover:bg-slate-700 rounded">+ Entity</button>
+        <button class="flex-1 px-2 py-1 text-xs bg-slate-800 hover:bg-slate-700 rounded">+ Folder</button>
+      </div>
+    </aside>
+
+    <!-- Center: Main Content Area -->
+    <main class="flex-1 flex flex-col">
+
+      <!-- Tabs -->
+      <div class="h-10 flex items-center gap-1 px-4 border-b border-slate-800 bg-slate-900/50">
+        <button class="tab-btn active px-4 py-2 text-sm hover:text-blue-400 transition-colors" data-tab="processors">
+          Processors
+        </button>
+        <button class="tab-btn px-4 py-2 text-sm hover:text-blue-400 transition-colors" data-tab="jobs">
+          Jobs
+        </button>
+        <button class="tab-btn px-4 py-2 text-sm hover:text-blue-400 transition-colors" data-tab="threads">
+          Thread Pools
+        </button>
+        <button class="tab-btn px-4 py-2 text-sm hover:text-blue-400 transition-colors" data-tab="assets">
+          Assets
+        </button>
+        <button class="tab-btn px-4 py-2 text-sm hover:text-blue-400 transition-colors" data-tab="settings">
+          Settings
+        </button>
+      </div>
+
+      <!-- Tab Content -->
+      <div class="flex-1 overflow-y-auto p-4" id="tabContent">
+        <!-- Content populated by JS -->
+      </div>
+
+    </main>
+
+    <!-- Right Panel: Inspector -->
+    <aside class="w-80 glass border-l border-slate-800 flex flex-col">
+      <div class="p-3 border-b border-slate-800">
+        <h2 class="text-sm font-semibold text-slate-300">Inspector</h2>
+      </div>
+      <div class="flex-1 overflow-y-auto p-3" id="inspector">
+        <p class="text-xs text-slate-500">Select an item to inspect</p>
+      </div>
+    </aside>
+
+  </div>
+
+  <!-- Status Bar -->
+  <footer class="h-6 bg-slate-900 border-t border-slate-800 flex items-center justify-between px-4 text-xs text-slate-500">
+    <div class="flex items-center gap-4">
+      <span>FPS: <span class="text-green-400">60</span></span>
+      <span>Entities: <span class="text-blue-400">12</span></span>
+      <span>Processors: <span class="text-blue-400">78</span> runtime + <span class="text-purple-400">27</span> editor</span>
+    </div>
+    <div class="flex items-center gap-4">
+      <span>Platform: Desktop 16-core</span>
+      <span>Threads: I/O(4) Compute(8) Dedicated(2)</span>
+    </div>
+  </footer>
+
+<script>
+// ============================================================================
+// SYNTH 2.0 SCENE DATA (parsed from XML)
+// ============================================================================
+
+const sceneData = {
+  project: {
+    name: "RPG Demo Scene",
+    description: "Example game scene demonstrating processors, jobs and worker threads",
+    settings: {
+      defaultSceneId: "scene_village",
+      targetFps: 60,
+      studioMode: false,
+      autoSaveEnabled: true,
+      autoSaveIntervalSeconds: 300
+    }
+  },
+
+  threadPools: [
+    {
+      id: "io_pool",
+      type: "IO",
+      threads: { desktop_16core: 4, desktop_8core: 2, android_highend: 2, android_midrange: 1 },
+      queueSize: 256,
+      description: "File loading, SQLite, Network"
+    },
+    {
+      id: "compute_pool",
+      type: "COMPUTE",
+      threads: { desktop_16core: 8, desktop_8core: 4, android_highend: 4, android_midrange: 2 },
+      queueSize: 128,
+      description: "Mesh optimization, texture compression, physics"
+    },
+    {
+      id: "dedicated_pool",
+      type: "DEDICATED",
+      dedicatedThreads: [
+        { id: "audio_thread", affinity: "high_priority" },
+        { id: "network_thread", affinity: "normal" }
+      ],
+      description: "Audio, Network realtime"
+    }
+  ],
+
+  jobs: [
+    { id: "GltfLoadJob", pool: "io_pool", priority: "HIGH", description: "Load and parse GLTF/GLB files", submitProcessor: "SceneLoadOrchestratorProcessor", resultProcessor: "AssetLoadResultProcessor", duration: "10-500ms" },
+    { id: "TextureDecodeJob", pool: "io_pool", priority: "HIGH", description: "Decode PNG/JPG to raw pixels", submitProcessor: "SceneLoadOrchestratorProcessor", resultProcessor: "AssetLoadResultProcessor", duration: "5-50ms" },
+    { id: "AudioDecodeJob", pool: "io_pool", priority: "NORMAL", description: "Decode OGG/WAV to PCM", submitProcessor: "SceneLoadOrchestratorProcessor", resultProcessor: "AssetLoadResultProcessor", duration: "10-100ms" },
+    { id: "AutoSaveJob", pool: "io_pool", priority: "LOW", description: "Serialize scene to temp file", submitProcessor: "AutoSaveProcessor", resultProcessor: "StatusBarProcessor", duration: "10-200ms" },
+    { id: "SceneSaveJob", pool: "io_pool", priority: "NORMAL", description: "Save scene to .synth file", submitProcessor: "SceneSaveProcessor", resultProcessor: "StatusBarProcessor", duration: "10-200ms" },
+    { id: "AssetCacheWriteJob", pool: "io_pool", priority: "LOW", description: "Write asset to SQLite cache", submitProcessor: "GpuUploadProcessor", fireAndForget: true },
+    { id: "MeshOptimizeJob", pool: "compute_pool", priority: "NORMAL", description: "Optimize mesh with meshoptimizer", submitProcessor: "SceneLoadOrchestratorProcessor", resultProcessor: "AssetLoadResultProcessor", duration: "50-500ms" },
+    { id: "NavMeshBuildJob", pool: "compute_pool", priority: "BACKGROUND", description: "Generate navigation mesh", submitProcessor: "EditorMenuBarProcessor", resultProcessor: "StatusBarProcessor", duration: "500-5000ms" },
+    { id: "PhysicsColliderBakeJob", pool: "compute_pool", priority: "NORMAL", description: "Bake mesh to collision shape", submitProcessor: "SceneLoadOrchestratorProcessor", resultProcessor: "AssetLoadResultProcessor", duration: "50-500ms" }
+  ],
+
+  processorStages: [
+    {
+      name: "Input", orderRange: "0-49", color: "#22c55e", isEditor: false,
+      processors: [
+        { order: 10, name: "PlatformEventProcessor", enabled: true },
+        { order: 20, name: "InputMappingProcessor", enabled: true },
+        { order: 30, name: "GestureRecognitionProcessor", enabled: true },
+        { order: 40, name: "InputBufferProcessor", enabled: true }
+      ]
+    },
+    {
+      name: "Data", orderRange: "50-99", color: "#f59e0b", isEditor: false,
+      processors: [
+        { order: 50, name: "DatabaseConnectProcessor", enabled: true },
+        { order: 60, name: "PendingWriteProcessor", enabled: true },
+        { order: 70, name: "AssetCacheCheckProcessor", enabled: true },
+        { order: 80, name: "ConfigLoadProcessor", enabled: true },
+        { order: 90, name: "StatePersistProcessor", enabled: true },
+        { order: 95, name: "JobSchedulerProcessor", enabled: true },
+        { order: 96, name: "AssetLoadResultProcessor", enabled: true },
+        { order: 97, name: "SceneLoadOrchestratorProcessor", enabled: true }
+      ]
+    },
+    {
+      name: "Network", orderRange: "100-199", color: "#06b6d4", isEditor: false,
+      processors: [
+        { order: 100, name: "NetworkReceiveProcessor", enabled: true },
+        { order: 110, name: "ProtocolDecodeProcessor", enabled: true },
+        { order: 120, name: "StateReconcileProcessor", enabled: true },
+        { order: 180, name: "NetworkSendProcessor", enabled: true },
+        { order: 190, name: "LatencyTrackProcessor", enabled: true }
+      ]
+    },
+    {
+      name: "GameLogic", orderRange: "200-299", color: "#8b5cf6", isEditor: false,
+      processors: [
+        { order: 200, name: "StateMachineProcessor", enabled: true },
+        { order: 210, name: "CommandExecuteProcessor", enabled: true },
+        { order: 220, name: "MovementProcessor", enabled: true },
+        { order: 230, name: "CollisionProcessor", enabled: true },
+        { order: 240, name: "InteractionProcessor", enabled: true },
+        { order: 250, name: "InventoryProcessor", enabled: true },
+        { order: 260, name: "QuestProcessor", enabled: true },
+        { order: 270, name: "AIProcessor", enabled: true },
+        { order: 280, name: "TriggerProcessor", enabled: true }
+      ]
+    },
+    {
+      name: "Physics", orderRange: "300-399", color: "#ef4444", isEditor: false,
+      processors: [
+        { order: 300, name: "PhysicsStepProcessor", enabled: true, config: { fixedTimestep: 0.016666, maxSubsteps: 4, gravity: "0,-9.81,0" } },
+        { order: 310, name: "RigidBodyProcessor", enabled: true },
+        { order: 320, name: "CharacterControllerProcessor", enabled: true },
+        { order: 330, name: "RaycastProcessor", enabled: true },
+        { order: 380, name: "PhysicsSyncProcessor", enabled: true }
+      ]
+    },
+    {
+      name: "Animation", orderRange: "400-499", color: "#ec4899", isEditor: false,
+      processors: [
+        { order: 400, name: "AnimationUpdateProcessor", enabled: true },
+        { order: 410, name: "AnimationBlendProcessor", enabled: true },
+        { order: 420, name: "IKProcessor", enabled: true },
+        { order: 450, name: "SkinningProcessor", enabled: true },
+        { order: 460, name: "MorphTargetProcessor", enabled: true }
+      ]
+    },
+    {
+      name: "Scene", orderRange: "500-599", color: "#14b8a6", isEditor: false,
+      processors: [
+        { order: 500, name: "SceneGraphUpdateProcessor", enabled: true },
+        { order: 510, name: "TransformProcessor", enabled: true },
+        { order: 520, name: "BoundingVolumeProcessor", enabled: true },
+        { order: 530, name: "FrustumCullProcessor", enabled: true },
+        { order: 540, name: "LODSelectProcessor", enabled: true },
+        { order: 580, name: "RenderListProcessor", enabled: true },
+        { order: 598, name: "GpuUploadProcessor", enabled: true }
+      ]
+    },
+    {
+      name: "Render", orderRange: "600-799", color: "#3b82f6", isEditor: false,
+      processors: [
+        { order: 600, name: "FrameBeginProcessor", enabled: true },
+        { order: 610, name: "CommandBufferBeginProcessor", enabled: true },
+        { order: 620, name: "ShadowMapProcessor", enabled: true, config: { resolution: 2048, cascadeCount: 4 } },
+        { order: 630, name: "DepthPrepassProcessor", enabled: true },
+        { order: 660, name: "ForwardOpaqueProcessor", enabled: true },
+        { order: 670, name: "SkyboxProcessor", enabled: true },
+        { order: 680, name: "TransparentProcessor", enabled: true },
+        { order: 690, name: "ParticleProcessor", enabled: true },
+        { order: 700, name: "BloomProcessor", enabled: true, config: { threshold: 1.0, intensity: 0.5 } },
+        { order: 710, name: "SSAOProcessor", enabled: true },
+        { order: 730, name: "TonemapProcessor", enabled: true, config: { exposure: 1.0, gamma: 2.2 } },
+        { order: 740, name: "FXAAProcessor", enabled: true },
+        { order: 750, name: "ImGuiNewFrameProcessor", enabled: true },
+        { order: 760, name: "GameUIProcessor", enabled: true },
+        { order: 765, name: "DebugOverlayProcessor", enabled: false },
+        { order: 778, name: "ImGuiRenderProcessor", enabled: true },
+        { order: 779, name: "ImGuiSubmitProcessor", enabled: true },
+        { order: 780, name: "CommandBufferEndProcessor", enabled: true },
+        { order: 790, name: "QueueSubmitProcessor", enabled: true },
+        { order: 795, name: "PresentProcessor", enabled: true }
+      ]
+    },
+    {
+      name: "Audio", orderRange: "800-899", color: "#a855f7", isEditor: false,
+      processors: [
+        { order: 800, name: "AudioUpdateProcessor", enabled: true },
+        { order: 810, name: "Audio3DProcessor", enabled: true },
+        { order: 820, name: "AudioMixProcessor", enabled: true },
+        { order: 880, name: "AudioSubmitProcessor", enabled: true }
+      ]
+    },
+    {
+      name: "Cleanup", orderRange: "900-999", color: "#64748b", isEditor: false,
+      processors: [
+        { order: 900, name: "FrameStatsProcessor", enabled: true },
+        { order: 910, name: "MemoryResetProcessor", enabled: true },
+        { order: 920, name: "ResourceGCProcessor", enabled: true },
+        { order: 990, name: "FrameEndProcessor", enabled: true }
+      ]
+    },
+    {
+      name: "EditorInput", orderRange: "1000-1049", color: "#f97316", isEditor: true,
+      processors: [
+        { order: 1000, name: "EditorCameraProcessor", enabled: true },
+        { order: 1010, name: "EditorHotkeyProcessor", enabled: true },
+        { order: 1020, name: "EditorMousePickProcessor", enabled: true },
+        { order: 1030, name: "EditorDragDropProcessor", enabled: true }
+      ]
+    },
+    {
+      name: "EditorLogic", orderRange: "1050-1099", color: "#f97316", isEditor: true,
+      processors: [
+        { order: 1050, name: "SelectionProcessor", enabled: true },
+        { order: 1060, name: "UndoRedoProcessor", enabled: true },
+        { order: 1070, name: "CopyPasteProcessor", enabled: true },
+        { order: 1080, name: "TransformEditProcessor", enabled: true }
+      ]
+    },
+    {
+      name: "EditorScene", orderRange: "1100-1149", color: "#f97316", isEditor: true,
+      processors: [
+        { order: 1100, name: "GridProcessor", enabled: true },
+        { order: 1110, name: "GizmoProcessor", enabled: true },
+        { order: 1120, name: "BoundsVisualizerProcessor", enabled: true },
+        { order: 1130, name: "LightVisualizerProcessor", enabled: true },
+        { order: 1140, name: "CameraPreviewProcessor", enabled: true }
+      ]
+    },
+    {
+      name: "EditorUI", orderRange: "1200-1299", color: "#f97316", isEditor: true,
+      processors: [
+        { order: 1200, name: "EditorMenuBarProcessor", enabled: true },
+        { order: 1210, name: "SceneHierarchyProcessor", enabled: true },
+        { order: 1220, name: "InspectorProcessor", enabled: true },
+        { order: 1230, name: "AssetBrowserProcessor", enabled: true },
+        { order: 1240, name: "ConsoleProcessor", enabled: true },
+        { order: 1250, name: "ViewportToolbarProcessor", enabled: true },
+        { order: 1260, name: "StatusBarProcessor", enabled: true }
+      ]
+    },
+    {
+      name: "EditorPersist", orderRange: "1300-1349", color: "#f97316", isEditor: true,
+      processors: [
+        { order: 1300, name: "SceneSaveProcessor", enabled: true },
+        { order: 1310, name: "SceneLoadProcessor", enabled: true },
+        { order: 1320, name: "AutoSaveProcessor", enabled: true, config: { intervalMinutes: 5, maxBackups: 3 } },
+        { order: 1330, name: "ProjectSettingsProcessor", enabled: true }
+      ]
+    },
+    {
+      name: "EditorPlayMode", orderRange: "1400-1449", color: "#f97316", isEditor: true,
+      processors: [
+        { order: 1400, name: "PlayModeProcessor", enabled: true },
+        { order: 1410, name: "PlayModeStateProcessor", enabled: true },
+        { order: 1420, name: "PlayModePauseProcessor", enabled: true }
+      ]
+    }
+  ],
+
+  sceneHierarchy: [
+    { id: "scene_village", name: "Village Scene", type: "scene", children: [
+      { id: "entity_environment", name: "Environment", type: "folder", children: [
+        { id: "entity_terrain", name: "Terrain", type: "entity" },
+        { id: "entity_building_tavern", name: "Tavern", type: "entity" },
+        { id: "entity_building_shop", name: "Shop", type: "entity" },
+        { id: "entity_trees", name: "Trees", type: "entity" }
+      ]},
+      { id: "entity_player", name: "Player", type: "entity", tags: ["Controllable", "Persistent"] },
+      { id: "entity_npc_merchant", name: "Merchant NPC", type: "entity", tags: ["NPC", "Interactable"] },
+      { id: "entity_lights", name: "Lights", type: "folder", children: [
+        { id: "entity_sun", name: "Sun Light", type: "entity" },
+        { id: "entity_torch_1", name: "Torch", type: "entity" }
+      ]},
+      { id: "entity_audio", name: "Audio", type: "folder" }
+    ]}
+  ],
+
+  assets: [
+    { id: "asset_player_model", name: "Player Character", type: "MODEL", path: "./assets/models/player.glb", loadJob: "GltfLoadJob", meta: { vertexCount: 12500, triangleCount: 8200 } },
+    { id: "asset_terrain", name: "Village Terrain", type: "MODEL", path: "./assets/models/terrain_village.glb", loadJob: "GltfLoadJob", postLoadJob: "PhysicsColliderBakeJob" },
+    { id: "asset_ambient_music", name: "Village Ambient", type: "AUDIO", path: "./assets/audio/ambient_village.ogg", loadJob: "AudioDecodeJob", meta: { format: "OGG_VORBIS", loop: true } }
+  ],
+
+  tags: [
+    { id: "tag_controllable", name: "Controllable", color: "#2196F3", category: "gameplay" },
+    { id: "tag_persistent", name: "Persistent", color: "#4CAF50", category: "system" },
+    { id: "tag_npc", name: "NPC", color: "#FF9800", category: "gameplay" },
+    { id: "tag_interactable", name: "Interactable", color: "#9C27B0", category: "gameplay" }
+  ]
+};
+
+// ============================================================================
+// UI RENDERING
+// ============================================================================
+
+let selectedItem = null;
+let studioMode = false;
+
+function renderSceneTree() {
+  const container = document.getElementById('sceneTree');
+
+  function renderNode(node, depth = 0) {
+    const icon = node.type === 'scene' ? '&#127758;' :
+                 node.type === 'folder' ? '&#128193;' :
+                 '&#9632;';
+    const iconColor = node.type === 'scene' ? 'text-purple-400' :
+                      node.type === 'folder' ? 'text-yellow-400' :
+                      'text-blue-400';
+
+    let html = `
+      <div class="tree-item rounded px-2 py-1 cursor-pointer flex items-center gap-2 ${selectedItem === node.id ? 'selected' : ''}"
+           style="padding-left: ${depth * 16 + 8}px"
+           onclick="selectItem('${node.id}', 'entity')">
+        <span class="${iconColor}">${icon}</span>
+        <span class="text-sm truncate flex-1">${node.name}</span>
+        ${node.tags ? node.tags.map(t => `<span class="text-[10px] px-1 rounded bg-slate-700">${t}</span>`).join('') : ''}
+      </div>
+    `;
+
+    if (node.children) {
+      node.children.forEach(child => {
+        html += renderNode(child, depth + 1);
+      });
+    }
+
+    return html;
+  }
+
+  container.innerHTML = sceneData.sceneHierarchy.map(node => renderNode(node)).join('');
+}
+
+function renderProcessorsTab() {
+  const stages = studioMode ? sceneData.processorStages : sceneData.processorStages.filter(s => !s.isEditor);
+
+  let html = `
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-lg font-semibold">Processor Pipeline</h3>
+      <div class="flex items-center gap-2 text-xs text-slate-400">
+        <span class="px-2 py-1 bg-slate-800 rounded">${stages.reduce((acc, s) => acc + s.processors.length, 0)} processors</span>
+        <span class="px-2 py-1 bg-slate-800 rounded">${stages.length} stages</span>
+      </div>
+    </div>
+    <div class="space-y-4">
+  `;
+
+  stages.forEach(stage => {
+    html += `
+      <div class="glass rounded-lg overflow-hidden">
+        <div class="px-4 py-2 flex items-center justify-between" style="background: ${stage.color}15; border-left: 3px solid ${stage.color}">
+          <div class="flex items-center gap-3">
+            <span class="font-medium">${stage.name}</span>
+            <span class="stage-badge px-2 py-0.5 rounded text-slate-400 bg-slate-800">${stage.orderRange}</span>
+            ${stage.isEditor ? '<span class="stage-badge px-2 py-0.5 rounded bg-orange-900/50 text-orange-300">EDITOR</span>' : ''}
+          </div>
+          <span class="text-xs text-slate-400">${stage.processors.length} processors</span>
+        </div>
+        <div class="p-2 grid grid-cols-2 gap-2">
+    `;
+
+    stage.processors.forEach(p => {
+      html += `
+        <div class="processor-card p-2 rounded border border-slate-700 hover:border-blue-500/50 cursor-pointer transition-colors ${p.enabled ? '' : 'disabled'}"
+             onclick="selectItem('${p.name}', 'processor')">
+          <div class="flex items-center justify-between">
+            <span class="mono text-xs" style="color: ${stage.color}">${p.order}</span>
+            <label class="relative inline-flex items-center cursor-pointer" onclick="event.stopPropagation()">
+              <input type="checkbox" ${p.enabled ? 'checked' : ''} class="sr-only peer" onchange="toggleProcessor('${p.name}')">
+              <div class="w-7 h-4 bg-slate-700 peer-checked:bg-blue-600 rounded-full peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all"></div>
+            </label>
+          </div>
+          <div class="text-xs mt-1 truncate">${p.name.replace('Processor', '')}</div>
+          ${p.config ? '<span class="text-[10px] text-slate-500">has config</span>' : ''}
+        </div>
+      `;
+    });
+
+    html += `</div></div>`;
+  });
+
+  html += '</div>';
+  return html;
+}
+
+function renderJobsTab() {
+  let html = `
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-lg font-semibold">Job System</h3>
+      <span class="text-xs text-slate-400 px-2 py-1 bg-slate-800 rounded">${sceneData.jobs.length} job types</span>
+    </div>
+    <div class="space-y-3">
+  `;
+
+  const jobsByPool = {};
+  sceneData.jobs.forEach(job => {
+    if (!jobsByPool[job.pool]) jobsByPool[job.pool] = [];
+    jobsByPool[job.pool].push(job);
+  });
+
+  Object.entries(jobsByPool).forEach(([poolId, jobs]) => {
+    const pool = sceneData.threadPools.find(p => p.id === poolId);
+    const poolColor = pool.type === 'IO' ? '#f59e0b' : pool.type === 'COMPUTE' ? '#3b82f6' : '#10b981';
+
+    html += `
+      <div class="glass rounded-lg overflow-hidden">
+        <div class="px-4 py-2 flex items-center justify-between" style="background: ${poolColor}15; border-left: 3px solid ${poolColor}">
+          <div class="flex items-center gap-3">
+            <span class="font-medium">${pool.type} Pool</span>
+            <span class="text-xs text-slate-400">${poolId}</span>
+          </div>
+          <span class="text-xs text-slate-400">${jobs.length} jobs</span>
+        </div>
+        <div class="p-3 space-y-2">
+    `;
+
+    jobs.forEach(job => {
+      const priorityColor = job.priority === 'HIGH' ? 'text-red-400' :
+                           job.priority === 'NORMAL' ? 'text-yellow-400' :
+                           job.priority === 'LOW' ? 'text-green-400' : 'text-slate-400';
+
+      html += `
+        <div class="p-3 bg-slate-800/50 rounded cursor-pointer hover:bg-slate-800 transition-colors"
+             onclick="selectItem('${job.id}', 'job')">
+          <div class="flex items-center justify-between mb-1">
+            <span class="font-medium text-sm">${job.id}</span>
+            <span class="text-xs ${priorityColor}">${job.priority}</span>
+          </div>
+          <p class="text-xs text-slate-400 mb-2">${job.description}</p>
+          <div class="flex items-center gap-2 text-[10px] text-slate-500">
+            <span>&#8594; ${job.submitProcessor?.replace('Processor', '') || 'N/A'}</span>
+            ${job.resultProcessor ? `<span>&#8594; ${job.resultProcessor.replace('Processor', '')}</span>` : ''}
+            ${job.duration ? `<span class="ml-auto">${job.duration}</span>` : ''}
+            ${job.fireAndForget ? '<span class="text-orange-400">fire & forget</span>' : ''}
+          </div>
+        </div>
+      `;
+    });
+
+    html += '</div></div>';
+  });
+
+  html += '</div>';
+  return html;
+}
+
+function renderThreadsTab() {
+  let html = `
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-lg font-semibold">Thread Pools</h3>
+      <select class="text-xs bg-slate-800 rounded px-2 py-1 border border-slate-700" onchange="changePlatform(this.value)">
+        <option value="desktop_16core">Desktop 16-core</option>
+        <option value="desktop_8core">Desktop 8-core</option>
+        <option value="android_highend">Android High-End</option>
+        <option value="android_midrange">Android Mid-Range</option>
+      </select>
+    </div>
+    <div class="grid grid-cols-3 gap-4">
+  `;
+
+  sceneData.threadPools.forEach(pool => {
+    const poolColor = pool.type === 'IO' ? '#f59e0b' : pool.type === 'COMPUTE' ? '#3b82f6' : '#10b981';
+    const threadCount = pool.threads?.desktop_16core || pool.dedicatedThreads?.length || 0;
+
+    html += `
+      <div class="glass rounded-lg p-4 cursor-pointer hover:border-blue-500/50 transition-colors"
+           onclick="selectItem('${pool.id}', 'pool')"
+           style="border-left: 3px solid ${poolColor}">
+        <div class="flex items-center justify-between mb-3">
+          <span class="font-semibold" style="color: ${poolColor}">${pool.type}</span>
+          <span class="text-2xl font-bold">${threadCount}</span>
+        </div>
+        <div class="text-xs text-slate-400 mb-2">${pool.description}</div>
+        ${pool.queueSize ? `<div class="text-xs text-slate-500">Queue: ${pool.queueSize}</div>` : ''}
+        ${pool.dedicatedThreads ? `
+          <div class="mt-2 space-y-1">
+            ${pool.dedicatedThreads.map(t => `
+              <div class="text-xs flex items-center justify-between">
+                <span>${t.id}</span>
+                <span class="text-slate-500">${t.affinity}</span>
+              </div>
+            `).join('')}
+          </div>
+        ` : ''}
+      </div>
+    `;
+  });
+
+  html += '</div>';
+
+  // Thread visualization
+  html += `
+    <div class="mt-6 glass rounded-lg p-4">
+      <h4 class="font-medium mb-3">Thread Distribution (Desktop 16-core)</h4>
+      <div class="flex gap-1 h-8">
+        <div class="flex-none w-8 bg-slate-700 rounded flex items-center justify-center text-xs" title="Main Thread">M</div>
+        ${Array(4).fill(0).map(() => `<div class="flex-1 bg-amber-600/50 rounded" title="I/O Thread"></div>`).join('')}
+        ${Array(8).fill(0).map(() => `<div class="flex-1 bg-blue-600/50 rounded" title="Compute Thread"></div>`).join('')}
+        <div class="flex-none w-12 bg-emerald-600/50 rounded flex items-center justify-center text-[10px]" title="Audio">AUD</div>
+        <div class="flex-none w-12 bg-emerald-600/50 rounded flex items-center justify-center text-[10px]" title="Network">NET</div>
+      </div>
+      <div class="flex justify-between mt-2 text-[10px] text-slate-500">
+        <span>Main</span>
+        <span>I/O Pool (4)</span>
+        <span>Compute Pool (8)</span>
+        <span>Dedicated (2)</span>
+      </div>
+    </div>
+  `;
+
+  return html;
+}
+
+function renderAssetsTab() {
+  let html = `
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-lg font-semibold">Assets</h3>
+      <button class="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-500 rounded transition-colors">+ Import Asset</button>
+    </div>
+    <div class="space-y-2">
+  `;
+
+  sceneData.assets.forEach(asset => {
+    const typeIcon = asset.type === 'MODEL' ? '&#128230;' :
+                     asset.type === 'AUDIO' ? '&#127925;' :
+                     '&#128196;';
+    const typeColor = asset.type === 'MODEL' ? 'text-blue-400' :
+                      asset.type === 'AUDIO' ? 'text-purple-400' :
+                      'text-green-400';
+
+    html += `
+      <div class="glass rounded-lg p-3 cursor-pointer hover:border-blue-500/50 transition-colors"
+           onclick="selectItem('${asset.id}', 'asset')">
+        <div class="flex items-center gap-3">
+          <span class="${typeColor} text-2xl">${typeIcon}</span>
+          <div class="flex-1">
+            <div class="font-medium text-sm">${asset.name}</div>
+            <div class="text-xs text-slate-500 mono">${asset.path}</div>
+          </div>
+          <div class="text-right">
+            <div class="text-xs text-slate-400">${asset.type}</div>
+            <div class="text-[10px] text-slate-500">${asset.loadJob}</div>
+          </div>
+        </div>
+        ${asset.meta ? `
+          <div class="mt-2 flex gap-2 text-[10px] text-slate-500">
+            ${Object.entries(asset.meta).map(([k, v]) => `<span class="px-1 bg-slate-800 rounded">${k}: ${v}</span>`).join('')}
+          </div>
+        ` : ''}
+      </div>
+    `;
+  });
+
+  html += '</div>';
+  return html;
+}
+
+function renderSettingsTab() {
+  const s = sceneData.project.settings;
+
+  return `
+    <div class="mb-4">
+      <h3 class="text-lg font-semibold">Project Settings</h3>
+    </div>
+    <div class="grid grid-cols-2 gap-6">
+      <div class="glass rounded-lg p-4">
+        <h4 class="font-medium mb-4">General</h4>
+        <div class="space-y-3">
+          <div>
+            <label class="text-xs text-slate-400">Project Name</label>
+            <input type="text" value="${sceneData.project.name}" class="w-full mt-1 px-3 py-2 bg-slate-800 rounded border border-slate-700 text-sm">
+          </div>
+          <div>
+            <label class="text-xs text-slate-400">Default Scene</label>
+            <input type="text" value="${s.defaultSceneId}" class="w-full mt-1 px-3 py-2 bg-slate-800 rounded border border-slate-700 text-sm mono">
+          </div>
+          <div>
+            <label class="text-xs text-slate-400">Target FPS</label>
+            <input type="number" value="${s.targetFps}" class="w-full mt-1 px-3 py-2 bg-slate-800 rounded border border-slate-700 text-sm">
+          </div>
+        </div>
+      </div>
+
+      <div class="glass rounded-lg p-4">
+        <h4 class="font-medium mb-4">Auto-Save</h4>
+        <div class="space-y-3">
+          <div class="flex items-center justify-between">
+            <label class="text-sm">Enable Auto-Save</label>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" ${s.autoSaveEnabled ? 'checked' : ''} class="sr-only peer">
+              <div class="w-9 h-5 bg-slate-700 peer-checked:bg-blue-600 rounded-full peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all"></div>
+            </label>
+          </div>
+          <div>
+            <label class="text-xs text-slate-400">Interval (seconds)</label>
+            <input type="number" value="${s.autoSaveIntervalSeconds}" class="w-full mt-1 px-3 py-2 bg-slate-800 rounded border border-slate-700 text-sm">
+          </div>
+        </div>
+      </div>
+
+      <div class="glass rounded-lg p-4 col-span-2">
+        <h4 class="font-medium mb-4">Tags</h4>
+        <div class="flex flex-wrap gap-2">
+          ${sceneData.tags.map(tag => `
+            <span class="px-3 py-1 rounded-full text-sm flex items-center gap-2" style="background: ${tag.color}30; border: 1px solid ${tag.color}">
+              <span class="w-2 h-2 rounded-full" style="background: ${tag.color}"></span>
+              ${tag.name}
+              <span class="text-xs text-slate-400">(${tag.category})</span>
+            </span>
+          `).join('')}
+          <button class="px-3 py-1 rounded-full border border-dashed border-slate-600 text-sm text-slate-400 hover:border-slate-500">+ Add Tag</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderInspector(id, type) {
+  const inspector = document.getElementById('inspector');
+
+  if (type === 'processor') {
+    let processor = null;
+    let stage = null;
+    for (const s of sceneData.processorStages) {
+      const p = s.processors.find(p => p.name === id);
+      if (p) { processor = p; stage = s; break; }
+    }
+
+    if (!processor) return;
+
+    inspector.innerHTML = `
+      <div class="space-y-4">
+        <div class="flex items-center gap-2">
+          <span class="w-3 h-3 rounded" style="background: ${stage.color}"></span>
+          <span class="font-semibold">${processor.name}</span>
+        </div>
+
+        <div class="space-y-2">
+          <div class="flex justify-between text-sm">
+            <span class="text-slate-400">Order</span>
+            <span class="mono">${processor.order}</span>
+          </div>
+          <div class="flex justify-between text-sm">
+            <span class="text-slate-400">Stage</span>
+            <span>${stage.name}</span>
+          </div>
+          <div class="flex justify-between text-sm">
+            <span class="text-slate-400">Enabled</span>
+            <span class="${processor.enabled ? 'text-green-400' : 'text-red-400'}">${processor.enabled ? 'Yes' : 'No'}</span>
+          </div>
+          ${stage.isEditor ? `
+            <div class="flex justify-between text-sm">
+              <span class="text-slate-400">Requires</span>
+              <span class="text-orange-400">Studio Mode</span>
+            </div>
+          ` : ''}
+        </div>
+
+        ${processor.config ? `
+          <div class="border-t border-slate-700 pt-4">
+            <h4 class="text-sm font-medium mb-2">Configuration</h4>
+            <div class="space-y-2">
+              ${Object.entries(processor.config).map(([key, value]) => `
+                <div>
+                  <label class="text-xs text-slate-400">${key}</label>
+                  <input type="text" value="${value}" class="w-full mt-1 px-2 py-1 bg-slate-800 rounded border border-slate-700 text-sm mono">
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        ` : ''}
+
+        <div class="border-t border-slate-700 pt-4">
+          <h4 class="text-sm font-medium mb-2">Related Jobs</h4>
+          <div class="space-y-1">
+            ${sceneData.jobs.filter(j => j.submitProcessor === processor.name || j.resultProcessor === processor.name).map(j => `
+              <div class="text-xs p-2 bg-slate-800 rounded flex justify-between">
+                <span>${j.id}</span>
+                <span class="text-slate-500">${j.submitProcessor === processor.name ? 'submits' : 'receives'}</span>
+              </div>
+            `).join('') || '<p class="text-xs text-slate-500">No related jobs</p>'}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+  else if (type === 'job') {
+    const job = sceneData.jobs.find(j => j.id === id);
+    if (!job) return;
+
+    const pool = sceneData.threadPools.find(p => p.id === job.pool);
+    const poolColor = pool.type === 'IO' ? '#f59e0b' : pool.type === 'COMPUTE' ? '#3b82f6' : '#10b981';
+
+    inspector.innerHTML = `
+      <div class="space-y-4">
+        <div class="font-semibold">${job.id}</div>
+        <p class="text-sm text-slate-400">${job.description}</p>
+
+        <div class="space-y-2">
+          <div class="flex justify-between text-sm">
+            <span class="text-slate-400">Pool</span>
+            <span style="color: ${poolColor}">${pool.type}</span>
+          </div>
+          <div class="flex justify-between text-sm">
+            <span class="text-slate-400">Priority</span>
+            <span>${job.priority}</span>
+          </div>
+          ${job.duration ? `
+            <div class="flex justify-between text-sm">
+              <span class="text-slate-400">Duration</span>
+              <span class="mono">${job.duration}</span>
+            </div>
+          ` : ''}
+          ${job.fireAndForget ? `
+            <div class="flex justify-between text-sm">
+              <span class="text-slate-400">Mode</span>
+              <span class="text-orange-400">Fire & Forget</span>
+            </div>
+          ` : ''}
+        </div>
+
+        <div class="border-t border-slate-700 pt-4">
+          <h4 class="text-sm font-medium mb-2">Flow</h4>
+          <div class="space-y-2 text-xs">
+            <div class="p-2 bg-slate-800 rounded">
+              <span class="text-slate-400">Submit by:</span>
+              <span class="ml-2">${job.submitProcessor || 'N/A'}</span>
+            </div>
+            ${job.resultProcessor ? `
+              <div class="text-center text-slate-500">&#8595;</div>
+              <div class="p-2 bg-slate-800 rounded">
+                <span class="text-slate-400">Result to:</span>
+                <span class="ml-2">${job.resultProcessor}</span>
+              </div>
+            ` : ''}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+  else if (type === 'entity') {
+    function findEntity(nodes, targetId) {
+      for (const node of nodes) {
+        if (node.id === targetId) return node;
+        if (node.children) {
+          const found = findEntity(node.children, targetId);
+          if (found) return found;
+        }
+      }
+      return null;
+    }
+
+    const entity = findEntity(sceneData.sceneHierarchy, id);
+    if (!entity) return;
+
+    inspector.innerHTML = `
+      <div class="space-y-4">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">${entity.type === 'scene' ? '&#127758;' : entity.type === 'folder' ? '&#128193;' : '&#9632;'}</span>
+          <span class="font-semibold">${entity.name}</span>
+        </div>
+
+        <div class="space-y-2">
+          <div class="flex justify-between text-sm">
+            <span class="text-slate-400">ID</span>
+            <span class="mono text-xs">${entity.id}</span>
+          </div>
+          <div class="flex justify-between text-sm">
+            <span class="text-slate-400">Type</span>
+            <span>${entity.type}</span>
+          </div>
+        </div>
+
+        ${entity.tags ? `
+          <div class="border-t border-slate-700 pt-4">
+            <h4 class="text-sm font-medium mb-2">Tags</h4>
+            <div class="flex flex-wrap gap-1">
+              ${entity.tags.map(tagName => {
+                const tag = sceneData.tags.find(t => t.name === tagName);
+                return `<span class="px-2 py-0.5 rounded text-xs" style="background: ${tag?.color || '#666'}30">${tagName}</span>`;
+              }).join('')}
+            </div>
+          </div>
+        ` : ''}
+
+        <div class="border-t border-slate-700 pt-4">
+          <h4 class="text-sm font-medium mb-2">Components</h4>
+          <div class="space-y-1">
+            <button class="w-full text-left text-xs p-2 bg-slate-800 rounded hover:bg-slate-700">+ Add Component</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+  else if (type === 'asset') {
+    const asset = sceneData.assets.find(a => a.id === id);
+    if (!asset) return;
+
+    inspector.innerHTML = `
+      <div class="space-y-4">
+        <div class="font-semibold">${asset.name}</div>
+
+        <div class="space-y-2">
+          <div class="flex justify-between text-sm">
+            <span class="text-slate-400">Type</span>
+            <span>${asset.type}</span>
+          </div>
+          <div class="text-sm">
+            <span class="text-slate-400">Path</span>
+            <div class="mono text-xs mt-1 p-2 bg-slate-800 rounded">${asset.path}</div>
+          </div>
+          <div class="flex justify-between text-sm">
+            <span class="text-slate-400">Load Job</span>
+            <span class="text-amber-400">${asset.loadJob}</span>
+          </div>
+          ${asset.postLoadJob ? `
+            <div class="flex justify-between text-sm">
+              <span class="text-slate-400">Post-Load Job</span>
+              <span class="text-blue-400">${asset.postLoadJob}</span>
+            </div>
+          ` : ''}
+        </div>
+
+        ${asset.meta ? `
+          <div class="border-t border-slate-700 pt-4">
+            <h4 class="text-sm font-medium mb-2">Metadata</h4>
+            <div class="space-y-1">
+              ${Object.entries(asset.meta).map(([k, v]) => `
+                <div class="flex justify-between text-xs">
+                  <span class="text-slate-400">${k}</span>
+                  <span class="mono">${v}</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }
+  else if (type === 'pool') {
+    const pool = sceneData.threadPools.find(p => p.id === id);
+    if (!pool) return;
+
+    const poolColor = pool.type === 'IO' ? '#f59e0b' : pool.type === 'COMPUTE' ? '#3b82f6' : '#10b981';
+
+    inspector.innerHTML = `
+      <div class="space-y-4">
+        <div class="flex items-center gap-2">
+          <span class="w-3 h-3 rounded" style="background: ${poolColor}"></span>
+          <span class="font-semibold">${pool.type} Pool</span>
+        </div>
+        <p class="text-sm text-slate-400">${pool.description}</p>
+
+        ${pool.threads ? `
+          <div class="border-t border-slate-700 pt-4">
+            <h4 class="text-sm font-medium mb-2">Thread Count by Platform</h4>
+            <div class="space-y-1">
+              ${Object.entries(pool.threads).map(([platform, count]) => `
+                <div class="flex justify-between text-xs">
+                  <span class="text-slate-400">${platform}</span>
+                  <span class="mono">${count}</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        ` : ''}
+
+        ${pool.dedicatedThreads ? `
+          <div class="border-t border-slate-700 pt-4">
+            <h4 class="text-sm font-medium mb-2">Dedicated Threads</h4>
+            <div class="space-y-1">
+              ${pool.dedicatedThreads.map(t => `
+                <div class="flex justify-between text-xs">
+                  <span>${t.id}</span>
+                  <span class="text-slate-400">${t.affinity}</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        ` : ''}
+
+        <div class="border-t border-slate-700 pt-4">
+          <h4 class="text-sm font-medium mb-2">Jobs in this Pool</h4>
+          <div class="space-y-1">
+            ${sceneData.jobs.filter(j => j.pool === pool.id).map(j => `
+              <div class="text-xs p-2 bg-slate-800 rounded flex justify-between">
+                <span>${j.id}</span>
+                <span class="text-slate-500">${j.priority}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+}
+
+// ============================================================================
+// EVENT HANDLERS
+// ============================================================================
+
+function selectItem(id, type) {
+  selectedItem = id;
+  renderSceneTree();
+  renderInspector(id, type);
+}
+
+function toggleProcessor(name) {
+  for (const stage of sceneData.processorStages) {
+    const p = stage.processors.find(p => p.name === name);
+    if (p) {
+      p.enabled = !p.enabled;
+      break;
+    }
+  }
+  renderTab('processors');
+}
+
+function renderTab(tabName) {
+  const content = document.getElementById('tabContent');
+
+  // Update tab buttons
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tab === tabName);
+  });
+
+  switch (tabName) {
+    case 'processors': content.innerHTML = renderProcessorsTab(); break;
+    case 'jobs': content.innerHTML = renderJobsTab(); break;
+    case 'threads': content.innerHTML = renderThreadsTab(); break;
+    case 'assets': content.innerHTML = renderAssetsTab(); break;
+    case 'settings': content.innerHTML = renderSettingsTab(); break;
+  }
+}
+
+// Tab click handlers
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => renderTab(btn.dataset.tab));
+});
+
+// Studio mode toggle
+document.getElementById('studioModeToggle').addEventListener('click', () => {
+  studioMode = !studioMode;
+  document.getElementById('studioModeLabel').textContent = studioMode ? 'ON' : 'OFF';
+  sceneData.project.settings.studioMode = studioMode;
+  renderTab('processors');
+});
+
+// ============================================================================
+// INITIALIZATION
+// ============================================================================
+
+renderSceneTree();
+renderTab('processors');
+</script>
+
+</body>
+</html>

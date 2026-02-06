@@ -1,0 +1,624 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SYNTH 2.0 GAME SCENE FORMAT
+  Based on nuna-sdk-cpp Unified Processor Architecture
+
+  New in 2.0:
+  - Processor pipeline definitions (runtime + editor)
+  - Job system configuration (I/O, Compute, Dedicated pools)
+  - Worker thread configuration per platform
+  - Visual comparison for migration verification
+
+  Schema Version: 2.0.0
+-->
+<synthProject xmlns="https://chevp.github.io/synth-protocol/schema/synth/project/2.0"
+              xmlns:core="https://chevp.github.io/synth-protocol/schema/synth/core/2.0"
+              xmlns:runtime="https://chevp.github.io/synth-protocol/schema/synth/runtime/2.0"
+              version="2.0">
+
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <!-- PROJECT HEADER -->
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <header>
+        <magic>SYNTH</magic>
+        <formatVersion>2</formatVersion>
+        <schemaVersion>2.0.0</schemaVersion>
+        <createdAt>1738800000000</createdAt>
+        <modifiedAt>1738800000000</modifiedAt>
+    </header>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <!-- PROJECT METADATA -->
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <project>
+        <core:entityId>
+            <uuid>proj_game_rpg_demo</uuid>
+            <version>1</version>
+        </core:entityId>
+        <name>RPG Demo Scene</name>
+        <description>Example game scene demonstrating processors, jobs and worker threads</description>
+        <settings>
+            <defaultSceneId>scene_village</defaultSceneId>
+            <targetFps>60</targetFps>
+            <studioMode>false</studioMode>
+            <autoSaveEnabled>true</autoSaveEnabled>
+            <autoSaveIntervalSeconds>300</autoSaveIntervalSeconds>
+        </settings>
+    </project>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <!-- RUNTIME CONFIGURATION (NEW in 2.0) -->
+    <!-- Thread pools, job queues, processor pipeline -->
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <runtime:configuration>
+
+        <!-- Worker Thread Pools -->
+        <runtime:threadPools>
+            <!-- I/O Pool: File loading, SQLite, Network -->
+            <runtime:pool id="io_pool" type="IO">
+                <runtime:threads platform="desktop_16core">4</runtime:threads>
+                <runtime:threads platform="desktop_8core">2</runtime:threads>
+                <runtime:threads platform="android_highend">2</runtime:threads>
+                <runtime:threads platform="android_midrange">1</runtime:threads>
+                <runtime:queueSize>256</runtime:queueSize>
+            </runtime:pool>
+
+            <!-- Compute Pool: Mesh optimization, texture compression, physics -->
+            <runtime:pool id="compute_pool" type="COMPUTE">
+                <runtime:threads platform="desktop_16core">8</runtime:threads>
+                <runtime:threads platform="desktop_8core">4</runtime:threads>
+                <runtime:threads platform="android_highend">4</runtime:threads>
+                <runtime:threads platform="android_midrange">2</runtime:threads>
+                <runtime:queueSize>128</runtime:queueSize>
+            </runtime:pool>
+
+            <!-- Dedicated Threads: Audio, Network realtime -->
+            <runtime:pool id="dedicated_pool" type="DEDICATED">
+                <runtime:thread id="audio_thread" affinity="high_priority"/>
+                <runtime:thread id="network_thread" affinity="normal"/>
+            </runtime:pool>
+        </runtime:threadPools>
+
+        <!-- Job Definitions -->
+        <runtime:jobs>
+            <!-- Asset Loading Jobs (I/O Pool) -->
+            <runtime:job id="GltfLoadJob" pool="io_pool" priority="HIGH">
+                <runtime:description>Load and parse GLTF/GLB files</runtime:description>
+                <runtime:submitProcessor>SceneLoadOrchestratorProcessor</runtime:submitProcessor>
+                <runtime:resultProcessor>AssetLoadResultProcessor</runtime:resultProcessor>
+                <runtime:estimatedDurationMs>10-500</runtime:estimatedDurationMs>
+            </runtime:job>
+
+            <runtime:job id="TextureDecodeJob" pool="io_pool" priority="HIGH">
+                <runtime:description>Decode PNG/JPG to raw pixels</runtime:description>
+                <runtime:submitProcessor>SceneLoadOrchestratorProcessor</runtime:submitProcessor>
+                <runtime:resultProcessor>AssetLoadResultProcessor</runtime:resultProcessor>
+                <runtime:estimatedDurationMs>5-50</runtime:estimatedDurationMs>
+            </runtime:job>
+
+            <runtime:job id="AudioDecodeJob" pool="io_pool" priority="NORMAL">
+                <runtime:description>Decode OGG/WAV to PCM</runtime:description>
+                <runtime:submitProcessor>SceneLoadOrchestratorProcessor</runtime:submitProcessor>
+                <runtime:resultProcessor>AssetLoadResultProcessor</runtime:resultProcessor>
+                <runtime:estimatedDurationMs>10-100</runtime:estimatedDurationMs>
+            </runtime:job>
+
+            <!-- Editor Persistence Jobs (I/O Pool, Low Priority) -->
+            <runtime:job id="AutoSaveJob" pool="io_pool" priority="LOW">
+                <runtime:description>Serialize scene to temp file</runtime:description>
+                <runtime:submitProcessor>AutoSaveProcessor</runtime:submitProcessor>
+                <runtime:resultProcessor>StatusBarProcessor</runtime:resultProcessor>
+                <runtime:estimatedDurationMs>10-200</runtime:estimatedDurationMs>
+            </runtime:job>
+
+            <runtime:job id="SceneSaveJob" pool="io_pool" priority="NORMAL">
+                <runtime:description>Save scene to .synth file</runtime:description>
+                <runtime:submitProcessor>SceneSaveProcessor</runtime:submitProcessor>
+                <runtime:resultProcessor>StatusBarProcessor</runtime:resultProcessor>
+                <runtime:estimatedDurationMs>10-200</runtime:estimatedDurationMs>
+            </runtime:job>
+
+            <!-- Database Jobs (I/O Pool) -->
+            <runtime:job id="AssetCacheWriteJob" pool="io_pool" priority="LOW">
+                <runtime:description>Write asset to SQLite cache</runtime:description>
+                <runtime:submitProcessor>GpuUploadProcessor</runtime:submitProcessor>
+                <runtime:fireAndForget>true</runtime:fireAndForget>
+            </runtime:job>
+
+            <!-- Compute Jobs (Compute Pool) -->
+            <runtime:job id="MeshOptimizeJob" pool="compute_pool" priority="NORMAL">
+                <runtime:description>Optimize mesh with meshoptimizer</runtime:description>
+                <runtime:submitProcessor>SceneLoadOrchestratorProcessor</runtime:submitProcessor>
+                <runtime:resultProcessor>AssetLoadResultProcessor</runtime:resultProcessor>
+                <runtime:estimatedDurationMs>50-500</runtime:estimatedDurationMs>
+            </runtime:job>
+
+            <runtime:job id="NavMeshBuildJob" pool="compute_pool" priority="BACKGROUND">
+                <runtime:description>Generate navigation mesh</runtime:description>
+                <runtime:submitProcessor>EditorMenuBarProcessor</runtime:submitProcessor>
+                <runtime:resultProcessor>StatusBarProcessor</runtime:resultProcessor>
+                <runtime:estimatedDurationMs>500-5000</runtime:estimatedDurationMs>
+            </runtime:job>
+
+            <runtime:job id="PhysicsColliderBakeJob" pool="compute_pool" priority="NORMAL">
+                <runtime:description>Bake mesh to collision shape</runtime:description>
+                <runtime:submitProcessor>SceneLoadOrchestratorProcessor</runtime:submitProcessor>
+                <runtime:resultProcessor>AssetLoadResultProcessor</runtime:resultProcessor>
+                <runtime:estimatedDurationMs>50-500</runtime:estimatedDurationMs>
+            </runtime:job>
+        </runtime:jobs>
+
+        <!-- Processor Pipeline Configuration -->
+        <runtime:processors>
+            <!-- Runtime Processors (Order 0-999) - Always active -->
+            <runtime:stage name="Input" orderRange="0-49">
+                <runtime:processor order="10" name="PlatformEventProcessor" enabled="true"/>
+                <runtime:processor order="20" name="InputMappingProcessor" enabled="true"/>
+                <runtime:processor order="30" name="GestureRecognitionProcessor" enabled="true"/>
+                <runtime:processor order="40" name="InputBufferProcessor" enabled="true"/>
+            </runtime:stage>
+
+            <runtime:stage name="Data" orderRange="50-99">
+                <runtime:processor order="50" name="DatabaseConnectProcessor" enabled="true"/>
+                <runtime:processor order="60" name="PendingWriteProcessor" enabled="true"/>
+                <runtime:processor order="70" name="AssetCacheCheckProcessor" enabled="true"/>
+                <runtime:processor order="80" name="ConfigLoadProcessor" enabled="true"/>
+                <runtime:processor order="90" name="StatePersistProcessor" enabled="true"/>
+                <runtime:processor order="95" name="JobSchedulerProcessor" enabled="true"/>
+                <runtime:processor order="96" name="AssetLoadResultProcessor" enabled="true"/>
+                <runtime:processor order="97" name="SceneLoadOrchestratorProcessor" enabled="true"/>
+            </runtime:stage>
+
+            <runtime:stage name="Network" orderRange="100-199">
+                <runtime:processor order="100" name="NetworkReceiveProcessor" enabled="true"/>
+                <runtime:processor order="110" name="ProtocolDecodeProcessor" enabled="true"/>
+                <runtime:processor order="120" name="StateReconcileProcessor" enabled="true"/>
+                <runtime:processor order="180" name="NetworkSendProcessor" enabled="true"/>
+                <runtime:processor order="190" name="LatencyTrackProcessor" enabled="true"/>
+            </runtime:stage>
+
+            <runtime:stage name="GameLogic" orderRange="200-299">
+                <runtime:processor order="200" name="StateMachineProcessor" enabled="true"/>
+                <runtime:processor order="210" name="CommandExecuteProcessor" enabled="true"/>
+                <runtime:processor order="220" name="MovementProcessor" enabled="true"/>
+                <runtime:processor order="230" name="CollisionProcessor" enabled="true"/>
+                <runtime:processor order="240" name="InteractionProcessor" enabled="true"/>
+                <runtime:processor order="250" name="InventoryProcessor" enabled="true"/>
+                <runtime:processor order="260" name="QuestProcessor" enabled="true"/>
+                <runtime:processor order="270" name="AIProcessor" enabled="true"/>
+                <runtime:processor order="280" name="TriggerProcessor" enabled="true"/>
+            </runtime:stage>
+
+            <runtime:stage name="Physics" orderRange="300-399">
+                <runtime:processor order="300" name="PhysicsStepProcessor" enabled="true">
+                    <runtime:config>
+                        <entry key="fixedTimestep">0.016666</entry>
+                        <entry key="maxSubsteps">4</entry>
+                        <entry key="gravity">0,-9.81,0</entry>
+                    </runtime:config>
+                </runtime:processor>
+                <runtime:processor order="310" name="RigidBodyProcessor" enabled="true"/>
+                <runtime:processor order="320" name="CharacterControllerProcessor" enabled="true"/>
+                <runtime:processor order="330" name="RaycastProcessor" enabled="true"/>
+                <runtime:processor order="380" name="PhysicsSyncProcessor" enabled="true"/>
+            </runtime:stage>
+
+            <runtime:stage name="Animation" orderRange="400-499">
+                <runtime:processor order="400" name="AnimationUpdateProcessor" enabled="true"/>
+                <runtime:processor order="410" name="AnimationBlendProcessor" enabled="true"/>
+                <runtime:processor order="420" name="IKProcessor" enabled="true"/>
+                <runtime:processor order="450" name="SkinningProcessor" enabled="true"/>
+                <runtime:processor order="460" name="MorphTargetProcessor" enabled="true"/>
+            </runtime:stage>
+
+            <runtime:stage name="Scene" orderRange="500-599">
+                <runtime:processor order="500" name="SceneGraphUpdateProcessor" enabled="true"/>
+                <runtime:processor order="510" name="TransformProcessor" enabled="true"/>
+                <runtime:processor order="520" name="BoundingVolumeProcessor" enabled="true"/>
+                <runtime:processor order="530" name="FrustumCullProcessor" enabled="true"/>
+                <runtime:processor order="540" name="LODSelectProcessor" enabled="true"/>
+                <runtime:processor order="580" name="RenderListProcessor" enabled="true"/>
+                <runtime:processor order="598" name="GpuUploadProcessor" enabled="true"/>
+            </runtime:stage>
+
+            <runtime:stage name="Render" orderRange="600-799">
+                <runtime:processor order="600" name="FrameBeginProcessor" enabled="true"/>
+                <runtime:processor order="610" name="CommandBufferBeginProcessor" enabled="true"/>
+                <runtime:processor order="620" name="ShadowMapProcessor" enabled="true">
+                    <runtime:config>
+                        <entry key="resolution">2048</entry>
+                        <entry key="cascadeCount">4</entry>
+                    </runtime:config>
+                </runtime:processor>
+                <runtime:processor order="630" name="DepthPrepassProcessor" enabled="true"/>
+                <runtime:processor order="660" name="ForwardOpaqueProcessor" enabled="true"/>
+                <runtime:processor order="670" name="SkyboxProcessor" enabled="true"/>
+                <runtime:processor order="680" name="TransparentProcessor" enabled="true"/>
+                <runtime:processor order="690" name="ParticleProcessor" enabled="true"/>
+                <runtime:processor order="700" name="BloomProcessor" enabled="true">
+                    <runtime:config>
+                        <entry key="threshold">1.0</entry>
+                        <entry key="intensity">0.5</entry>
+                    </runtime:config>
+                </runtime:processor>
+                <runtime:processor order="710" name="SSAOProcessor" enabled="true"/>
+                <runtime:processor order="730" name="TonemapProcessor" enabled="true">
+                    <runtime:config>
+                        <entry key="exposure">1.0</entry>
+                        <entry key="gamma">2.2</entry>
+                    </runtime:config>
+                </runtime:processor>
+                <runtime:processor order="740" name="FXAAProcessor" enabled="true"/>
+                <runtime:processor order="750" name="ImGuiNewFrameProcessor" enabled="true"/>
+                <runtime:processor order="760" name="GameUIProcessor" enabled="true"/>
+                <runtime:processor order="765" name="DebugOverlayProcessor" enabled="false"/>
+                <runtime:processor order="778" name="ImGuiRenderProcessor" enabled="true"/>
+                <runtime:processor order="779" name="ImGuiSubmitProcessor" enabled="true"/>
+                <runtime:processor order="780" name="CommandBufferEndProcessor" enabled="true"/>
+                <runtime:processor order="790" name="QueueSubmitProcessor" enabled="true"/>
+                <runtime:processor order="795" name="PresentProcessor" enabled="true"/>
+            </runtime:stage>
+
+            <runtime:stage name="Audio" orderRange="800-899">
+                <runtime:processor order="800" name="AudioUpdateProcessor" enabled="true"/>
+                <runtime:processor order="810" name="Audio3DProcessor" enabled="true"/>
+                <runtime:processor order="820" name="AudioMixProcessor" enabled="true"/>
+                <runtime:processor order="880" name="AudioSubmitProcessor" enabled="true"/>
+            </runtime:stage>
+
+            <runtime:stage name="Cleanup" orderRange="900-999">
+                <runtime:processor order="900" name="FrameStatsProcessor" enabled="true"/>
+                <runtime:processor order="910" name="MemoryResetProcessor" enabled="true"/>
+                <runtime:processor order="920" name="ResourceGCProcessor" enabled="true"/>
+                <runtime:processor order="990" name="FrameEndProcessor" enabled="true"/>
+            </runtime:stage>
+
+            <!-- Editor Processors (Order 1000-1999) - Only when studioMode=true -->
+            <runtime:stage name="EditorInput" orderRange="1000-1049" requiresStudioMode="true">
+                <runtime:processor order="1000" name="EditorCameraProcessor" enabled="true"/>
+                <runtime:processor order="1010" name="EditorHotkeyProcessor" enabled="true"/>
+                <runtime:processor order="1020" name="EditorMousePickProcessor" enabled="true"/>
+                <runtime:processor order="1030" name="EditorDragDropProcessor" enabled="true"/>
+            </runtime:stage>
+
+            <runtime:stage name="EditorLogic" orderRange="1050-1099" requiresStudioMode="true">
+                <runtime:processor order="1050" name="SelectionProcessor" enabled="true"/>
+                <runtime:processor order="1060" name="UndoRedoProcessor" enabled="true"/>
+                <runtime:processor order="1070" name="CopyPasteProcessor" enabled="true"/>
+                <runtime:processor order="1080" name="TransformEditProcessor" enabled="true"/>
+            </runtime:stage>
+
+            <runtime:stage name="EditorScene" orderRange="1100-1149" requiresStudioMode="true">
+                <runtime:processor order="1100" name="GridProcessor" enabled="true"/>
+                <runtime:processor order="1110" name="GizmoProcessor" enabled="true"/>
+                <runtime:processor order="1120" name="BoundsVisualizerProcessor" enabled="true"/>
+                <runtime:processor order="1130" name="LightVisualizerProcessor" enabled="true"/>
+                <runtime:processor order="1140" name="CameraPreviewProcessor" enabled="true"/>
+            </runtime:stage>
+
+            <runtime:stage name="EditorUI" orderRange="1200-1299" requiresStudioMode="true">
+                <runtime:processor order="1200" name="EditorMenuBarProcessor" enabled="true"/>
+                <runtime:processor order="1210" name="SceneHierarchyProcessor" enabled="true"/>
+                <runtime:processor order="1220" name="InspectorProcessor" enabled="true"/>
+                <runtime:processor order="1230" name="AssetBrowserProcessor" enabled="true"/>
+                <runtime:processor order="1240" name="ConsoleProcessor" enabled="true"/>
+                <runtime:processor order="1250" name="ViewportToolbarProcessor" enabled="true"/>
+                <runtime:processor order="1260" name="StatusBarProcessor" enabled="true"/>
+            </runtime:stage>
+
+            <runtime:stage name="EditorPersistence" orderRange="1300-1349" requiresStudioMode="true">
+                <runtime:processor order="1300" name="SceneSaveProcessor" enabled="true"/>
+                <runtime:processor order="1310" name="SceneLoadProcessor" enabled="true"/>
+                <runtime:processor order="1320" name="AutoSaveProcessor" enabled="true">
+                    <runtime:config>
+                        <entry key="intervalMinutes">5</entry>
+                        <entry key="maxBackups">3</entry>
+                    </runtime:config>
+                </runtime:processor>
+                <runtime:processor order="1330" name="ProjectSettingsProcessor" enabled="true"/>
+            </runtime:stage>
+
+            <runtime:stage name="EditorPlayMode" orderRange="1400-1449" requiresStudioMode="true">
+                <runtime:processor order="1400" name="PlayModeProcessor" enabled="true"/>
+                <runtime:processor order="1410" name="PlayModeStateProcessor" enabled="true"/>
+                <runtime:processor order="1420" name="PlayModePauseProcessor" enabled="true"/>
+            </runtime:stage>
+        </runtime:processors>
+
+    </runtime:configuration>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <!-- SCENE HIERARCHY -->
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <clusterNodes>
+        <!-- Scene Root -->
+        <node>
+            <core:entityId>
+                <uuid>scene_village</uuid>
+                <version>1</version>
+            </core:entityId>
+            <name>Village Scene</name>
+            <nodeType>CLUSTER_NODE_TYPE_SCENE</nodeType>
+            <childIds>
+                <id>entity_environment</id>
+                <id>entity_player</id>
+                <id>entity_npc_merchant</id>
+                <id>entity_lights</id>
+                <id>entity_audio</id>
+            </childIds>
+        </node>
+
+        <!-- Environment Group -->
+        <node>
+            <core:entityId>
+                <uuid>entity_environment</uuid>
+                <version>1</version>
+            </core:entityId>
+            <name>Environment</name>
+            <nodeType>CLUSTER_NODE_TYPE_FOLDER</nodeType>
+            <parentId>scene_village</parentId>
+            <childIds>
+                <id>entity_terrain</id>
+                <id>entity_building_tavern</id>
+                <id>entity_building_shop</id>
+                <id>entity_trees</id>
+            </childIds>
+        </node>
+
+        <!-- Terrain -->
+        <node>
+            <core:entityId>
+                <uuid>entity_terrain</uuid>
+                <version>1</version>
+            </core:entityId>
+            <name>Terrain</name>
+            <nodeType>CLUSTER_NODE_TYPE_ENTITY</nodeType>
+            <parentId>entity_environment</parentId>
+        </node>
+
+        <!-- Player Entity -->
+        <node>
+            <core:entityId>
+                <uuid>entity_player</uuid>
+                <version>1</version>
+            </core:entityId>
+            <name>Player</name>
+            <nodeType>CLUSTER_NODE_TYPE_ENTITY</nodeType>
+            <parentId>scene_village</parentId>
+            <tagIds>
+                <id>tag_controllable</id>
+                <id>tag_persistent</id>
+            </tagIds>
+        </node>
+
+        <!-- NPC -->
+        <node>
+            <core:entityId>
+                <uuid>entity_npc_merchant</uuid>
+                <version>1</version>
+            </core:entityId>
+            <name>Merchant NPC</name>
+            <nodeType>CLUSTER_NODE_TYPE_ENTITY</nodeType>
+            <parentId>scene_village</parentId>
+            <tagIds>
+                <id>tag_npc</id>
+                <id>tag_interactable</id>
+            </tagIds>
+        </node>
+
+        <!-- Lights -->
+        <node>
+            <core:entityId>
+                <uuid>entity_lights</uuid>
+                <version>1</version>
+            </core:entityId>
+            <name>Lights</name>
+            <nodeType>CLUSTER_NODE_TYPE_FOLDER</nodeType>
+            <parentId>scene_village</parentId>
+            <childIds>
+                <id>entity_sun</id>
+                <id>entity_torch_1</id>
+            </childIds>
+        </node>
+
+        <node>
+            <core:entityId>
+                <uuid>entity_sun</uuid>
+                <version>1</version>
+            </core:entityId>
+            <name>Sun Light</name>
+            <nodeType>CLUSTER_NODE_TYPE_ENTITY</nodeType>
+            <parentId>entity_lights</parentId>
+        </node>
+    </clusterNodes>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <!-- COMPONENTS (ECS Data) -->
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <components>
+        <!-- Player Transform -->
+        <component>
+            <core:entityId>
+                <uuid>comp_player_transform</uuid>
+                <version>1</version>
+            </core:entityId>
+            <clusterNodeId>entity_player</clusterNodeId>
+            <componentType>transform</componentType>
+            <data encoding="json">{
+                "position": {"x": 0, "y": 0, "z": 0},
+                "rotation": {"x": 0, "y": 0, "z": 0, "w": 1},
+                "scale": {"x": 1, "y": 1, "z": 1}
+            }</data>
+        </component>
+
+        <!-- Player Mesh Renderer (references GLTF asset) -->
+        <component>
+            <core:entityId>
+                <uuid>comp_player_mesh</uuid>
+                <version>1</version>
+            </core:entityId>
+            <clusterNodeId>entity_player</clusterNodeId>
+            <componentType>mesh_renderer</componentType>
+            <data encoding="json">{
+                "meshAssetId": "asset_player_model",
+                "castShadows": true,
+                "receiveShadows": true
+            }</data>
+        </component>
+
+        <!-- Player Animation -->
+        <component>
+            <core:entityId>
+                <uuid>comp_player_animation</uuid>
+                <version>1</version>
+            </core:entityId>
+            <clusterNodeId>entity_player</clusterNodeId>
+            <componentType>animator</componentType>
+            <data encoding="json">{
+                "animationAssetId": "asset_player_model",
+                "currentAnimation": "idle",
+                "blendTime": 0.2
+            }</data>
+        </component>
+
+        <!-- Player Character Controller -->
+        <component>
+            <core:entityId>
+                <uuid>comp_player_controller</uuid>
+                <version>1</version>
+            </core:entityId>
+            <clusterNodeId>entity_player</clusterNodeId>
+            <componentType>character_controller</componentType>
+            <data encoding="json">{
+                "height": 1.8,
+                "radius": 0.3,
+                "stepOffset": 0.3,
+                "slopeLimit": 45
+            }</data>
+        </component>
+
+        <!-- Sun Light Component -->
+        <component>
+            <core:entityId>
+                <uuid>comp_sun_light</uuid>
+                <version>1</version>
+            </core:entityId>
+            <clusterNodeId>entity_sun</clusterNodeId>
+            <componentType>directional_light</componentType>
+            <data encoding="json">{
+                "color": {"r": 1.0, "g": 0.95, "b": 0.9},
+                "intensity": 1.5,
+                "direction": {"x": 0.5, "y": -1, "z": 0.3},
+                "castShadows": true,
+                "shadowCascades": 4,
+                "shadowResolution": 2048
+            }</data>
+        </component>
+
+        <!-- NPC AI Component -->
+        <component>
+            <core:entityId>
+                <uuid>comp_npc_ai</uuid>
+                <version>1</version>
+            </core:entityId>
+            <clusterNodeId>entity_npc_merchant</clusterNodeId>
+            <componentType>npc_behavior</componentType>
+            <data encoding="json">{
+                "behaviorTree": "bt_merchant",
+                "dialogueId": "dialogue_merchant_greeting",
+                "wanderRadius": 5.0,
+                "interactionRadius": 2.0
+            }</data>
+        </component>
+    </components>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <!-- ASSETS -->
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <assets>
+        <asset>
+            <core:entityId>
+                <uuid>asset_player_model</uuid>
+                <version>1</version>
+            </core:entityId>
+            <name>Player Character</name>
+            <type>ASSET_TYPE_MODEL</type>
+            <sourcePath>./assets/models/player.glb</sourcePath>
+            <uri>asset://project/models/player.glb</uri>
+            <metadata>
+                <entry key="format">GLTF_BINARY</entry>
+                <entry key="hasAnimations">true</entry>
+                <entry key="hasSkinning">true</entry>
+                <entry key="vertexCount">12500</entry>
+                <entry key="triangleCount">8200</entry>
+            </metadata>
+            <!-- Job that will load this asset -->
+            <loadJob>GltfLoadJob</loadJob>
+        </asset>
+
+        <asset>
+            <core:entityId>
+                <uuid>asset_terrain</uuid>
+                <version>1</version>
+            </core:entityId>
+            <name>Village Terrain</name>
+            <type>ASSET_TYPE_MODEL</type>
+            <sourcePath>./assets/models/terrain_village.glb</sourcePath>
+            <uri>asset://project/models/terrain_village.glb</uri>
+            <metadata>
+                <entry key="hasCollider">true</entry>
+                <entry key="colliderType">mesh</entry>
+            </metadata>
+            <loadJob>GltfLoadJob</loadJob>
+            <postLoadJob>PhysicsColliderBakeJob</postLoadJob>
+        </asset>
+
+        <asset>
+            <core:entityId>
+                <uuid>asset_ambient_music</uuid>
+                <version>1</version>
+            </core:entityId>
+            <name>Village Ambient</name>
+            <type>ASSET_TYPE_AUDIO</type>
+            <sourcePath>./assets/audio/ambient_village.ogg</sourcePath>
+            <uri>asset://project/audio/ambient_village.ogg</uri>
+            <metadata>
+                <entry key="format">OGG_VORBIS</entry>
+                <entry key="loop">true</entry>
+                <entry key="channels">2</entry>
+            </metadata>
+            <loadJob>AudioDecodeJob</loadJob>
+        </asset>
+    </assets>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <!-- TAGS -->
+    <!-- ═══════════════════════════════════════════════════════════════════════ -->
+    <tags>
+        <tag>
+            <core:entityId><uuid>tag_controllable</uuid></core:entityId>
+            <name>Controllable</name>
+            <color>#2196F3</color>
+            <category>gameplay</category>
+        </tag>
+        <tag>
+            <core:entityId><uuid>tag_persistent</uuid></core:entityId>
+            <name>Persistent</name>
+            <color>#4CAF50</color>
+            <category>system</category>
+        </tag>
+        <tag>
+            <core:entityId><uuid>tag_npc</uuid></core:entityId>
+            <name>NPC</name>
+            <color>#FF9800</color>
+            <category>gameplay</category>
+        </tag>
+        <tag>
+            <core:entityId><uuid>tag_interactable</uuid></core:entityId>
+            <name>Interactable</name>
+            <color>#9C27B0</color>
+            <category>gameplay</category>
+        </tag>
+    </tags>
+
+</synthProject>
