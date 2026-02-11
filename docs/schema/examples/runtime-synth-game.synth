@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    SYNTH GAME SERVER RUNTIME CONFIGURATION
+    Backend logic server for synth-game
+-->
+<synth version="1.0"
+       xmlns="https://chevp.github.io/synth-protocol/schema/synth/1.0">
+<runtime-logic version="1.0">
+
+    <metadata>
+        <name>Synth Game Server</name>
+        <service>synth-game-backend</service>
+        <platform>nuna-runtime</platform>
+    </metadata>
+
+    <!-- Synth Core Hub Connection -->
+    <hub url="http://localhost:8180" mode="websocket" reconnect="true"/>
+
+    <!-- Database Configuration -->
+    <database type="sqlite" path="./data/synth-game.db">
+        <!-- Optional: Additional connections for read replicas, etc. -->
+        <connection id="main" host="localhost" port="0" database="synth-game.db" poolSize="10"/>
+    </database>
+
+    <!-- Server Endpoints -->
+    <server>
+        <!-- HTTP REST API -->
+        <endpoint type="http" host="0.0.0.0" port="8090" cors="true"/>
+
+        <!-- WebSocket for real-time updates -->
+        <endpoint type="websocket" host="0.0.0.0" port="8091" cors="true"/>
+
+        <!-- gRPC for internal services -->
+        <endpoint type="grpc" host="0.0.0.0" port="8092" cors="false"/>
+    </server>
+
+    <!-- Game Logic Configuration -->
+    <game>
+        <tickRate>60</tickRate>                <!-- 60 ticks per second -->
+        <maxPlayers>100</maxPlayers>           <!-- Max concurrent players -->
+        <saveInterval>300</saveInterval>       <!-- Auto-save every 5 minutes -->
+
+        <!-- Game Plugins -->
+        <plugins>
+            <plugin id="inventory-system" enabled="true"/>
+            <plugin id="dialogue-engine" enabled="true"/>
+            <plugin id="quest-system" enabled="true"/>
+            <plugin id="shop-system" enabled="true"/>
+            <plugin id="crafting-system" enabled="false"/>
+        </plugins>
+    </game>
+
+    <settings>
+        <!-- Logging -->
+        <setting key="logging.level" value="INFO"/>
+        <setting key="logging.file" value="./logs/game-server.log"/>
+
+        <!-- Performance -->
+        <setting key="threadPool.size" value="8"/>
+        <setting key="cache.maxSize" value="1000"/>
+
+        <!-- Session Management -->
+        <setting key="session.timeout" value="3600"/>      <!-- 1 hour -->
+        <setting key="session.cleanupInterval" value="300"/> <!-- 5 minutes -->
+
+        <!-- Game Server URLs -->
+        <setting key="gameServer.url" value="http://localhost:8090"/>
+        <setting key="hub.url" value="http://localhost:8180"/>
+
+        <!-- Default Scene -->
+        <setting key="defaultScene" value="shopping-district"/>
+        <setting key="defaultSpawnPoint" value="spawn_center"/>
+
+        <!-- Game Balance -->
+        <setting key="playerMoveSpeed" value="4.0"/>
+        <setting key="startingGold" value="100"/>
+        <setting key="experienceMultiplier" value="1.0"/>
+    </settings>
+
+</runtime-logic>
+</synth>

@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    FROST GAME LAUNCHER - Player Entry Point
+
+    Purpose: Game player starts the game (renderer only, no editor)
+
+    Workflow:
+      1. Double-click my-game-launcher.frost
+      2. frost-studio.exe starts renderer in play mode
+      3. Connects to existing game server (local or remote)
+      4. NO editor features, optimized for gameplay
+
+    DISTINCTION:
+      - my-game.synth-game  → Developer (starts backend + renderer with editor)
+      - my-game-launcher.frost → Player (starts renderer only, no editor)
+-->
+<synth version="1.0" xmlns="https://chevp.github.io/synth-protocol/schema/synth/1.0">
+<runtime-renderer version="1.0">
+
+    <metadata>
+        <name>My Awesome Game - Player</name>
+        <client>frost-studio</client>
+        <platform>windows</platform>
+    </metadata>
+
+    <renderer>
+        <!-- Vulkan API 1.0 -->
+        <api type="vulkan" version="1.0"/>
+
+        <!-- Optimized for gameplay: fullscreen, high resolution -->
+        <window width="1920" height="1080" fullscreen="true" vsync="true" resizable="false"/>
+
+        <!-- Vulkan features for production -->
+        <features>
+            <feature name="samplerAnisotropy" enabled="true"/>
+            <feature name="multiViewport" enabled="true"/>
+            <feature name="textureCompressionBC" enabled="true"/>
+        </features>
+
+        <!-- Validation layers DISABLED for production -->
+        <validation enabled="false"/>
+    </renderer>
+
+    <!-- Initial Scene: Main Menu -->
+    <scene uri="file://scenes/main-menu.elyrion"/>
+
+    <defaults>
+        <!-- Default white texture -->
+        <texture id="white" format="png">
+            <data encoding="base64">
+                iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==
+            </data>
+        </texture>
+
+        <!-- Default PBR material -->
+        <material shader="pbr_fragment">
+            <property name="roughness" value="0.8"/>
+            <property name="metallic" value="0.0"/>
+            <property name="baseColor" value="0.8,0.8,0.8,1.0"/>
+        </material>
+
+        <!-- Default shader pipeline -->
+        <shader vertex="pbr_vertex" fragment="pbr_fragment"/>
+    </defaults>
+
+    <settings>
+        <!-- Rendering settings optimized for gameplay -->
+        <setting key="maxFramesInFlight" value="3"/>       <!-- Higher for smoother gameplay -->
+        <setting key="msaaSamples" value="4"/>             <!-- MSAA enabled for quality -->
+        <setting key="anisotropyLevel" value="16"/>
+        <setting key="shadowMapSize" value="4096"/>        <!-- Higher quality shadows -->
+        <setting key="logLevel" value="WARN"/>             <!-- Less verbose logging -->
+
+        <!-- Player mode: NO EDITOR -->
+        <setting key="studioMode" value="false"/>
+        <setting key="editMode" value="false"/>            <!-- ImGui overlay DISABLED -->
+        <setting key="headlessMode" value="false"/>
+        <setting key="autoClose" value="false"/>
+
+        <!-- Game server connection (local or remote) -->
+        <setting key="gameServerUrl" value="http://localhost:8090"/>
+        <setting key="gameServerAutoConnect" value="true"/>
+
+        <!-- Shader codegen disabled for production -->
+        <setting key="shaderCodegen.enabled" value="false"/>
+
+        <!-- Rendering Model -->
+        <setting key="rendering-model" value="coregfx"/>
+
+        <!-- Performance optimizations -->
+        <setting key="culling.enabled" value="true"/>
+        <setting key="lod.enabled" value="true"/>
+        <setting key="occlusion.enabled" value="true"/>
+    </settings>
+
+</runtime-renderer>
+</synth>

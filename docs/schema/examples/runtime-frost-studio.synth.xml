@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    FROST STUDIO VULKAN RUNTIME CONFIGURATION
+    Based on arctic-workspace/frost-coregfx actual implementation
+-->
+<synth version="1.0" xmlns="https://chevp.github.io/synth-protocol/schema/synth/1.0">
+<runtime-renderer version="1.0">
+
+    <metadata>
+        <name>Frost Studio Renderer</name>
+        <client>frost-studio</client>
+        <platform>windows</platform>
+    </metadata>
+
+    <renderer>
+        <!-- Vulkan API 1.0 (coregfx uses VK_API_VERSION_1_0) -->
+        <api type="vulkan" version="1.0"/>
+
+        <!-- Window configuration (from FrostWindowConfig + arctic.config.xml) -->
+        <window width="1280" height="720" fullscreen="false" vsync="true" resizable="true"/>
+
+        <!-- Vulkan Physical Device Features (from coregfx/core/ocean_core.cpp) -->
+        <features>
+            <!-- Required features -->
+            <feature name="samplerAnisotropy" enabled="true"/>  <!-- GPU scoring +25 -->
+            <feature name="multiViewport" enabled="true"/>      <!-- GPU scoring +25 -->
+
+            <!-- Optional features (typically disabled for compatibility) -->
+            <feature name="fillModeNonSolid" enabled="false"/>
+            <feature name="wideLines" enabled="false"/>
+            <feature name="geometryShader" enabled="false"/>
+            <feature name="tessellationShader" enabled="false"/>
+
+            <!-- PBR rendering features -->
+            <feature name="textureCompressionBC" enabled="true"/>
+            <feature name="shaderStorageImageExtendedFormats" enabled="false"/>
+        </features>
+
+        <!-- Validation Layers (arctic.config.xml: debug mode) -->
+        <validation enabled="true" layers="VK_LAYER_KHRONOS_validation"/>
+    </renderer>
+
+    <!-- Asset paths and VFS mounts -->
+    <paths>
+        <asset-root uri="file://assets/runtime"/>
+        <shader-dir uri="file://shaders/spirv"/>
+        <mounts>
+            <!-- Optimized runtime assets (build output) -->
+            <mount scheme="asset" path="C:/media-store-runtime" readOnly="true"/>
+            <!-- Raw source assets for development/preview -->
+            <mount scheme="asset-src" path="C:/media-store" readOnly="true"/>
+        </mounts>
+    </paths>
+
+    <!-- Initial Scene URI to load -->
+    <scene uri="file://index.elyrion.xml"/>
+
+    <defaults>
+        <!-- Default white texture (1x1 PNG base64) -->
+        <texture id="white" format="png">
+            <data encoding="base64">
+                iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==
+            </data>
+        </texture>
+
+        <!-- Default PBR material -->
+        <material shader="pbr_fragment">
+            <property name="roughness" value="0.8"/>
+            <property name="metallic" value="0.0"/>
+            <property name="baseColor" value="0.8,0.8,0.8,1.0"/>
+        </material>
+
+        <!-- Default shader pipeline -->
+        <shader vertex="pbr_vertex" fragment="pbr_fragment"/>
+    </defaults>
+
+    <settings>
+        <!-- Vulkan settings -->
+        <setting key="maxFramesInFlight" value="2"/>
+        <setting key="msaaSamples" value="1"/>          <!-- MSAA disabled by default -->
+        <setting key="anisotropyLevel" value="16"/>     <!-- samplerAnisotropy enabled -->
+
+        <!-- Camera defaults (from arctic.config.xml) -->
+        <setting key="camera.defaultPosition" value="0,3,15"/>
+        <setting key="camera.defaultRotation" value="0,0,0"/>
+        <setting key="camera.defaultFov" value="60.0"/>
+        <setting key="camera.znear" value="0.1"/>
+        <setting key="camera.zfar" value="100.0"/>
+
+        <!-- Rendering settings -->
+        <setting key="shadowMapSize" value="2048"/>
+        <setting key="logLevel" value="DEBUG"/>
+
+        <!-- Studio mode (from arctic.config.xml) -->
+        <setting key="studioMode" value="true"/>
+        <setting key="editMode" value="true"/>          <!-- ImGui overlay enabled -->
+        <setting key="httpServer.enabled" value="true"/>
+        <setting key="httpServer.port" value="52009"/>
+
+        <!-- Shader codegen (from arctic.config.xml) -->
+        <setting key="shaderCodegen.enabled" value="true"/>
+        <setting key="shaderCodegen.mode" value="hybrid"/>
+        <setting key="shaderCodegen.cache.enabled" value="true"/>
+        <setting key="shaderCodegen.cache.dir" value="./cache/shaders"/>
+    </settings>
+
+</runtime-renderer>
+</synth>

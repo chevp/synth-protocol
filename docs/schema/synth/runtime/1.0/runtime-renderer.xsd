@@ -1,0 +1,254 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:runtime="https://chevp.github.io/synth-protocol/schema/synth/runtime/1.0/renderer"
+           xmlns:common="https://chevp.github.io/synth-protocol/schema/synth/common-types"
+           targetNamespace="https://chevp.github.io/synth-protocol/schema/synth/runtime/1.0/renderer"
+           elementFormDefault="qualified">
+
+    <!-- Import shared types -->
+    <xs:import namespace="https://chevp.github.io/synth-protocol/schema/synth/common-types"
+               schemaLocation="../../common-types.xsd"/>
+
+    <!-- =========================================================================
+         SYNTH RUNTIME RENDERER SCHEMA
+         Runtime initialization for Vulkan/C++ renderer clients
+         Root element: <synthRuntimeRenderer>
+
+         Philosophy: Domain-driven, NOT over-engineered
+         - Shaders as text/binary (NOT node trees)
+         - Simple asset paths (NOT complex graphs)
+         - Direct configuration (NOT abstraction layers)
+
+         CRITICAL DISTINCTION:
+         - synthRuntimeRenderer = Renderer initialization (Vulkan, OpenGL, etc.)
+         - synthRuntimeLogic = Game logic / backend initialization
+
+         This schema enforces Asset URIs ONLY - no <component ref="..."/> allowed!
+         ========================================================================= -->
+
+    <!-- Root Element -->
+    <xs:element name="synthRuntimeRenderer" type="runtime:SynthRuntimeRendererType"/>
+
+    <!-- Runtime Renderer Configuration -->
+    <xs:complexType name="SynthRuntimeRendererType">
+        <xs:sequence>
+            <!-- Metadata -->
+            <xs:element name="metadata" type="runtime:RuntimeMetadataType"/>
+
+            <!-- Renderer Configuration -->
+            <xs:element name="renderer" type="runtime:RendererType"/>
+
+            <!-- Asset and shader paths (resolved relative to .frost file) -->
+            <xs:element name="paths" type="runtime:PathsType" minOccurs="0"/>
+
+            <!-- Camera defaults -->
+            <xs:element name="camera" type="runtime:CameraType" minOccurs="0"/>
+
+            <!-- HTTP REST API server -->
+            <xs:element name="http-server" type="runtime:HttpServerType" minOccurs="0"/>
+
+            <!-- Debug and logging -->
+            <xs:element name="debug" type="runtime:DebugType" minOccurs="0"/>
+
+            <!-- Initial Scene to Load -->
+            <xs:element name="scene" type="runtime:SceneRefType"/>
+
+            <!-- Secrets Configuration (API keys, tokens, etc.) -->
+            <xs:element name="secrets" type="runtime:SecretsType" minOccurs="0"/>
+
+            <!-- Default Resources (fallbacks if scene assets missing) -->
+            <xs:element name="defaults" type="runtime:DefaultsType" minOccurs="0"/>
+
+            <!-- Runtime Settings -->
+            <xs:element name="settings" type="common:SettingsType" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="version" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <!-- Scene Reference (Initial scene URI to load) -->
+    <xs:complexType name="SceneRefType">
+        <xs:attribute name="uri" type="xs:anyURI" use="required"/>
+    </xs:complexType>
+
+    <!-- Secrets Configuration -->
+    <xs:complexType name="SecretsType">
+        <xs:annotation>
+            <xs:documentation>
+                Path to secrets file containing API keys, tokens, etc.
+                Supports file:// URIs for local files (relative to .frost file directory)
+                Format: .env file with KEY=value pairs
+                Example: secrets.env, file://config/secrets.env
+            </xs:documentation>
+        </xs:annotation>
+        <xs:attribute name="file" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <!-- Runtime Metadata (extends base with client + platform) -->
+    <xs:complexType name="RuntimeMetadataType">
+        <xs:sequence>
+            <xs:element name="name" type="xs:string"/>
+            <xs:element name="client" type="xs:string"/>
+            <xs:element name="platform" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Renderer Configuration -->
+    <xs:complexType name="RendererType">
+        <xs:sequence>
+            <xs:element name="api" type="runtime:APIType"/>
+            <xs:element name="window" type="runtime:WindowType" minOccurs="0"/>
+            <xs:element name="features" type="runtime:FeaturesType" minOccurs="0"/>
+            <xs:element name="validation" type="runtime:ValidationType" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Rendering API -->
+    <xs:complexType name="APIType">
+        <xs:attribute name="type" type="runtime:APITypeEnum" use="required"/>
+        <xs:attribute name="version" type="xs:string"/>
+    </xs:complexType>
+
+    <xs:simpleType name="APITypeEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="vulkan"/>
+            <xs:enumeration value="opengl"/>
+            <xs:enumeration value="metal"/>
+            <xs:enumeration value="dx12"/>
+            <xs:enumeration value="webgpu"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Window Configuration -->
+    <xs:complexType name="WindowType">
+        <xs:attribute name="width" type="xs:int" default="1280"/>
+        <xs:attribute name="height" type="xs:int" default="720"/>
+        <xs:attribute name="fullscreen" type="xs:boolean" default="false"/>
+        <xs:attribute name="vsync" type="xs:boolean" default="true"/>
+        <xs:attribute name="resizable" type="xs:boolean" default="true"/>
+    </xs:complexType>
+
+    <!-- Rendering Features (Vulkan VkPhysicalDeviceFeatures mapping) -->
+    <xs:complexType name="FeaturesType">
+        <xs:sequence>
+            <xs:element name="feature" type="runtime:FeatureType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="FeatureType">
+        <xs:attribute name="name" type="xs:string" use="required"/>
+        <xs:attribute name="enabled" type="xs:boolean" use="required"/>
+    </xs:complexType>
+
+    <!-- Validation Configuration -->
+    <xs:complexType name="ValidationType">
+        <xs:attribute name="enabled" type="xs:boolean" default="true"/>
+        <xs:attribute name="layers" type="xs:string" default="VK_LAYER_KHRONOS_validation"/>
+    </xs:complexType>
+
+    <!-- Default Resources (Fallbacks) -->
+    <xs:complexType name="DefaultsType">
+        <xs:sequence>
+            <xs:element name="texture" type="runtime:DefaultTextureType" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="material" type="runtime:DefaultMaterialType" minOccurs="0"/>
+            <xs:element name="shader" type="runtime:DefaultShaderType" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Default Texture (PNG/JPG path or base64) -->
+    <xs:complexType name="DefaultTextureType">
+        <xs:choice>
+            <xs:element name="file" type="xs:string"/>
+            <xs:element name="data" type="runtime:Base64DataType"/>
+        </xs:choice>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="format" type="xs:string"/>
+    </xs:complexType>
+
+    <!-- Base64 Encoded Data -->
+    <xs:complexType name="Base64DataType">
+        <xs:simpleContent>
+            <xs:extension base="xs:string">
+                <xs:attribute name="encoding" type="xs:string" fixed="base64"/>
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+
+    <!-- Default Material -->
+    <xs:complexType name="DefaultMaterialType">
+        <xs:sequence>
+            <xs:element name="property" type="runtime:MaterialPropertyType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="shader" type="xs:string"/>
+    </xs:complexType>
+
+    <!-- Material Property (name + value, no type enum needed for renderer defaults) -->
+    <xs:complexType name="MaterialPropertyType">
+        <xs:attribute name="name" type="xs:string" use="required"/>
+        <xs:attribute name="value" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <!-- Default Shader -->
+    <xs:complexType name="DefaultShaderType">
+        <xs:attribute name="vertex" type="xs:string" use="required"/>
+        <xs:attribute name="fragment" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <!-- Paths Configuration (resolved relative to .frost file directory) -->
+    <!-- Consistent URI format: file://, asset://, http://, https:// -->
+    <xs:complexType name="PathsType">
+        <xs:sequence>
+            <xs:element name="asset-root" type="runtime:PathUriType" minOccurs="0"/>
+            <xs:element name="shader-dir" type="runtime:PathUriType" minOccurs="0"/>
+            <xs:element name="log-dir" type="runtime:PathUriType" minOccurs="0"/>
+            <xs:element name="mounts" type="runtime:MountsType" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- VFS Mounts for renderer asset resolution -->
+    <xs:complexType name="MountsType">
+        <xs:sequence>
+            <xs:element name="mount" type="runtime:MountType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="MountType">
+        <xs:attribute name="scheme" type="xs:string" use="required"/>
+        <xs:attribute name="path" type="xs:string" use="required"/>
+        <xs:attribute name="readOnly" type="xs:boolean" default="true"/>
+    </xs:complexType>
+
+    <!-- Path URI Type (consistent with scene URI format) -->
+    <xs:complexType name="PathUriType">
+        <xs:attribute name="uri" type="xs:anyURI" use="required"/>
+    </xs:complexType>
+
+    <!-- Camera Defaults -->
+    <xs:complexType name="CameraType">
+        <xs:sequence>
+            <xs:element name="default-position" type="common:Vec3Type" minOccurs="0"/>
+            <xs:element name="default-rotation" type="common:Vec3Type" minOccurs="0"/>
+            <xs:element name="default-fov" type="xs:float" minOccurs="0"/>
+            <xs:element name="znear" type="xs:float" minOccurs="0"/>
+            <xs:element name="zfar" type="xs:float" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- HTTP Server Configuration -->
+    <xs:complexType name="HttpServerType">
+        <xs:sequence>
+            <xs:element name="enabled" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="port" type="xs:int" minOccurs="0"/>
+            <xs:element name="cors-enabled" type="xs:boolean" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Debug and Logging Configuration -->
+    <xs:complexType name="DebugType">
+        <xs:sequence>
+            <xs:element name="log-level" type="common:LogLevelEnum" minOccurs="0"/>
+            <xs:element name="log-to-console" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="json-logging" type="xs:boolean" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+</xs:schema>

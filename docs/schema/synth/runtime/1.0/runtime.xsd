@@ -1,0 +1,268 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:runtime="https://chevp.github.io/synth-protocol/schema/synth/runtime/1.0"
+           targetNamespace="https://chevp.github.io/synth-protocol/schema/synth/runtime/1.0"
+           elementFormDefault="qualified">
+
+    <!-- =========================================================================
+         SYNTH RUNTIME SCHEMA
+         Runtime initialization for Vulkan/C++ clients
+         Root element: <synthRuntime>
+
+         Philosophy: Domain-driven, NOT over-engineered
+         - Shaders as text/binary (NOT node trees)
+         - Simple asset paths (NOT complex graphs)
+         - Direct configuration (NOT abstraction layers)
+
+         CRITICAL DISTINCTION:
+         - Runtime format (<synthRuntime>) = ONLY Asset URIs, NO XML references!
+         - Component/Scene format = XML references allowed (ref="path.synth.xml")
+
+         This schema enforces Asset URIs ONLY - no <component ref="..."/> allowed!
+         ========================================================================= -->
+
+    <!-- Root Element -->
+    <xs:element name="synthRuntime" type="runtime:SynthRuntimeType"/>
+
+    <!-- Runtime Configuration -->
+    <xs:complexType name="SynthRuntimeType">
+        <xs:sequence>
+            <!-- Metadata -->
+            <xs:element name="metadata" type="runtime:MetadataType"/>
+
+            <!-- Renderer Configuration -->
+            <xs:element name="renderer" type="runtime:RendererType"/>
+
+            <!-- Asset Paths -->
+            <xs:element name="assets" type="runtime:AssetsType"/>
+
+            <!-- Shaders -->
+            <xs:element name="shaders" type="runtime:ShadersType" minOccurs="0"/>
+
+            <!-- Default Resources -->
+            <xs:element name="defaults" type="runtime:DefaultsType" minOccurs="0"/>
+
+            <!-- Runtime Settings -->
+            <xs:element name="settings" type="runtime:SettingsType" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="version" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <!-- Metadata -->
+    <xs:complexType name="MetadataType">
+        <xs:sequence>
+            <xs:element name="name" type="xs:string"/>
+            <xs:element name="client" type="xs:string"/>
+            <xs:element name="platform" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Renderer Configuration -->
+    <xs:complexType name="RendererType">
+        <xs:sequence>
+            <xs:element name="api" type="runtime:APIType"/>
+            <xs:element name="window" type="runtime:WindowType" minOccurs="0"/>
+            <xs:element name="features" type="runtime:FeaturesType" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Rendering API -->
+    <xs:complexType name="APIType">
+        <xs:attribute name="type" type="runtime:APITypeEnum" use="required"/>
+        <xs:attribute name="version" type="xs:string"/>
+    </xs:complexType>
+
+    <xs:simpleType name="APITypeEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="vulkan"/>
+            <xs:enumeration value="opengl"/>
+            <xs:enumeration value="metal"/>
+            <xs:enumeration value="dx12"/>
+            <xs:enumeration value="webgpu"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Window Configuration -->
+    <xs:complexType name="WindowType">
+        <xs:attribute name="width" type="xs:int" default="1280"/>
+        <xs:attribute name="height" type="xs:int" default="720"/>
+        <xs:attribute name="fullscreen" type="xs:boolean" default="false"/>
+        <xs:attribute name="vsync" type="xs:boolean" default="true"/>
+    </xs:complexType>
+
+    <!-- Rendering Features -->
+    <xs:complexType name="FeaturesType">
+        <xs:sequence>
+            <xs:element name="feature" type="runtime:FeatureType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="FeatureType">
+        <xs:attribute name="name" type="xs:string" use="required"/>
+        <xs:attribute name="enabled" type="xs:boolean" use="required"/>
+    </xs:complexType>
+
+    <!-- Assets Configuration -->
+    <xs:complexType name="AssetsType">
+        <xs:sequence>
+            <xs:element name="mount" type="runtime:MountType" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="searchPath" type="runtime:SearchPathType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- VFS Mount: maps URI scheme to physical directory -->
+    <xs:complexType name="MountType">
+        <xs:attribute name="scheme" type="xs:string" use="required"/>
+        <xs:attribute name="path" type="xs:string" use="required"/>
+        <xs:attribute name="readOnly" type="xs:boolean" default="true"/>
+    </xs:complexType>
+
+    <xs:complexType name="SearchPathType">
+        <xs:simpleContent>
+            <xs:extension base="xs:string">
+                <xs:attribute name="type" type="runtime:AssetTypeEnum" use="required"/>
+                <xs:attribute name="priority" type="xs:int" default="0"/>
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+
+    <xs:simpleType name="AssetTypeEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="models"/>
+            <xs:enumeration value="textures"/>
+            <xs:enumeration value="shaders"/>
+            <xs:enumeration value="materials"/>
+            <xs:enumeration value="audio"/>
+            <xs:enumeration value="all"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Shaders -->
+    <xs:complexType name="ShadersType">
+        <xs:sequence>
+            <xs:element name="shader" type="runtime:ShaderType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Shader Definition (text or binary) -->
+    <xs:complexType name="ShaderType">
+        <xs:choice>
+            <!-- Text Source (GLSL/HLSL) -->
+            <xs:element name="source" type="runtime:ShaderSourceType"/>
+
+            <!-- Binary (SPIR-V base64) -->
+            <xs:element name="binary" type="runtime:ShaderBinaryType"/>
+
+            <!-- File Reference -->
+            <xs:element name="file" type="runtime:ShaderFileType"/>
+        </xs:choice>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="stage" type="runtime:ShaderStageEnum" use="required"/>
+    </xs:complexType>
+
+    <!-- Shader Text Source -->
+    <xs:complexType name="ShaderSourceType">
+        <xs:simpleContent>
+            <xs:extension base="xs:string">
+                <xs:attribute name="language" type="runtime:ShaderLanguageEnum" use="required"/>
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+
+    <!-- Shader Binary (SPIR-V base64 encoded) -->
+    <xs:complexType name="ShaderBinaryType">
+        <xs:simpleContent>
+            <xs:extension base="xs:string">
+                <xs:attribute name="format" type="xs:string" fixed="spirv"/>
+                <xs:attribute name="encoding" type="xs:string" fixed="base64"/>
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+
+    <!-- Shader File Reference -->
+    <xs:complexType name="ShaderFileType">
+        <xs:attribute name="path" type="xs:string" use="required"/>
+        <xs:attribute name="language" type="runtime:ShaderLanguageEnum"/>
+    </xs:complexType>
+
+    <xs:simpleType name="ShaderStageEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="vertex"/>
+            <xs:enumeration value="fragment"/>
+            <xs:enumeration value="geometry"/>
+            <xs:enumeration value="compute"/>
+            <xs:enumeration value="tessellation-control"/>
+            <xs:enumeration value="tessellation-evaluation"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="ShaderLanguageEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="glsl"/>
+            <xs:enumeration value="hlsl"/>
+            <xs:enumeration value="spirv"/>
+            <xs:enumeration value="wgsl"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Default Resources -->
+    <xs:complexType name="DefaultsType">
+        <xs:sequence>
+            <xs:element name="texture" type="runtime:DefaultTextureType" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="material" type="runtime:DefaultMaterialType" minOccurs="0"/>
+            <xs:element name="shader" type="runtime:DefaultShaderType" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Default Texture (PNG/JPG path or base64) -->
+    <xs:complexType name="DefaultTextureType">
+        <xs:choice>
+            <xs:element name="file" type="xs:string"/>
+            <xs:element name="data" type="runtime:Base64DataType"/>
+        </xs:choice>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="format" type="xs:string"/>
+    </xs:complexType>
+
+    <!-- Base64 Encoded Data -->
+    <xs:complexType name="Base64DataType">
+        <xs:simpleContent>
+            <xs:extension base="xs:string">
+                <xs:attribute name="encoding" type="xs:string" fixed="base64"/>
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+
+    <!-- Default Material -->
+    <xs:complexType name="DefaultMaterialType">
+        <xs:sequence>
+            <xs:element name="property" type="runtime:PropertyType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="shader" type="xs:string"/>
+    </xs:complexType>
+
+    <!-- Default Shader -->
+    <xs:complexType name="DefaultShaderType">
+        <xs:attribute name="vertex" type="xs:string" use="required"/>
+        <xs:attribute name="fragment" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <!-- Property -->
+    <xs:complexType name="PropertyType">
+        <xs:attribute name="name" type="xs:string" use="required"/>
+        <xs:attribute name="value" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <!-- Runtime Settings -->
+    <xs:complexType name="SettingsType">
+        <xs:sequence>
+            <xs:element name="setting" type="runtime:SettingType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="SettingType">
+        <xs:attribute name="key" type="xs:string" use="required"/>
+        <xs:attribute name="value" type="xs:string" use="required"/>
+    </xs:complexType>
+
+</xs:schema>

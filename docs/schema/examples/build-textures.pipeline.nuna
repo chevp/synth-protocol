@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    TEXTURE COMPRESSION PIPELINE
+    Compresses all textures from media-store to KTX2 with Basis Universal.
+
+    Usage:
+      nuna-runtime.exe build-textures.pipeline.nuna
+
+    Flow:
+      media-store/textures/**/*.png
+        > toktx compress (UASTC + Zstd + mipmaps)
+        > media-store-runtime/textures/**/*.ktx2
+-->
+<synthAssetPipeline version="1.0"
+                    xmlns="https://chevp.github.io/synth-protocol/schema/synth/pipeline/1.0">
+
+    <metadata id="build-textures">
+        <name>Build Textures</name>
+        <description>Compress all PBR textures to KTX2 with Basis Universal</description>
+    </metadata>
+
+    <mounts>
+        <mount scheme="asset-src" path="C:/media-store" readOnly="true"/>
+        <mount scheme="asset" path="C:/media-store-runtime" readOnly="false"/>
+    </mounts>
+
+    <tools>
+        <tool id="toktx" executable="toktx" version="4.3"/>
+    </tools>
+
+    <steps>
+        <!-- Compress diffuse/albedo textures (sRGB) -->
+        <step id="compress-color" name="Compress Color Textures" tool="toktx">
+            <input>
+                <param name="source" type="directory">asset-src://textures</param>
+                <param name="pattern" type="glob">**/*_diffuse.png</param>
+            </input>
+            <output>
+                <param name="target" type="directory">asset://textures</param>
+            </output>
+            <config>
+                <entry key="codec">uastc</entry>
+                <entry key="quality">2</entry>
+                <entry key="zstd">18</entry>
+                <entry key="generate_mipmap">true</entry>
+                <entry key="assign_oetf">srgb</entry>
+            </config>
+        </step>
+
+        <!-- Compress normal maps (linear) -->
+        <step id="compress-normal" name="Compress Normal Maps" tool="toktx">
+            <input>
+                <param name="source" type="directory">asset-src://textures</param>
+                <param name="pattern" type="glob">**/*_normal.png</param>
+            </input>
+            <output>
+                <param name="target" type="directory">asset://textures</param>
+            </output>
+            <config>
+                <entry key="codec">uastc</entry>
+                <entry key="quality">3</entry>
+                <entry key="zstd">18</entry>
+                <entry key="generate_mipmap">true</entry>
+                <entry key="assign_oetf">linear</entry>
+                <entry key="normal_mode">true</entry>
+            </config>
+        </step>
+
+        <!-- Compress roughness/metallic (linear, single channel) -->
+        <step id="compress-pbr" name="Compress PBR Maps" tool="toktx">
+            <input>
+                <param name="source" type="directory">asset-src://textures</param>
+                <param name="pattern" type="glob">**/*_roughness.png,**/*_metallic.png,**/*_ao.png</param>
+            </input>
+            <output>
+                <param name="target" type="directory">asset://textures</param>
+            </output>
+            <config>
+                <entry key="codec">uastc</entry>
+                <entry key="quality">2</entry>
+                <entry key="zstd">18</entry>
+                <entry key="generate_mipmap">true</entry>
+                <entry key="assign_oetf">linear</entry>
+            </config>
+        </step>
+    </steps>
+
+    <triggers>
+        <trigger type="manual"/>
+    </triggers>
+
+    <settings>
+        <setting key="parallelSteps" value="3"/>
+    </settings>
+
+</synthAssetPipeline>

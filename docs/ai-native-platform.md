@@ -103,10 +103,10 @@ Synth ist keine einzelne Anwendung, sondern ein **Ökosystem** für AI-native Co
 │   │                    ▼                                    │   │
 │   │              Core Services                              │   │
 │   │                                                         │   │
-│   │   ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐      │   │
-│   │   │  Nuna   │ │  Cryo   │ │ Arctic  │ │  Axon   │      │   │
-│   │   │ Scenes  │ │ Assets  │ │ Render  │ │Inference│      │   │
-│   │   └─────────┘ └─────────┘ └─────────┘ └─────────┘      │   │
+│   │   ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐       │   │
+│   │   │  Nuna   │ │  Cryo   │ │ Arctic  │ │  Axon   │       │   │
+│   │   │ Scenes  │ │ Assets  │ │ Render  │ │Inference│       │   │
+│   │   └─────────┘ └─────────┘ └─────────┘ └─────────┘       │   │
 │   │                                                         │   │
 │   └─────────────────────────────────────────────────────────┘   │
 │                                                                 │
@@ -332,30 +332,7 @@ Synth ist keine einzelne Anwendung, sondern ein **Ökosystem** für AI-native Co
 
 ---
 
-## Vergleich mit Alternativen
-
-### Warum nicht Unity/Unreal?
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│  Unity/Unreal                        Synth Platform             │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  • Monolithische Engine              • Modulare Services        │
-│  • GUI-first                         • API-first                │
-│  • Closed Ecosystem                  • Open Protocol            │
-│  • AI = Plugin/Addon                 • AI = Core Design         │
-│  • Local-first                       • Distributed-first        │
-│  • Proprietary Formats               • Standard Formats         │
-│                                                                 │
-│  Synth ist KEIN Engine-Ersatz!                                  │
-│  Synth ist die INFRASTRUKTUR für Content Pipelines.             │
-│                                                                 │
-│  Unity/Unreal = Runtime                                         │
-│  Synth = Content Creation & Management                          │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
+## Vergleich mit Alternative
 
 ### Warum nicht nur Blender + Scripts?
 

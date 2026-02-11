@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Example Component with Schema Validation
+
+    This demonstrates how to reference the schema for validation.
+    IDEs like VSCode with XML extension will provide autocomplete and validation.
+-->
+<synth version="1.0" xmlns="https://chevp.github.io/synth-protocol/schema/synth/1.0"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="https://chevp.github.io/synth-protocol/schema/synth/1.0
+                           https://chevp.github.io/synth-protocol/schema/synth/1.0/synth.xsd">
+<component version="1.0" id="example-building">
+
+    <metadata>
+        <name>Example Building</name>
+        <type>building</type>
+        <description>A sample building component demonstrating schema validation</description>
+    </metadata>
+
+    <mesh ref="shared/models/building_example.gltf"/>
+
+    <properties>
+        <!-- String properties -->
+        <property name="producerId" type="string" value="example_001"/>
+        <property name="displayName" type="string" value="Example Shop"/>
+
+        <!-- Boolean properties -->
+        <property name="draggable" type="bool" value="true"/>
+        <property name="interactable" type="bool" value="true"/>
+
+        <!-- Numeric properties -->
+        <property name="footprintX" type="int" value="3"/>
+        <property name="footprintZ" type="int" value="3"/>
+        <property name="gridSize" type="float" value="2.0"/>
+
+        <!-- Vector properties -->
+        <property name="offset" type="vec3" value="0,0,0"/>
+
+        <!-- Color properties -->
+        <property name="highlightColor" type="color" value="#4CAF50"/>
+    </properties>
+
+    <!-- Optional State Machine -->
+    <stateMachine id="building_fsm" initial="IDLE">
+        <state id="IDLE">
+            <properties>
+                <property name="highlighted" type="bool" value="false"/>
+            </properties>
+            <transition event="MOUSE_ENTER" target="HOVER"/>
+        </state>
+
+        <state id="HOVER">
+            <properties>
+                <property name="highlighted" type="bool" value="true"/>
+            </properties>
+            <transition event="MOUSE_LEAVE" target="IDLE"/>
+            <transition event="CLICK" target="SELECTED"/>
+        </state>
+
+        <state id="SELECTED">
+            <properties>
+                <property name="highlighted" type="bool" value="true"/>
+            </properties>
+            <transition event="DESELECT" target="IDLE"/>
+        </state>
+    </stateMachine>
+
+</component>
+</synth>

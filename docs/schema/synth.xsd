@@ -1,0 +1,1117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    SYNTH UNIFIED SCHEMA (synth.xsd)
+
+    Single root element <synth> for all synth-protocol document types.
+    The first child element determines the document type:
+
+    <synth version="1.0"><project>...</project></synth>
+    <synth version="1.0"><scene>...</scene></synth>
+    <synth version="1.0"><component>...</component></synth>
+    <synth version="1.0"><routes>...</routes></synth>
+    <synth version="1.0"><runtime>...</runtime></synth>
+    <synth version="1.0"><runtime-renderer>...</runtime-renderer></synth>
+    <synth version="1.0"><runtime-logic>...</runtime-logic></synth>
+    <synth version="1.0"><game-project>...</game-project></synth>
+    <synth version="1.0"><asset-registry>...</asset-registry></synth>
+    <synth version="1.0"><extension>...</extension></synth>
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:s="https://chevp.github.io/synth-protocol/schema/synth/1.0"
+           targetNamespace="https://chevp.github.io/synth-protocol/schema/synth/1.0"
+           elementFormDefault="qualified">
+
+    <!-- ================================================================= -->
+    <!-- ROOT ELEMENT                                                      -->
+    <!-- ================================================================= -->
+
+    <xs:element name="synth" type="s:SynthType"/>
+
+    <xs:complexType name="SynthType">
+        <xs:choice>
+            <xs:element name="project" type="s:ProjectType"/>
+            <xs:element name="scene" type="s:SceneType"/>
+            <xs:element name="component" type="s:ComponentType"/>
+            <xs:element name="routes" type="s:RoutesType"/>
+            <xs:element name="runtime" type="s:RuntimeType"/>
+            <xs:element name="runtime-renderer" type="s:RuntimeRendererType"/>
+            <xs:element name="runtime-logic" type="s:RuntimeLogicType"/>
+            <xs:element name="game-project" type="s:GameProjectType"/>
+            <xs:element name="asset-registry" type="s:AssetRegistryType"/>
+            <xs:element name="extension" type="s:ExtensionContainerType"/>
+        </xs:choice>
+        <xs:attribute name="version" type="xs:string" default="1.0"/>
+    </xs:complexType>
+
+    <!-- ================================================================= -->
+    <!-- COMMON TYPES                                                      -->
+    <!-- ================================================================= -->
+
+    <xs:complexType name="Vec3Type">
+        <xs:attribute name="x" type="xs:float" use="required"/>
+        <xs:attribute name="y" type="xs:float" use="required"/>
+        <xs:attribute name="z" type="xs:float" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="Vec2Type">
+        <xs:attribute name="x" type="xs:float" use="required"/>
+        <xs:attribute name="y" type="xs:float" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="TransformType">
+        <xs:all>
+            <xs:element name="position" type="s:Vec3Type" minOccurs="0"/>
+            <xs:element name="rotation" type="s:Vec3Type" minOccurs="0"/>
+            <xs:element name="scale" type="s:Vec3Type" minOccurs="0"/>
+        </xs:all>
+    </xs:complexType>
+
+    <xs:simpleType name="PropertyTypeEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="string"/>
+            <xs:enumeration value="int"/>
+            <xs:enumeration value="float"/>
+            <xs:enumeration value="bool"/>
+            <xs:enumeration value="vec2"/>
+            <xs:enumeration value="vec3"/>
+            <xs:enumeration value="color"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:complexType name="PropertyType">
+        <xs:attribute name="name" type="xs:string" use="required"/>
+        <xs:attribute name="type" type="s:PropertyTypeEnum" use="required"/>
+        <xs:attribute name="value" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="PropertiesType">
+        <xs:sequence>
+            <xs:element name="property" type="s:PropertyType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="SettingType">
+        <xs:attribute name="key" type="xs:string" use="required"/>
+        <xs:attribute name="value" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="SettingsType">
+        <xs:sequence>
+            <xs:element name="setting" type="s:SettingType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="ConfigEntryType">
+        <xs:simpleContent>
+            <xs:extension base="xs:string">
+                <xs:attribute name="key" type="xs:string" use="required"/>
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+
+    <xs:complexType name="ConfigMapType">
+        <xs:sequence>
+            <xs:element name="entry" type="s:ConfigEntryType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="MetadataBaseType">
+        <xs:sequence>
+            <xs:element name="name" type="xs:string"/>
+            <xs:element name="description" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="MeshRefType">
+        <xs:attribute name="ref" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <xs:simpleType name="LogLevelEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="TRACE"/>
+            <xs:enumeration value="DEBUG"/>
+            <xs:enumeration value="INFO"/>
+            <xs:enumeration value="WARN"/>
+            <xs:enumeration value="ERROR"/>
+            <xs:enumeration value="FATAL"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:complexType name="MountType">
+        <xs:attribute name="scheme" type="xs:string" use="required"/>
+        <xs:attribute name="path" type="xs:string" use="required"/>
+        <xs:attribute name="readOnly" type="xs:boolean" default="true"/>
+    </xs:complexType>
+
+    <xs:complexType name="MountsType">
+        <xs:sequence>
+            <xs:element name="mount" type="s:MountType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="TagsType">
+        <xs:sequence>
+            <xs:element name="tag" type="xs:string" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ================================================================= -->
+    <!-- PROJECT                                                           -->
+    <!-- <synth><project>...</project></synth>                             -->
+    <!-- ================================================================= -->
+
+    <xs:complexType name="ProjectType">
+        <xs:sequence>
+            <xs:element name="metadata" type="s:ProjectMetadataType"/>
+            <xs:element name="configuration" type="s:ConfigurationType" minOccurs="0"/>
+            <xs:element name="toolRegistry" type="s:ToolRegistryType" minOccurs="0"/>
+            <xs:element name="pipelines" type="s:PipelinesType" minOccurs="0"/>
+            <xs:element name="mounts" type="s:MountsType" minOccurs="0"/>
+            <xs:element name="resources" type="s:ResourcesType" minOccurs="0"/>
+            <xs:element name="settings" type="s:SettingsType" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="version" type="xs:string" default="1.0"/>
+        <xs:attribute name="schemaVersion" type="xs:string" default="1.0"/>
+    </xs:complexType>
+
+    <xs:complexType name="ProjectMetadataType">
+        <xs:sequence>
+            <xs:element name="name" type="xs:string"/>
+            <xs:element name="description" type="xs:string" minOccurs="0"/>
+            <xs:element name="version" type="xs:string"/>
+            <xs:element name="author" type="xs:string" minOccurs="0"/>
+            <xs:element name="created" type="xs:dateTime" minOccurs="0"/>
+            <xs:element name="modified" type="xs:dateTime" minOccurs="0"/>
+            <xs:element name="tags" type="s:TagsType" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <!-- Configuration (core) -->
+    <xs:complexType name="ConfigurationType">
+        <xs:sequence>
+            <xs:element name="runtime" minOccurs="0">
+                <xs:complexType>
+                    <xs:attribute name="mode" type="xs:string"/>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="logging" minOccurs="0">
+                <xs:complexType>
+                    <xs:attribute name="level" type="s:LogLevelEnum" default="INFO"/>
+                    <xs:attribute name="file" type="xs:string"/>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="metrics" minOccurs="0">
+                <xs:complexType>
+                    <xs:attribute name="enabled" type="xs:boolean" default="false"/>
+                    <xs:attribute name="port" type="xs:int"/>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="environment" type="s:ConfigMapType" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Tool Registry -->
+    <xs:complexType name="ToolRegistryType">
+        <xs:sequence>
+            <xs:element name="tool" type="s:ToolDefType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="ToolDefType">
+        <xs:sequence>
+            <xs:element name="config" type="s:ConfigMapType" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="executable" type="xs:string" use="required"/>
+        <xs:attribute name="version" type="xs:string"/>
+    </xs:complexType>
+
+    <!-- Pipelines -->
+    <xs:complexType name="PipelinesType">
+        <xs:sequence>
+            <xs:element name="pipeline" type="s:PipelineType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="PipelineType">
+        <xs:sequence>
+            <xs:element name="description" type="xs:string" minOccurs="0"/>
+            <xs:element name="steps" type="s:StepsType"/>
+            <xs:element name="triggers" type="s:TriggersType" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="name" type="xs:string"/>
+        <xs:attribute name="enabled" type="xs:boolean" default="true"/>
+    </xs:complexType>
+
+    <xs:complexType name="StepsType">
+        <xs:sequence>
+            <xs:element name="step" type="s:StepType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="StepType">
+        <xs:sequence>
+            <xs:element name="input" type="s:IOType" minOccurs="0"/>
+            <xs:element name="output" type="s:IOType" minOccurs="0"/>
+            <xs:element name="config" type="s:ConfigMapType" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="tool" type="xs:string" use="required"/>
+        <xs:attribute name="dependsOn" type="xs:string"/>
+        <xs:attribute name="timeout" type="xs:int"/>
+        <xs:attribute name="continueOnError" type="xs:boolean" default="false"/>
+    </xs:complexType>
+
+    <xs:complexType name="IOType">
+        <xs:sequence>
+            <xs:element name="param" type="s:ParamType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="ParamType">
+        <xs:simpleContent>
+            <xs:extension base="xs:string">
+                <xs:attribute name="name" type="xs:string" use="required"/>
+                <xs:attribute name="type" type="xs:string"/>
+                <xs:attribute name="ref" type="xs:string"/>
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+
+    <xs:complexType name="TriggersType">
+        <xs:sequence>
+            <xs:element name="trigger" type="s:TriggerType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="TriggerType">
+        <xs:attribute name="type" type="s:TriggerTypeEnum" use="required"/>
+        <xs:attribute name="value" type="xs:string"/>
+        <xs:attribute name="pattern" type="xs:string"/>
+    </xs:complexType>
+
+    <xs:simpleType name="TriggerTypeEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="manual"/>
+            <xs:enumeration value="schedule"/>
+            <xs:enumeration value="file-watch"/>
+            <xs:enumeration value="event"/>
+            <xs:enumeration value="hub-event"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Resources -->
+    <xs:complexType name="ResourcesType">
+        <xs:sequence>
+            <xs:element name="resource" type="s:ResourceType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="ResourceType">
+        <xs:sequence>
+            <xs:element name="metadata" type="s:ConfigMapType" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="type" type="s:ResourceTypeEnum" use="required"/>
+        <xs:attribute name="uri" type="xs:anyURI" use="required"/>
+    </xs:complexType>
+
+    <xs:simpleType name="ResourceTypeEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="model"/>
+            <xs:enumeration value="dataset"/>
+            <xs:enumeration value="config"/>
+            <xs:enumeration value="asset"/>
+            <xs:enumeration value="script"/>
+            <xs:enumeration value="blend"/>
+            <xs:enumeration value="texture"/>
+            <xs:enumeration value="shader"/>
+            <xs:enumeration value="audio"/>
+            <xs:enumeration value="scene"/>
+            <xs:enumeration value="directory"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ================================================================= -->
+    <!-- SCENE                                                             -->
+    <!-- <synth><scene>...</scene></synth>                                 -->
+    <!-- ================================================================= -->
+
+    <xs:complexType name="SceneType">
+        <xs:sequence>
+            <xs:element name="metadata" type="s:MetadataBaseType"/>
+            <xs:element name="settings" type="s:SceneSettingsType" minOccurs="0"/>
+            <xs:element name="entities" type="s:EntitiesType"/>
+        </xs:sequence>
+        <xs:attribute name="version" type="xs:string" use="required"/>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="SceneSettingsType">
+        <xs:sequence>
+            <xs:element name="camera" type="s:SceneCameraType" minOccurs="0"/>
+            <xs:element name="apiBinding" type="s:APIBindingType" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="SceneCameraType">
+        <xs:attribute name="mode" type="s:CameraModeEnum" use="required"/>
+        <xs:attribute name="angle" type="xs:float"/>
+        <xs:attribute name="height" type="xs:float"/>
+        <xs:attribute name="follow" type="xs:string"/>
+        <xs:attribute name="fov" type="xs:float"/>
+    </xs:complexType>
+
+    <xs:simpleType name="CameraModeEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="orthographic"/>
+            <xs:enumeration value="perspective"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:complexType name="APIBindingType">
+        <xs:attribute name="endpoint" type="xs:string" use="required"/>
+        <xs:attribute name="autoLoad" type="xs:boolean" default="false"/>
+    </xs:complexType>
+
+    <xs:complexType name="EntitiesType">
+        <xs:sequence>
+            <xs:element name="entity" type="s:EntityType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="EntityType">
+        <xs:sequence>
+            <xs:element name="component" type="s:ComponentRefType" minOccurs="0"/>
+            <xs:element name="transform" type="s:TransformType" minOccurs="0"/>
+            <xs:element name="mesh" type="s:MeshRefType" minOccurs="0"/>
+            <xs:element name="pointLight" type="s:PointLightType" minOccurs="0"/>
+            <xs:element name="properties" type="s:PropertiesType" minOccurs="0"/>
+            <xs:element name="entity" type="s:EntityType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="name" type="xs:string"/>
+    </xs:complexType>
+
+    <xs:complexType name="ComponentRefType">
+        <xs:attribute name="ref" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="PointLightType">
+        <xs:attribute name="color" type="xs:string" use="required"/>
+        <xs:attribute name="intensity" type="xs:float" use="required"/>
+        <xs:attribute name="range" type="xs:float" use="required"/>
+    </xs:complexType>
+
+    <!-- ================================================================= -->
+    <!-- COMPONENT                                                         -->
+    <!-- <synth><component>...</component></synth>                         -->
+    <!-- ================================================================= -->
+
+    <xs:complexType name="ComponentType">
+        <xs:sequence>
+            <xs:element name="metadata" type="s:ComponentMetadataType"/>
+            <xs:element name="mesh" type="s:MeshRefType" minOccurs="0"/>
+            <xs:element name="properties" type="s:PropertiesType" minOccurs="0"/>
+            <xs:element name="uiLayout" type="s:UILayoutType" minOccurs="0"/>
+            <xs:element name="stateMachine" type="s:StateMachineType" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="version" type="xs:string" use="required"/>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="ComponentMetadataType">
+        <xs:sequence>
+            <xs:element name="name" type="xs:string"/>
+            <xs:element name="type" type="xs:string"/>
+            <xs:element name="description" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="UILayoutType">
+        <xs:sequence>
+            <xs:element name="panel" type="s:UIPanelType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="UIPanelType">
+        <xs:sequence>
+            <xs:element name="widget" type="s:UIWidgetType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="anchor" type="xs:string"/>
+        <xs:attribute name="width" type="xs:int"/>
+        <xs:attribute name="height" type="xs:int"/>
+        <xs:attribute name="visible" type="xs:boolean" default="true"/>
+        <xs:attribute name="visibleWhen" type="xs:string"/>
+    </xs:complexType>
+
+    <xs:complexType name="UIWidgetType">
+        <xs:attribute name="type" type="s:UIWidgetTypeEnum" use="required"/>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="text" type="xs:string"/>
+        <xs:attribute name="fontSize" type="xs:int"/>
+        <xs:attribute name="align" type="xs:string"/>
+        <xs:attribute name="color" type="xs:string"/>
+        <xs:attribute name="dataBinding" type="xs:string"/>
+        <xs:attribute name="onClick" type="xs:string"/>
+        <xs:attribute name="toggleState" type="xs:string"/>
+        <xs:attribute name="activeText" type="xs:string"/>
+        <xs:attribute name="activeColor" type="xs:string"/>
+        <xs:attribute name="inactiveColor" type="xs:string"/>
+        <xs:attribute name="width" type="xs:int"/>
+        <xs:attribute name="height" type="xs:int"/>
+        <xs:attribute name="format" type="xs:string"/>
+    </xs:complexType>
+
+    <xs:simpleType name="UIWidgetTypeEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="text"/>
+            <xs:enumeration value="button"/>
+            <xs:enumeration value="image"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:complexType name="StateMachineType">
+        <xs:sequence>
+            <xs:element name="state" type="s:StateType" minOccurs="1" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="initial" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="StateType">
+        <xs:sequence>
+            <xs:element name="properties" type="s:PropertiesType" minOccurs="0"/>
+            <xs:element name="transition" type="s:TransitionType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="TransitionType">
+        <xs:attribute name="event" type="xs:string" use="required"/>
+        <xs:attribute name="target" type="xs:string" use="required"/>
+        <xs:attribute name="guard" type="xs:string"/>
+    </xs:complexType>
+
+    <!-- ================================================================= -->
+    <!-- ROUTES                                                            -->
+    <!-- <synth><routes>...</routes></synth>                               -->
+    <!-- ================================================================= -->
+
+    <xs:complexType name="RoutesType">
+        <xs:sequence>
+            <xs:element name="route" type="s:RouteType" minOccurs="1" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="RouteType">
+        <xs:sequence>
+            <xs:element name="scene" type="s:SceneRefType"/>
+            <xs:element name="spawnPoint" type="s:SpawnPointType" minOccurs="1" maxOccurs="unbounded"/>
+            <xs:element name="params" type="s:RouteParamsType" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="path" type="xs:string" use="required"/>
+        <xs:attribute name="default" type="xs:boolean" default="false"/>
+    </xs:complexType>
+
+    <xs:complexType name="SceneRefType">
+        <xs:attribute name="ref" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="SpawnPointType">
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="x" type="xs:float" use="required"/>
+        <xs:attribute name="y" type="xs:float" use="required"/>
+        <xs:attribute name="z" type="xs:float" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="RouteParamsType">
+        <xs:sequence>
+            <xs:element name="param" type="s:RouteParamType" minOccurs="1" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="RouteParamType">
+        <xs:attribute name="name" type="xs:string" use="required"/>
+        <xs:attribute name="type" type="s:RouteParamTypeEnum" use="required"/>
+        <xs:attribute name="required" type="xs:boolean" default="false"/>
+    </xs:complexType>
+
+    <xs:simpleType name="RouteParamTypeEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="string"/>
+            <xs:enumeration value="int"/>
+            <xs:enumeration value="float"/>
+            <xs:enumeration value="bool"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ================================================================= -->
+    <!-- RUNTIME                                                           -->
+    <!-- <synth><runtime>...</runtime></synth>                             -->
+    <!-- ================================================================= -->
+
+    <xs:complexType name="RuntimeType">
+        <xs:sequence>
+            <xs:element name="metadata" type="s:RuntimeMetadataType"/>
+            <xs:element name="renderer" type="s:RuntimeRendererConfigType"/>
+            <xs:element name="assets" type="s:RuntimeAssetsType"/>
+            <xs:element name="shaders" type="s:ShadersType" minOccurs="0"/>
+            <xs:element name="defaults" type="s:RuntimeDefaultsType" minOccurs="0"/>
+            <xs:element name="settings" type="s:SettingsType" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="version" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="RuntimeMetadataType">
+        <xs:sequence>
+            <xs:element name="name" type="xs:string"/>
+            <xs:element name="client" type="xs:string"/>
+            <xs:element name="platform" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="RuntimeRendererConfigType">
+        <xs:sequence>
+            <xs:element name="api" type="s:APIType"/>
+            <xs:element name="window" type="s:WindowType" minOccurs="0"/>
+            <xs:element name="features" type="s:FeaturesType" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="APIType">
+        <xs:attribute name="type" type="s:APITypeEnum" use="required"/>
+        <xs:attribute name="version" type="xs:string"/>
+    </xs:complexType>
+
+    <xs:simpleType name="APITypeEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="vulkan"/>
+            <xs:enumeration value="opengl"/>
+            <xs:enumeration value="metal"/>
+            <xs:enumeration value="dx12"/>
+            <xs:enumeration value="webgpu"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:complexType name="WindowType">
+        <xs:attribute name="width" type="xs:int" default="1280"/>
+        <xs:attribute name="height" type="xs:int" default="720"/>
+        <xs:attribute name="fullscreen" type="xs:boolean" default="false"/>
+        <xs:attribute name="vsync" type="xs:boolean" default="true"/>
+        <xs:attribute name="resizable" type="xs:boolean" default="true"/>
+    </xs:complexType>
+
+    <xs:complexType name="FeaturesType">
+        <xs:sequence>
+            <xs:element name="feature" type="s:FeatureType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="FeatureType">
+        <xs:attribute name="name" type="xs:string" use="required"/>
+        <xs:attribute name="enabled" type="xs:boolean" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="RuntimeAssetsType">
+        <xs:sequence>
+            <xs:element name="mount" type="s:MountType" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="searchPath" type="s:SearchPathType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="SearchPathType">
+        <xs:simpleContent>
+            <xs:extension base="xs:string">
+                <xs:attribute name="type" type="s:AssetSearchTypeEnum" use="required"/>
+                <xs:attribute name="priority" type="xs:int" default="0"/>
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+
+    <xs:simpleType name="AssetSearchTypeEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="models"/>
+            <xs:enumeration value="textures"/>
+            <xs:enumeration value="shaders"/>
+            <xs:enumeration value="materials"/>
+            <xs:enumeration value="audio"/>
+            <xs:enumeration value="all"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Shaders -->
+    <xs:complexType name="ShadersType">
+        <xs:sequence>
+            <xs:element name="shader" type="s:ShaderType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="ShaderType">
+        <xs:choice>
+            <xs:element name="source" type="s:ShaderSourceType"/>
+            <xs:element name="binary" type="s:ShaderBinaryType"/>
+            <xs:element name="file" type="s:ShaderFileType"/>
+        </xs:choice>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="stage" type="s:ShaderStageEnum" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="ShaderSourceType">
+        <xs:simpleContent>
+            <xs:extension base="xs:string">
+                <xs:attribute name="language" type="s:ShaderLanguageEnum" use="required"/>
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+
+    <xs:complexType name="ShaderBinaryType">
+        <xs:simpleContent>
+            <xs:extension base="xs:string">
+                <xs:attribute name="format" type="xs:string" fixed="spirv"/>
+                <xs:attribute name="encoding" type="xs:string" fixed="base64"/>
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+
+    <xs:complexType name="ShaderFileType">
+        <xs:attribute name="path" type="xs:string" use="required"/>
+        <xs:attribute name="language" type="s:ShaderLanguageEnum"/>
+    </xs:complexType>
+
+    <xs:simpleType name="ShaderStageEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="vertex"/>
+            <xs:enumeration value="fragment"/>
+            <xs:enumeration value="geometry"/>
+            <xs:enumeration value="compute"/>
+            <xs:enumeration value="tessellation-control"/>
+            <xs:enumeration value="tessellation-evaluation"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="ShaderLanguageEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="glsl"/>
+            <xs:enumeration value="hlsl"/>
+            <xs:enumeration value="spirv"/>
+            <xs:enumeration value="wgsl"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Runtime Defaults -->
+    <xs:complexType name="RuntimeDefaultsType">
+        <xs:sequence>
+            <xs:element name="texture" type="s:DefaultTextureType" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="material" type="s:DefaultMaterialType" minOccurs="0"/>
+            <xs:element name="shader" type="s:DefaultShaderType" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="DefaultTextureType">
+        <xs:choice>
+            <xs:element name="file" type="xs:string"/>
+            <xs:element name="data" type="s:Base64DataType"/>
+        </xs:choice>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="format" type="xs:string"/>
+    </xs:complexType>
+
+    <xs:complexType name="Base64DataType">
+        <xs:simpleContent>
+            <xs:extension base="xs:string">
+                <xs:attribute name="encoding" type="xs:string" fixed="base64"/>
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+
+    <xs:complexType name="DefaultMaterialType">
+        <xs:sequence>
+            <xs:element name="property" type="s:MaterialPropertyType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="shader" type="xs:string"/>
+    </xs:complexType>
+
+    <xs:complexType name="MaterialPropertyType">
+        <xs:attribute name="name" type="xs:string" use="required"/>
+        <xs:attribute name="value" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="DefaultShaderType">
+        <xs:attribute name="vertex" type="xs:string" use="required"/>
+        <xs:attribute name="fragment" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <!-- ================================================================= -->
+    <!-- RUNTIME-RENDERER (.frost files)                                   -->
+    <!-- <synth><runtime-renderer>...</runtime-renderer></synth>           -->
+    <!-- ================================================================= -->
+
+    <xs:complexType name="RuntimeRendererType">
+        <xs:sequence>
+            <xs:element name="metadata" type="s:RuntimeMetadataType"/>
+            <xs:element name="renderer" type="s:RendererFullType"/>
+            <xs:element name="paths" type="s:RendererPathsType" minOccurs="0"/>
+            <xs:element name="camera" type="s:RendererCameraType" minOccurs="0"/>
+            <xs:element name="http-server" type="s:HttpServerType" minOccurs="0"/>
+            <xs:element name="debug" type="s:DebugType" minOccurs="0"/>
+            <xs:element name="scene" type="s:RendererSceneRefType"/>
+            <xs:element name="secrets" type="s:SecretsType" minOccurs="0"/>
+            <xs:element name="defaults" type="s:RuntimeDefaultsType" minOccurs="0"/>
+            <xs:element name="settings" type="s:SettingsType" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="version" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="RendererFullType">
+        <xs:sequence>
+            <xs:element name="api" type="s:APIType"/>
+            <xs:element name="window" type="s:WindowType" minOccurs="0"/>
+            <xs:element name="features" type="s:FeaturesType" minOccurs="0"/>
+            <xs:element name="validation" type="s:ValidationType" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="ValidationType">
+        <xs:attribute name="enabled" type="xs:boolean" default="true"/>
+        <xs:attribute name="layers" type="xs:string" default="VK_LAYER_KHRONOS_validation"/>
+    </xs:complexType>
+
+    <xs:complexType name="RendererPathsType">
+        <xs:sequence>
+            <xs:element name="asset-root" type="s:PathUriType" minOccurs="0"/>
+            <xs:element name="shader-dir" type="s:PathUriType" minOccurs="0"/>
+            <xs:element name="log-dir" type="s:PathUriType" minOccurs="0"/>
+            <xs:element name="mounts" type="s:MountsType" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="PathUriType">
+        <xs:attribute name="uri" type="xs:anyURI" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="RendererCameraType">
+        <xs:sequence>
+            <xs:element name="default-position" type="s:Vec3Type" minOccurs="0"/>
+            <xs:element name="default-rotation" type="s:Vec3Type" minOccurs="0"/>
+            <xs:element name="default-fov" type="xs:float" minOccurs="0"/>
+            <xs:element name="znear" type="xs:float" minOccurs="0"/>
+            <xs:element name="zfar" type="xs:float" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="HttpServerType">
+        <xs:sequence>
+            <xs:element name="enabled" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="port" type="xs:int" minOccurs="0"/>
+            <xs:element name="cors-enabled" type="xs:boolean" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="DebugType">
+        <xs:sequence>
+            <xs:element name="log-level" type="s:LogLevelEnum" minOccurs="0"/>
+            <xs:element name="log-to-console" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="json-logging" type="xs:boolean" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="RendererSceneRefType">
+        <xs:attribute name="uri" type="xs:anyURI" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="SecretsType">
+        <xs:attribute name="file" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <!-- ================================================================= -->
+    <!-- RUNTIME-LOGIC                                                     -->
+    <!-- <synth><runtime-logic>...</runtime-logic></synth>                 -->
+    <!-- ================================================================= -->
+
+    <xs:complexType name="RuntimeLogicType">
+        <xs:sequence>
+            <xs:element name="metadata" type="s:LogicMetadataType"/>
+            <xs:element name="hub" type="s:HubType" minOccurs="0"/>
+            <xs:element name="database" type="s:DatabaseType" minOccurs="0"/>
+            <xs:element name="server" type="s:ServerType"/>
+            <xs:element name="game" type="s:GameLogicType" minOccurs="0"/>
+            <xs:element name="settings" type="s:SettingsType" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="version" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="LogicMetadataType">
+        <xs:sequence>
+            <xs:element name="name" type="xs:string"/>
+            <xs:element name="service" type="xs:string"/>
+            <xs:element name="platform" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="HubType">
+        <xs:attribute name="url" type="xs:anyURI" use="required"/>
+        <xs:attribute name="mode" type="s:HubModeEnum" default="websocket"/>
+        <xs:attribute name="reconnect" type="xs:boolean" default="true"/>
+    </xs:complexType>
+
+    <xs:simpleType name="HubModeEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="websocket"/>
+            <xs:enumeration value="polling"/>
+            <xs:enumeration value="grpc"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:complexType name="DatabaseType">
+        <xs:sequence>
+            <xs:element name="connection" type="s:ConnectionType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="type" type="s:DatabaseTypeEnum" use="required"/>
+        <xs:attribute name="path" type="xs:string"/>
+    </xs:complexType>
+
+    <xs:simpleType name="DatabaseTypeEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="sqlite"/>
+            <xs:enumeration value="postgresql"/>
+            <xs:enumeration value="mysql"/>
+            <xs:enumeration value="mongodb"/>
+            <xs:enumeration value="redis"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:complexType name="ConnectionType">
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="host" type="xs:string"/>
+        <xs:attribute name="port" type="xs:int"/>
+        <xs:attribute name="database" type="xs:string"/>
+        <xs:attribute name="username" type="xs:string"/>
+        <xs:attribute name="poolSize" type="xs:int" default="10"/>
+    </xs:complexType>
+
+    <xs:complexType name="ServerType">
+        <xs:sequence>
+            <xs:element name="endpoint" type="s:EndpointType" minOccurs="1" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="EndpointType">
+        <xs:attribute name="type" type="s:EndpointTypeEnum" use="required"/>
+        <xs:attribute name="host" type="xs:string" default="localhost"/>
+        <xs:attribute name="port" type="xs:int" use="required"/>
+        <xs:attribute name="cors" type="xs:boolean" default="false"/>
+    </xs:complexType>
+
+    <xs:simpleType name="EndpointTypeEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="http"/>
+            <xs:enumeration value="websocket"/>
+            <xs:enumeration value="grpc"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:complexType name="GameLogicType">
+        <xs:sequence>
+            <xs:element name="tickRate" type="xs:int" default="60"/>
+            <xs:element name="maxPlayers" type="xs:int" default="100"/>
+            <xs:element name="saveInterval" type="xs:int" default="300"/>
+            <xs:element name="plugins" type="s:PluginsType" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="PluginsType">
+        <xs:sequence>
+            <xs:element name="plugin" type="s:PluginType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="PluginType">
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="enabled" type="xs:boolean" default="true"/>
+    </xs:complexType>
+
+    <!-- ================================================================= -->
+    <!-- GAME-PROJECT (.cryo files)                                        -->
+    <!-- <synth><game-project>...</game-project></synth>                   -->
+    <!-- ================================================================= -->
+
+    <xs:complexType name="GameProjectType">
+        <xs:sequence>
+            <xs:element name="metadata" type="s:GameProjectMetadataType"/>
+            <xs:element name="backend" type="s:BackendType"/>
+            <xs:element name="renderer" type="s:GameRendererType"/>
+            <xs:element name="paths" type="s:GamePathsType" minOccurs="0"/>
+            <xs:element name="launcher" type="s:LauncherType" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="version" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="GameProjectMetadataType">
+        <xs:sequence>
+            <xs:element name="name" type="xs:string"/>
+            <xs:element name="description" type="xs:string" minOccurs="0"/>
+            <xs:element name="version" type="xs:string" minOccurs="0"/>
+            <xs:element name="author" type="xs:string" minOccurs="0"/>
+            <xs:element name="created" type="xs:dateTime" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="BackendType">
+        <xs:sequence>
+            <xs:element name="runtime" type="xs:string"/>
+            <xs:element name="autoStart" type="xs:boolean" default="true" minOccurs="0"/>
+            <xs:element name="waitForReady" type="xs:boolean" default="true" minOccurs="0"/>
+            <xs:element name="startupTimeout" type="xs:int" default="30" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="GameRendererType">
+        <xs:sequence>
+            <xs:element name="runtime" type="xs:string"/>
+            <xs:element name="autoStart" type="xs:boolean" default="true" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="GamePathsType">
+        <xs:sequence>
+            <xs:element name="assets" type="xs:string" minOccurs="0"/>
+            <xs:element name="scenes" type="xs:string" minOccurs="0"/>
+            <xs:element name="components" type="xs:string" minOccurs="0"/>
+            <xs:element name="scripts" type="xs:string" minOccurs="0"/>
+            <xs:element name="data" type="xs:string" minOccurs="0"/>
+            <xs:element name="config" type="xs:string" minOccurs="0"/>
+            <xs:element name="mounts" type="s:MountsType" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="LauncherType">
+        <xs:sequence>
+            <xs:element name="startupOrder" type="s:StartupOrderEnum" default="sequential" minOccurs="0"/>
+            <xs:element name="showConsole" type="xs:boolean" default="true" minOccurs="0"/>
+            <xs:element name="workingDirectory" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:simpleType name="StartupOrderEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="sequential"/>
+            <xs:enumeration value="parallel"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ================================================================= -->
+    <!-- ASSET-REGISTRY                                                    -->
+    <!-- <synth><asset-registry>...</asset-registry></synth>               -->
+    <!-- ================================================================= -->
+
+    <xs:complexType name="AssetRegistryType">
+        <xs:sequence>
+            <xs:element name="manifest" type="s:ManifestType"/>
+            <xs:element name="packages" type="s:PackagesType"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="ManifestType">
+        <xs:sequence>
+            <xs:element name="name" type="xs:string"/>
+            <xs:element name="description" type="xs:string" minOccurs="0"/>
+            <xs:element name="version" type="xs:string"/>
+            <xs:element name="author" type="xs:string" minOccurs="0"/>
+            <xs:element name="baseUrl" type="xs:anyURI"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="PackagesType">
+        <xs:sequence>
+            <xs:element name="package" type="s:PackageType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="PackageType">
+        <xs:sequence>
+            <xs:element name="name" type="xs:string"/>
+            <xs:element name="description" type="xs:string" minOccurs="0"/>
+            <xs:element name="tags" type="s:TagsType" minOccurs="0"/>
+            <xs:element name="assets" type="s:PackageAssetsType"/>
+            <xs:element name="dependencies" type="s:PackageDependenciesType" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="version" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="PackageAssetsType">
+        <xs:sequence>
+            <xs:element name="asset" type="s:PackageAssetType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="PackageAssetType">
+        <xs:attribute name="type" type="s:PackageAssetTypeEnum" use="required"/>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="uri" type="xs:string" use="required"/>
+        <xs:attribute name="size" type="xs:long" use="optional"/>
+    </xs:complexType>
+
+    <xs:simpleType name="PackageAssetTypeEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="model"/>
+            <xs:enumeration value="texture"/>
+            <xs:enumeration value="scene"/>
+            <xs:enumeration value="component"/>
+            <xs:enumeration value="shader"/>
+            <xs:enumeration value="audio"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:complexType name="PackageDependenciesType">
+        <xs:sequence>
+            <xs:element name="dependency" type="s:PackageDependencyType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="PackageDependencyType">
+        <xs:attribute name="package" type="xs:string" use="required"/>
+        <xs:attribute name="minVersion" type="xs:string" use="optional"/>
+    </xs:complexType>
+
+    <!-- ================================================================= -->
+    <!-- EXTENSION                                                         -->
+    <!-- <synth><extension>...</extension></synth>                         -->
+    <!-- ================================================================= -->
+
+    <xs:complexType name="ExtensionContainerType">
+        <xs:sequence>
+            <xs:element name="synthExtension" type="s:SynthExtensionType"
+                        minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="SynthExtensionType">
+        <xs:sequence>
+            <xs:element name="metadata" type="s:MetadataBaseType" minOccurs="0"/>
+            <xs:element name="settings" type="s:SettingsType" minOccurs="0"/>
+            <xs:element name="dependencies" type="s:ExtensionDependenciesType" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="enabled" type="xs:boolean" default="true"/>
+        <xs:attribute name="version" type="xs:string"/>
+    </xs:complexType>
+
+    <xs:complexType name="ExtensionDependenciesType">
+        <xs:sequence>
+            <xs:element name="dependency" type="s:ExtensionDependencyRefType"
+                        minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="ExtensionDependencyRefType">
+        <xs:attribute name="ref" type="xs:string" use="required"/>
+    </xs:complexType>
+
+</xs:schema>

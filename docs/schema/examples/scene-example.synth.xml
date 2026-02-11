@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Example Scene with Schema Validation
+
+    This demonstrates how to reference the schema for validation.
+    IDEs like VSCode with XML extension will provide autocomplete and validation.
+-->
+<synth version="1.0" xmlns="https://chevp.github.io/synth-protocol/schema/synth/1.0"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="https://chevp.github.io/synth-protocol/schema/synth/1.0
+                           https://chevp.github.io/synth-protocol/schema/synth/1.0/synth.xsd">
+<scene version="1.0" id="example-scene">
+
+    <metadata>
+        <name>Example Scene</name>
+        <description>A sample scene demonstrating schema validation</description>
+    </metadata>
+
+    <settings>
+        <camera mode="orthographic" angle="45" height="12" follow="player"/>
+        <apiBinding endpoint="/api/scenes/example" autoLoad="true"/>
+    </settings>
+
+    <entities>
+
+        <!-- Ground Entity -->
+        <entity id="ground" name="Ground Plane">
+            <transform>
+                <position x="0" y="0" z="0"/>
+                <scale x="20" y="1" z="20"/>
+            </transform>
+            <mesh ref="shared/models/ground_plane.gltf"/>
+        </entity>
+
+        <!-- Player Entity -->
+        <entity id="player" name="Player Character">
+            <component ref="components/player/player-topdown.synth.xml"/>
+            <transform>
+                <position x="0" y="0.1" z="0"/>
+            </transform>
+        </entity>
+
+        <!-- Lighting -->
+        <entity id="main_light" name="Main Light">
+            <transform>
+                <position x="0" y="10" z="0"/>
+            </transform>
+            <pointLight color="#FFFFFF" intensity="1.0" range="20"/>
+        </entity>
+
+        <!-- Building with properties -->
+        <entity id="shop_01" name="Example Shop">
+            <component ref="components/buildings/example-shop.synth.xml"/>
+            <transform>
+                <position x="5" y="0" z="5"/>
+            </transform>
+            <properties>
+                <property name="producerId" type="string" value="shop_001"/>
+                <property name="shopName" type="string" value="The Example Shop"/>
+            </properties>
+        </entity>
+
+        <!-- Nested entities (hierarchy) -->
+        <entity id="building_group" name="Building Group">
+            <transform>
+                <position x="-5" y="0" z="0"/>
+            </transform>
+
+            <!-- Child entity -->
+            <entity id="building_a" name="Building A">
+                <transform>
+                    <position x="0" y="0" z="0"/>
+                </transform>
+                <mesh ref="shared/models/building_a.gltf"/>
+            </entity>
+
+            <!-- Another child -->
+            <entity id="building_b" name="Building B">
+                <transform>
+                    <position x="3" y="0" z="0"/>
+                </transform>
+                <mesh ref="shared/models/building_b.gltf"/>
+            </entity>
+        </entity>
+
+    </entities>
+
+</scene>
+</synth>

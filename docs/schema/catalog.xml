@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    XML Catalog for Synth Protocol Schemas
+
+    This catalog maps schema URIs to local file paths for offline development.
+
+    Usage:
+    - Visual Studio Code: Install "XML" extension by Red Hat and configure:
+      "xml.catalogs": ["path/to/this/catalog.xml"]
+    - IntelliJ IDEA: Settings → Languages & Frameworks → Schemas and DTDs → Add
+    - Oxygen XML: Options → Preferences → XML → XML Catalog
+-->
+<catalog xmlns="urn:oasis:names:tc:entity:xmlns:xml:catalog">
+
+    <!-- Synth Unified Schema (single <synth> root element) -->
+    <uri name="https://chevp.github.io/synth-protocol/schema/synth/1.0"
+         uri="synth.xsd"/>
+    <uri name="https://chevp.github.io/synth-protocol/schema/synth/1.0/synth.xsd"
+         uri="synth.xsd"/>
+
+    <!-- Legacy: Individual domain schemas (kept for reference) -->
+
+    <uri name="https://chevp.github.io/synth-protocol/schema/synth/common-types"
+         uri="synth/common-types.xsd"/>
+
+    <uri name="https://chevp.github.io/synth-protocol/schema/synth/core/1.0"
+         uri="synth/core/1.0/core.xsd"/>
+
+    <uri name="https://chevp.github.io/synth-protocol/schema/synth/project/1.0"
+         uri="synth/project/1.0/project.xsd"/>
+
+    <uri name="https://chevp.github.io/synth-protocol/schema/synth/scene/1.0"
+         uri="synth/scene/1.0/scene.xsd"/>
+
+    <uri name="https://chevp.github.io/synth-protocol/schema/synth/component/1.0"
+         uri="synth/component/1.0/component.xsd"/>
+
+    <uri name="https://chevp.github.io/synth-protocol/schema/synth/routes/1.0"
+         uri="synth/routes/1.0/routes.xsd"/>
+
+    <uri name="https://chevp.github.io/synth-protocol/schema/synth/runtime/1.0"
+         uri="synth/runtime/1.0/runtime.xsd"/>
+
+    <uri name="https://chevp.github.io/synth-protocol/schema/synth/runtime/1.0/renderer"
+         uri="synth/runtime/1.0/runtime-renderer.xsd"/>
+
+    <uri name="https://chevp.github.io/synth-protocol/schema/synth/runtime/1.0/logic"
+         uri="synth/runtime/1.0/runtime-logic.xsd"/>
+
+    <uri name="https://chevp.github.io/synth-protocol/schema/synth/extension/1.0"
+         uri="synth/extension/1.0/extension.xsd"/>
+
+    <uri name="https://chevp.github.io/synth-protocol/schema/synth/asset-registry/1.0"
+         uri="synth/asset-registry/1.0/asset-registry.xsd"/>
+
+    <uri name="https://chevp.github.io/synth-protocol/schema/synth/mcp/1.0"
+         uri="synth/mcp/1.0/mcp.xsd"/>
+
+    <uri name="https://chevp.github.io/synth-protocol/schema/synth/security/1.0"
+         uri="synth/security/1.0/security.xsd"/>
+
+    <uri name="https://chevp.github.io/synth-protocol/schema/synth/events/1.0"
+         uri="synth/events/1.0/events.xsd"/>
+
+    <!-- Unified schemas -->
+    <uri name="https://chevp.github.io/synth-protocol/schema/unified/elyrion/1.0"
+         uri="unified/elyrion.xsd"/>
+
+</catalog>

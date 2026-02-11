@@ -12,10 +12,8 @@
   - Bidirectional parent/child links for fast UI navigation
   - Components attach to ClusterNodes for data (ECS pattern)
 -->
-<synthProject xmlns="https://chevp.github.io/synth-protocol/schema/synth/project/1.0"
-              xmlns:core="https://chevp.github.io/synth-protocol/schema/synth/core/1.0"
-              xmlns:mcp="https://chevp.github.io/synth-protocol/schema/synth/mcp/1.0"
-              xmlns:security="https://chevp.github.io/synth-protocol/schema/synth/security/1.0">
+<synth version="1.0" xmlns="https://chevp.github.io/synth-protocol/schema/synth/1.0">
+<project>
 
     <!-- =================================================================== -->
     <!-- FILE HEADER -->
@@ -35,13 +33,13 @@
     <!-- PROJECT ROOT -->
     <!-- Based on nuna.project.Project -->
     <!-- =================================================================== -->
-    <project>
-        <core:entityId>
+    <metadata>
+        <entityId>
             <uuid>proj_01HXYZ123456789ABCDEF</uuid>
             <version>1</version>
             <createdAt>1733400000000</createdAt>
             <updatedAt>1733400000000</updatedAt>
-        </core:entityId>
+        </entityId>
         <name>Example Synth Project</name>
         <description>A demonstration project showing the synth-protocol XML structure</description>
         <schemaVersion>1.0.0</schemaVersion>
@@ -57,7 +55,7 @@
         </settings>
         <lastOpenedAt>1733400000000</lastOpenedAt>
         <lastOpenedBy>developer</lastOpenedBy>
-    </project>
+    </metadata>
 
     <!-- =================================================================== -->
     <!-- MCP SERVER REQUIREMENTS -->
@@ -65,12 +63,12 @@
     <!-- =================================================================== -->
     <mcpServers>
         <server>
-            <core:entityId>
+            <entityId>
                 <uuid>mcp_playground</uuid>
                 <version>1</version>
                 <createdAt>1733400000000</createdAt>
                 <updatedAt>1733400000000</updatedAt>
-            </core:entityId>
+            </entityId>
             <serverName>synth-playground</serverName>
             <version>1.0.0</version>
             <required>true</required>
@@ -86,12 +84,12 @@
             </config>
         </server>
         <server>
-            <core:entityId>
+            <entityId>
                 <uuid>mcp_vision</uuid>
                 <version>1</version>
                 <createdAt>1733400000000</createdAt>
                 <updatedAt>1733400000000</updatedAt>
-            </core:entityId>
+            </entityId>
             <serverName>synth-vision</serverName>
             <version>1.0.0</version>
             <required>false</required>
@@ -108,12 +106,12 @@
     <!-- =================================================================== -->
     <plugins>
         <plugin>
-            <core:entityId>
+            <entityId>
                 <uuid>plugin_builtin</uuid>
                 <version>1</version>
                 <createdAt>1733400000000</createdAt>
                 <updatedAt>1733400000000</updatedAt>
-            </core:entityId>
+            </entityId>
             <artifact>io.synth.playground:builtin-tools:1.0.0</artifact>
             <type>PLUGIN_TYPE_JAR</type>
             <source>MARKETPLACE_SOURCE_PRODUCTION</source>
@@ -243,45 +241,45 @@
     <!-- =================================================================== -->
     <tags>
         <tag>
-            <core:entityId>
+            <entityId>
                 <uuid>tag_important</uuid>
                 <version>1</version>
                 <createdAt>1733400000000</createdAt>
                 <updatedAt>1733400000000</updatedAt>
-            </core:entityId>
+            </entityId>
             <name>Important</name>
             <color>#FF5722</color>
             <category>priority</category>
         </tag>
         <tag>
-            <core:entityId>
+            <entityId>
                 <uuid>tag_draft</uuid>
                 <version>1</version>
                 <createdAt>1733400000000</createdAt>
                 <updatedAt>1733400000000</updatedAt>
-            </core:entityId>
+            </entityId>
             <name>Draft</name>
             <color>#9E9E9E</color>
             <category>status</category>
         </tag>
         <tag>
-            <core:entityId>
+            <entityId>
                 <uuid>tag_approved</uuid>
                 <version>1</version>
                 <createdAt>1733400000000</createdAt>
                 <updatedAt>1733400000000</updatedAt>
-            </core:entityId>
+            </entityId>
             <name>Approved</name>
             <color>#4CAF50</color>
             <category>status</category>
         </tag>
         <tag>
-            <core:entityId>
+            <entityId>
                 <uuid>tag_review</uuid>
                 <version>1</version>
                 <createdAt>1733400000000</createdAt>
                 <updatedAt>1733400000000</updatedAt>
-            </core:entityId>
+            </entityId>
             <name>Needs Review</name>
             <color>#FFC107</color>
             <category>status</category>
@@ -296,12 +294,12 @@
     <clusterNodes>
         <!-- Scene node (was separate Scene message) -->
         <node>
-            <core:entityId>
+            <entityId>
                 <uuid>scene_main</uuid>
                 <version>1</version>
                 <createdAt>1733400000000</createdAt>
                 <updatedAt>1733400000000</updatedAt>
-            </core:entityId>
+            </entityId>
             <name>Main Scene</name>
             <nodeType>CLUSTER_NODE_TYPE_SCENE</nodeType>
             <state>CLUSTER_NODE_STATE_ACTIVE</state>
@@ -315,12 +313,12 @@
 
         <!-- Folder node -->
         <node>
-            <core:entityId>
+            <entityId>
                 <uuid>folder_docs</uuid>
                 <version>1</version>
                 <createdAt>1733400000000</createdAt>
                 <updatedAt>1733400000000</updatedAt>
-            </core:entityId>
+            </entityId>
             <name>Documentation</name>
             <nodeType>CLUSTER_NODE_TYPE_FOLDER</nodeType>
             <state>CLUSTER_NODE_STATE_ACTIVE</state>
@@ -336,12 +334,12 @@
 
         <!-- Document nodes -->
         <node>
-            <core:entityId>
+            <entityId>
                 <uuid>doc_readme</uuid>
                 <version>1</version>
                 <createdAt>1733400000000</createdAt>
                 <updatedAt>1733400000000</updatedAt>
-            </core:entityId>
+            </entityId>
             <name>README.md</name>
             <nodeType>CLUSTER_NODE_TYPE_DOCUMENT</nodeType>
             <state>CLUSTER_NODE_STATE_ACTIVE</state>
@@ -358,12 +356,12 @@
         </node>
 
         <node>
-            <core:entityId>
+            <entityId>
                 <uuid>doc_notes</uuid>
                 <version>1</version>
                 <createdAt>1733400000000</createdAt>
                 <updatedAt>1733400000000</updatedAt>
-            </core:entityId>
+            </entityId>
             <name>Project Notes</name>
             <nodeType>CLUSTER_NODE_TYPE_DOCUMENT</nodeType>
             <state>CLUSTER_NODE_STATE_ACTIVE</state>
@@ -379,12 +377,12 @@
         </node>
 
         <node>
-            <core:entityId>
+            <entityId>
                 <uuid>doc_spec</uuid>
                 <version>1</version>
                 <createdAt>1733400000000</createdAt>
                 <updatedAt>1733400000000</updatedAt>
-            </core:entityId>
+            </entityId>
             <name>Specification</name>
             <nodeType>CLUSTER_NODE_TYPE_DOCUMENT</nodeType>
             <state>CLUSTER_NODE_STATE_ACTIVE</state>
@@ -409,12 +407,12 @@
     <components>
         <!-- Scene settings component (attached to scene_main) -->
         <component>
-            <core:entityId>
+            <entityId>
                 <uuid>comp_scene_settings</uuid>
                 <version>1</version>
                 <createdAt>1733400000000</createdAt>
                 <updatedAt>1733400000000</updatedAt>
-            </core:entityId>
+            </entityId>
             <clusterNodeId>scene_main</clusterNodeId>
             <componentType>scene_settings</componentType>
             <state>COMPONENT_STATE_ENABLED</state>
@@ -428,12 +426,12 @@
 
         <!-- README.md header image (Base64 encoded PNG) -->
         <component>
-            <core:entityId>
+            <entityId>
                 <uuid>comp_readme_image</uuid>
                 <version>1</version>
                 <createdAt>1733400000000</createdAt>
                 <updatedAt>1733400000000</updatedAt>
-            </core:entityId>
+            </entityId>
             <clusterNodeId>doc_readme</clusterNodeId>
             <componentType>image_content</componentType>
             <state>COMPONENT_STATE_ENABLED</state>
@@ -444,12 +442,12 @@
 
         <!-- README.md content (Base64 encoded) - includes image reference ![alt](assets/header.png) -->
         <component>
-            <core:entityId>
+            <entityId>
                 <uuid>comp_readme_text</uuid>
                 <version>1</version>
                 <createdAt>1733400000000</createdAt>
                 <updatedAt>1733400000000</updatedAt>
-            </core:entityId>
+            </entityId>
             <clusterNodeId>doc_readme</clusterNodeId>
             <componentType>text_content</componentType>
             <state>COMPONENT_STATE_ENABLED</state>
@@ -459,12 +457,12 @@
 
         <!-- Project Notes content (Base64 encoded) -->
         <component>
-            <core:entityId>
+            <entityId>
                 <uuid>comp_notes_text</uuid>
                 <version>1</version>
                 <createdAt>1733400000000</createdAt>
                 <updatedAt>1733400000000</updatedAt>
-            </core:entityId>
+            </entityId>
             <clusterNodeId>doc_notes</clusterNodeId>
             <componentType>text_content</componentType>
             <state>COMPONENT_STATE_ENABLED</state>
@@ -474,12 +472,12 @@
 
         <!-- Specification content (Base64 encoded) -->
         <component>
-            <core:entityId>
+            <entityId>
                 <uuid>comp_spec_text</uuid>
                 <version>1</version>
                 <createdAt>1733400000000</createdAt>
                 <updatedAt>1733400000000</updatedAt>
-            </core:entityId>
+            </entityId>
             <clusterNodeId>doc_spec</clusterNodeId>
             <componentType>text_content</componentType>
             <state>COMPONENT_STATE_ENABLED</state>
@@ -494,12 +492,12 @@
     <!-- =================================================================== -->
     <assets>
         <asset>
-            <core:entityId>
+            <entityId>
                 <uuid>asset_icon</uuid>
                 <version>1</version>
                 <createdAt>1733400000000</createdAt>
                 <updatedAt>1733400000000</updatedAt>
-            </core:entityId>
+            </entityId>
             <name>project-icon</name>
             <type>ASSET_TYPE_TEXTURE</type>
             <sourcePath>./assets/icon.png</sourcePath>
@@ -513,12 +511,12 @@
             </metadata>
         </asset>
         <asset>
-            <core:entityId>
+            <entityId>
                 <uuid>asset_header</uuid>
                 <version>1</version>
                 <createdAt>1733400000000</createdAt>
                 <updatedAt>1733400000000</updatedAt>
-            </core:entityId>
+            </entityId>
             <name>header.png</name>
             <type>ASSET_TYPE_TEXTURE</type>
             <sourcePath>./assets/header.png</sourcePath>
@@ -534,4 +532,5 @@
         </asset>
     </assets>
 
-</synthProject>
+</project>
+</synth>

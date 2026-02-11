@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:ext="https://chevp.github.io/synth-protocol/schema/synth/extension/1.0"
+           xmlns:common="https://chevp.github.io/synth-protocol/schema/synth/common-types"
+           targetNamespace="https://chevp.github.io/synth-protocol/schema/synth/extension/1.0"
+           elementFormDefault="qualified">
+
+    <!-- Imports -->
+    <xs:import namespace="https://chevp.github.io/synth-protocol/schema/synth/common-types"
+               schemaLocation="../../common-types.xsd"/>
+
+    <!-- =========================================================================
+         SYNTH EXTENSION SCHEMA
+         Configuration for C++ extensions loaded by the nuna extension-host.
+         This is local-only configuration, never sent over the network.
+         ========================================================================= -->
+
+    <!-- Root Element (used as child within synthProject) -->
+    <xs:element name="extensions" type="ext:SynthExtensionsType"/>
+
+    <!-- Extensions Container -->
+    <xs:complexType name="SynthExtensionsType">
+        <xs:sequence>
+            <xs:element name="synthExtension" type="ext:SynthExtensionType"
+                        minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Single Extension Configuration -->
+    <xs:complexType name="SynthExtensionType">
+        <xs:sequence>
+            <!-- Extension Metadata -->
+            <xs:element name="metadata" type="common:MetadataType" minOccurs="0"/>
+
+            <!-- Extension Settings (key-value pairs) -->
+            <xs:element name="settings" type="common:SettingsType" minOccurs="0"/>
+
+            <!-- Dependencies on other extensions -->
+            <xs:element name="dependencies" type="ext:DependenciesType" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="enabled" type="xs:boolean" default="true"/>
+        <xs:attribute name="version" type="xs:string"/>
+    </xs:complexType>
+
+    <!-- Dependencies Container -->
+    <xs:complexType name="DependenciesType">
+        <xs:sequence>
+            <xs:element name="dependency" type="ext:DependencyRefType"
+                        minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Dependency Reference -->
+    <xs:complexType name="DependencyRefType">
+        <xs:attribute name="ref" type="xs:string" use="required"/>
+    </xs:complexType>
+
+</xs:schema>

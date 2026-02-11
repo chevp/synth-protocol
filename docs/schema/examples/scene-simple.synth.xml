@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<synth version="1.0" xmlns="https://chevp.github.io/synth-protocol/schema/synth/1.0">
+<scene version="1.0" id="plaza-scene">
+
+    <metadata>
+        <name>Town Plaza</name>
+        <description>Central plaza with fountain and market stalls</description>
+    </metadata>
+
+    <entities>
+        <!-- Environment -->
+        <entity id="skybox_01" name="Sky">
+            <component ref="components/environment/skybox.synth.xml"/>
+        </entity>
+
+        <!-- Terrain -->
+        <entity id="ground_01" name="Ground Plane">
+            <component ref="components/environment/ground.synth.xml"/>
+            <transform>
+                <position x="0" y="0" z="0"/>
+                <rotation x="0" y="0" z="0"/>
+                <scale x="100" y="1" z="100"/>
+            </transform>
+        </entity>
+
+        <!-- Buildings -->
+        <entity id="fountain_center" name="Fountain">
+            <component ref="components/props/fountain.synth.xml"/>
+            <transform>
+                <position x="0" y="0" z="0"/>
+            </transform>
+        </entity>
+
+        <entity id="building_bakery" name="Bakery">
+            <component ref="components/buildings/bakery.synth.xml"/>
+            <transform>
+                <position x="-10" y="0" z="5"/>
+                <rotation x="0" y="45" z="0"/>
+            </transform>
+        </entity>
+
+        <!-- NPCs -->
+        <entity id="npc_merchant_01" name="Hans the Trader">
+            <component ref="components/npcs/merchant.synth.xml"/>
+            <transform>
+                <position x="3" y="0" z="2"/>
+                <rotation x="0" y="180" z="0"/>
+            </transform>
+        </entity>
+
+        <!-- Player Spawn -->
+        <entity id="player_spawn" name="Player Spawn Point">
+            <component ref="components/player/spawn-point.synth.xml"/>
+            <transform>
+                <position x="0" y="0.1" z="10"/>
+                <rotation x="0" y="0" z="0"/>
+            </transform>
+        </entity>
+    </entities>
+
+    <lights>
+        <light id="sun" type="directional">
+            <direction x="0.3" y="-0.7" z="0.5"/>
+            <color r="1.0" g="0.98" b="0.95"/>
+            <intensity>1.2</intensity>
+        </light>
+
+        <light id="ambient" type="ambient">
+            <color r="0.4" g="0.5" b="0.6"/>
+            <intensity>0.3</intensity>
+        </light>
+    </lights>
+
+    <camera>
+        <type>topdown</type>
+        <position x="0" y="15" z="10"/>
+        <target x="0" y="0" z="0"/>
+        <fov>60</fov>
+    </camera>
+
+</scene>
+</synth>

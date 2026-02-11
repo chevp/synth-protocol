@@ -7,24 +7,24 @@ Dieses Dokument beschreibt die Integration des Synth Endpoint Protocol in versch
 ## Übersicht: Client-Typen
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                    Synth Endpoint Gateway                       │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
+┌────────────────────────────────────────────────────────────────┐
+│                    Synth Endpoint Gateway                      │
+├────────────────────────────────────────────────────────────────┤
+│                                                                │
 │   ┌─────────────┐  ┌─────────────┐  ┌─────────────┐            │
 │   │ C++ Vulkan  │  │ Electron    │  │ AI Agents   │            │
 │   │ Renderer    │  │ Scene-Dev   │  │ (MCP)       │            │
 │   │ (Prod)      │  │ (Dev/Admin) │  │             │            │
 │   └──────┬──────┘  └──────┬──────┘  └──────┬──────┘            │
-│          │                │                │                    │
-│     HTTPS REST       HTTPS REST        MCP/gRPC                 │
-│     libcurl          fetch/axios       SDK                      │
-│          │                │                │                    │
-│          └────────────────┼────────────────┘                    │
-│                           │                                     │
-│                    /api/v1/*                                    │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
+│          │                │                │                   │
+│     HTTPS REST       HTTPS REST        MCP/gRPC                │
+│     libcurl          fetch/axios       SDK                     │
+│          │                │                │                   │
+│          └────────────────┼────────────────┘                   │
+│                           │                                    │
+│                    /api/v1/*                                   │
+│                                                                │
+└────────────────────────────────────────────────────────────────┘
 ```
 
 | Client | Umgebung | Protokoll | Library |

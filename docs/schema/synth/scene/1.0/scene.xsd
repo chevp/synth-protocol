@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:scene="https://chevp.github.io/synth-protocol/schema/synth/scene/1.0"
+           xmlns:common="https://chevp.github.io/synth-protocol/schema/synth/common-types"
+           targetNamespace="https://chevp.github.io/synth-protocol/schema/synth/scene/1.0"
+           elementFormDefault="qualified">
+
+    <!-- Import shared types -->
+    <xs:import namespace="https://chevp.github.io/synth-protocol/schema/synth/common-types"
+               schemaLocation="../../common-types.xsd"/>
+
+    <!-- =========================================================================
+         SYNTH SCENE SCHEMA
+         Used by synth-game scene definitions (.synth.xml)
+         Root element: <synth-scene>
+         ========================================================================= -->
+
+    <!-- Root Element -->
+    <xs:element name="synth-scene" type="scene:SynthSceneType"/>
+
+    <!-- Scene Type Definition -->
+    <xs:complexType name="SynthSceneType">
+        <xs:sequence>
+            <!-- Scene Metadata -->
+            <xs:element name="metadata" type="common:MetadataType"/>
+
+            <!-- Scene Settings (camera, api bindings) -->
+            <xs:element name="settings" type="scene:SettingsType" minOccurs="0"/>
+
+            <!-- Entities Container -->
+            <xs:element name="entities" type="scene:EntitiesType"/>
+        </xs:sequence>
+        <xs:attribute name="version" type="xs:string" use="required"/>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <!-- Settings -->
+    <xs:complexType name="SettingsType">
+        <xs:sequence>
+            <xs:element name="camera" type="scene:CameraType" minOccurs="0"/>
+            <xs:element name="apiBinding" type="scene:APIBindingType" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Camera Settings -->
+    <xs:complexType name="CameraType">
+        <xs:attribute name="mode" type="scene:CameraModeEnum" use="required"/>
+        <xs:attribute name="angle" type="xs:float"/>
+        <xs:attribute name="height" type="xs:float"/>
+        <xs:attribute name="follow" type="xs:string"/>
+        <xs:attribute name="fov" type="xs:float"/>
+    </xs:complexType>
+
+    <!-- Camera Mode Enumeration -->
+    <xs:simpleType name="CameraModeEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="orthographic"/>
+            <xs:enumeration value="perspective"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- API Binding -->
+    <xs:complexType name="APIBindingType">
+        <xs:attribute name="endpoint" type="xs:string" use="required"/>
+        <xs:attribute name="autoLoad" type="xs:boolean" default="false"/>
+    </xs:complexType>
+
+    <!-- Entities Container -->
+    <xs:complexType name="EntitiesType">
+        <xs:sequence>
+            <xs:element name="entity" type="scene:EntityType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Entity -->
+    <xs:complexType name="EntityType">
+        <xs:sequence>
+            <!-- Component reference (optional) -->
+            <xs:element name="component" type="scene:ComponentRefType" minOccurs="0"/>
+
+            <!-- Transform (position, rotation, scale) -->
+            <xs:element name="transform" type="common:TransformType" minOccurs="0"/>
+
+            <!-- Mesh reference (optional) -->
+            <xs:element name="mesh" type="common:MeshRefType" minOccurs="0"/>
+
+            <!-- Point Light (optional) -->
+            <xs:element name="pointLight" type="scene:PointLightType" minOccurs="0"/>
+
+            <!-- Properties (optional) -->
+            <xs:element name="properties" type="common:PropertiesType" minOccurs="0"/>
+
+            <!-- Nested entities (hierarchy) -->
+            <xs:element name="entity" type="scene:EntityType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="name" type="xs:string"/>
+    </xs:complexType>
+
+    <!-- Component Reference -->
+    <xs:complexType name="ComponentRefType">
+        <xs:attribute name="ref" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <!-- Point Light -->
+    <xs:complexType name="PointLightType">
+        <xs:attribute name="color" type="xs:string" use="required"/>
+        <xs:attribute name="intensity" type="xs:float" use="required"/>
+        <xs:attribute name="range" type="xs:float" use="required"/>
+    </xs:complexType>
+
+</xs:schema>

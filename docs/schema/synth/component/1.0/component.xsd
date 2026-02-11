@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:comp="https://chevp.github.io/synth-protocol/schema/synth/component/1.0"
+           xmlns:common="https://chevp.github.io/synth-protocol/schema/synth/common-types"
+           targetNamespace="https://chevp.github.io/synth-protocol/schema/synth/component/1.0"
+           elementFormDefault="qualified">
+
+    <!-- Import shared types -->
+    <xs:import namespace="https://chevp.github.io/synth-protocol/schema/synth/common-types"
+               schemaLocation="../../common-types.xsd"/>
+
+    <!-- =========================================================================
+         SYNTH COMPONENT SCHEMA
+         Used by synth-game component definitions (.synth.xml)
+         Root element: <synthComponent>
+         ========================================================================= -->
+
+    <!-- Root Element -->
+    <xs:element name="synthComponent" type="comp:SynthComponentType"/>
+
+    <!-- Component Type Definition -->
+    <xs:complexType name="SynthComponentType">
+        <xs:sequence>
+            <!-- Metadata (name, type, description) -->
+            <xs:element name="metadata" type="comp:ComponentMetadataType"/>
+
+            <!-- Optional mesh reference -->
+            <xs:element name="mesh" type="common:MeshRefType" minOccurs="0"/>
+
+            <!-- Properties (key-value pairs with types) -->
+            <xs:element name="properties" type="common:PropertiesType" minOccurs="0"/>
+
+            <!-- Optional UI Layout (for UI components) -->
+            <xs:element name="uiLayout" type="comp:UILayoutType" minOccurs="0"/>
+
+            <!-- Optional State Machine (for interactive components) -->
+            <xs:element name="stateMachine" type="comp:StateMachineType" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="version" type="xs:string" use="required"/>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <!-- Component Metadata (extends base with type field) -->
+    <xs:complexType name="ComponentMetadataType">
+        <xs:sequence>
+            <xs:element name="name" type="xs:string"/>
+            <xs:element name="type" type="xs:string"/>
+            <xs:element name="description" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- UI Layout (for UI components) -->
+    <xs:complexType name="UILayoutType">
+        <xs:sequence>
+            <xs:element name="panel" type="comp:UIPanelType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- UI Panel -->
+    <xs:complexType name="UIPanelType">
+        <xs:sequence>
+            <xs:element name="widget" type="comp:UIWidgetType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="anchor" type="xs:string"/>
+        <xs:attribute name="width" type="xs:int"/>
+        <xs:attribute name="height" type="xs:int"/>
+        <xs:attribute name="visible" type="xs:boolean" default="true"/>
+        <xs:attribute name="visibleWhen" type="xs:string"/>
+    </xs:complexType>
+
+    <!-- UI Widget -->
+    <xs:complexType name="UIWidgetType">
+        <xs:attribute name="type" type="comp:UIWidgetTypeEnum" use="required"/>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="text" type="xs:string"/>
+        <xs:attribute name="fontSize" type="xs:int"/>
+        <xs:attribute name="align" type="xs:string"/>
+        <xs:attribute name="color" type="xs:string"/>
+        <xs:attribute name="dataBinding" type="xs:string"/>
+        <xs:attribute name="onClick" type="xs:string"/>
+        <xs:attribute name="toggleState" type="xs:string"/>
+        <xs:attribute name="activeText" type="xs:string"/>
+        <xs:attribute name="activeColor" type="xs:string"/>
+        <xs:attribute name="inactiveColor" type="xs:string"/>
+        <xs:attribute name="width" type="xs:int"/>
+        <xs:attribute name="height" type="xs:int"/>
+        <xs:attribute name="format" type="xs:string"/>
+    </xs:complexType>
+
+    <!-- UI Widget Type Enumeration -->
+    <xs:simpleType name="UIWidgetTypeEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="text"/>
+            <xs:enumeration value="button"/>
+            <xs:enumeration value="image"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- State Machine -->
+    <xs:complexType name="StateMachineType">
+        <xs:sequence>
+            <xs:element name="state" type="comp:StateType" minOccurs="1" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="initial" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <!-- State -->
+    <xs:complexType name="StateType">
+        <xs:sequence>
+            <xs:element name="properties" type="common:PropertiesType" minOccurs="0"/>
+            <xs:element name="transition" type="comp:TransitionType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <!-- Transition -->
+    <xs:complexType name="TransitionType">
+        <xs:attribute name="event" type="xs:string" use="required"/>
+        <xs:attribute name="target" type="xs:string" use="required"/>
+        <xs:attribute name="guard" type="xs:string"/>
+    </xs:complexType>
+
+</xs:schema>

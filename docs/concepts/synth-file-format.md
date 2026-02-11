@@ -197,32 +197,32 @@ Der Haupteditor unterstützt verschiedene Ansichten/Modi:
 │  [Structure] [Events] [Script] [Raw XML] [Preview]              │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│  ┌─────────────────────┬───────────────────────────────────┐   │
-│  │  Scene Hierarchy    │  Inspector / Properties           │   │
-│  │  ─────────────────  │  ─────────────────────────────    │   │
-│  │  ▼ scene_outdoor    │  Node: node_tree_01               │   │
-│  │    ▼ folder_veg     │  ─────────────────────────────    │   │
-│  │      ■ node_tree_01 │  Name: [Oak Tree        ]         │   │
-│  │      ■ node_rock_01 │  Type: asset                      │   │
-│  │    ▶ folder_props   │                                   │   │
+│  ┌─────────────────────┬───────────────────────────────────┐    │
+│  │  Scene Hierarchy    │  Inspector / Properties           │    │
+│  │  ─────────────────  │  ─────────────────────────────    │    │
+│  │  ▼ scene_outdoor    │  Node: node_tree_01               │    │
+│  │    ▼ folder_veg     │  ─────────────────────────────    │    │
+│  │      ■ node_tree_01 │  Name: [Oak Tree        ]         │    │
+│  │      ■ node_rock_01 │  Type: asset                      │    │
+│  │    ▶ folder_props   │                                  │    │
 │  │                     │  Transform:                       │   │
 │  │                     │  Position: [10] [0] [5]           │   │
 │  │                     │  Rotation: [0] [45] [0]           │   │
 │  │                     │                                   │   │
 │  └─────────────────────┴───────────────────────────────────┘   │
-│                                                                 │
+│                                                                │
 │  ┌─────────────────────────────────────────────────────────┐   │
-│  │  Event Console (Live)                                    │   │
+│  │  Event Console (Live)                                   │   │
 │  │  ─────────────────────────────────────────────────────  │   │
 │  │  > cluster node create node_tree_01 in scene_outdoor    │   │
 │  │  > component node create comp_transform on node_tree_01 │   │
 │  │  > component node update comp_transform --position=...  │   │
 │  │  > _                                                    │   │
 │  └─────────────────────────────────────────────────────────┘   │
-│                                                                 │
-├─────────────────────────────────────────────────────────────────┤
-│  Events: 3 | Unsaved changes | Last save: 15:30               │
-└─────────────────────────────────────────────────────────────────┘
+│                                                                │
+├────────────────────────────────────────────────────────────────┤
+│  Events: 3 | Unsaved changes | Last save: 15:30                │
+└────────────────────────────────────────────────────────────────┘
 ```
 
 ### Tab-Modi:

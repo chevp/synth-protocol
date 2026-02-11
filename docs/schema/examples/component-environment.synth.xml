@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<synth version="1.0" xmlns="https://chevp.github.io/synth-protocol/schema/synth/1.0">
+<component version="1.0" id="environment-skybox">
+
+    <metadata>
+        <name>Procedural Skybox</name>
+        <type>environment</type>
+    </metadata>
+
+    <!-- NO mesh - procedurally generated! -->
+
+    <properties>
+        <!-- Sky Gradient Colors -->
+        <property name="topColor" type="color" value="#87CEEB"/>
+        <property name="bottomColor" type="color" value="#E0F0FF"/>
+        <property name="horizonColor" type="color" value="#FFE4B5"/>
+
+        <!-- Sun -->
+        <property name="sunDirection" type="vec3" value="0.3,-0.7,0.5"/>
+        <property name="sunColor" type="color" value="#FFF8DC"/>
+        <property name="sunIntensity" type="float" value="1.0"/>
+
+        <!-- Atmosphere -->
+        <property name="fogDensity" type="float" value="0.01"/>
+        <property name="fogColor" type="color" value="#B0C4DE"/>
+    </properties>
+
+</component>
+</synth>

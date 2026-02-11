@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<synth version="1.0" xmlns="https://chevp.github.io/synth-protocol/schema/synth/1.0">
+<component version="1.0" id="building-townhall">
+
+    <metadata>
+        <name>Town Hall</name>
+        <type>building</type>
+    </metadata>
+
+    <!-- Mesh Reference (Asset URI) -->
+    <mesh ref="synth://assets/models/building_townhall"/>
+
+    <properties>
+        <!-- Game Logic Properties -->
+        <property name="producerId" type="string" value="townhall_001"/>
+        <property name="buildingType" type="string" value="government"/>
+        <property name="capacity" type="int" value="50"/>
+
+        <!-- Interaction Properties -->
+        <property name="interactable" type="bool" value="true"/>
+        <property name="targetRoute" type="string" value="/world/townhall/interior"/>
+        <property name="displayLabel" type="string" value="Enter Town Hall"/>
+
+        <!-- Grid Placement -->
+        <property name="footprintX" type="int" value="5"/>
+        <property name="footprintZ" type="int" value="5"/>
+        <property name="gridSnap" type="bool" value="true"/>
+        <property name="gridSize" type="float" value="2.0"/>
+
+        <!-- Editing -->
+        <property name="draggable" type="bool" value="true"/>
+        <property name="rotatable" type="bool" value="true"/>
+    </properties>
+
+</component>
+</synth>

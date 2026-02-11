@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Synth Protocol - XML Schemas</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #34495e;
+            margin-top: 30px;
+        }
+        .schema-list {
+            list-style: none;
+            padding: 0;
+        }
+        .schema-list li {
+            background: #ecf0f1;
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 4px;
+            border-left: 4px solid #3498db;
+        }
+        .schema-list a {
+            color: #2980b9;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .schema-list a:hover {
+            text-decoration: underline;
+        }
+        code {
+            background: #f8f8f8;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        pre {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        pre code {
+            background: transparent;
+            color: inherit;
+            padding: 0;
+        }
+        .namespace {
+            color: #7f8c8d;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Synth Protocol - XML Schemas</h1>
+
+        <p>This page provides access to XML Schema Definitions (XSD) for the Synth Protocol.</p>
+
+        <h2>Available Schemas</h2>
+
+        <h3>Component Schema</h3>
+        <ul class="schema-list">
+            <li>
+                <a href="synth/component/1.0/component.xsd">component.xsd (v1.0)</a>
+                <div class="namespace">Namespace: <code>https://chevp.github.io/synth-protocol/schema/synth/component/1.0</code></div>
+                <p>Schema for Synth component definitions. Used in <code>.synth.xml</code> component files.</p>
+            </li>
+        </ul>
+
+        <h3>Scene Schema</h3>
+        <ul class="schema-list">
+            <li>
+                <a href="synth/scene/1.0/scene.xsd">scene.xsd (v1.0)</a>
+                <div class="namespace">Namespace: <code>https://chevp.github.io/synth-protocol/schema/synth/scene/1.0</code></div>
+                <p>Schema for Synth scene definitions. Used in scene <code>.synth.xml</code> files.</p>
+            </li>
+        </ul>
+
+        <h3>Project Schema</h3>
+        <ul class="schema-list">
+            <li>
+                <a href="synth/project/1.0/project.xsd">project.xsd (v1.0)</a>
+                <div class="namespace">Namespace: <code>https://chevp.github.io/synth-protocol/schema/synth/project/1.0</code></div>
+                <p>Schema for Synth project configuration files.</p>
+            </li>
+        </ul>
+
+        <h2>Usage Example</h2>
+
+        <h3>Component Definition</h3>
+        <pre><code>&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;synthComponent version="1.0" id="my-component"
+                xmlns="https://chevp.github.io/synth-protocol/schema/synth/component/1.0"
+                xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                xsi:schemaLocation="https://chevp.github.io/synth-protocol/schema/synth/component/1.0
+                                    https://chevp.github.io/synth-protocol/schema/synth/component/1.0/component.xsd"&gt;
+    &lt;metadata&gt;
+        &lt;name&gt;My Component&lt;/name&gt;
+        &lt;type&gt;custom&lt;/type&gt;
+    &lt;/metadata&gt;
+    &lt;properties&gt;
+        &lt;property name="enabled" type="bool" value="true"/&gt;
+    &lt;/properties&gt;
+&lt;/synthComponent&gt;</code></pre>
+
+        <h3>Scene Definition</h3>
+        <pre><code>&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;synth-scene version="1.0" id="my-scene"
+             xmlns="https://chevp.github.io/synth-protocol/schema/synth/scene/1.0"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:schemaLocation="https://chevp.github.io/synth-protocol/schema/synth/scene/1.0
+                                 https://chevp.github.io/synth-protocol/schema/synth/scene/1.0/scene.xsd"&gt;
+    &lt;metadata&gt;
+        &lt;name&gt;My Scene&lt;/name&gt;
+    &lt;/metadata&gt;
+    &lt;entities&gt;
+        &lt;entity id="player" name="Player"&gt;
+            &lt;transform&gt;
+                &lt;position x="0" y="0" z="0"/&gt;
+            &lt;/transform&gt;
+        &lt;/entity&gt;
+    &lt;/entities&gt;
+&lt;/synth-scene&gt;</code></pre>
+
+        <h2>Local Development</h2>
+        <p>For local development, you can use an XML catalog to resolve schema URLs to local files. See the <code>docs/schema/catalog.xml</code> file.</p>
+
+        <hr style="margin: 40px 0; border: none; border-top: 1px solid #ecf0f1;">
+
+        <p style="text-align: center; color: #7f8c8d; font-size: 0.9em;">
+            Part of the <a href="https://github.com/chevp/synth-protocol" style="color: #3498db;">Synth Protocol</a> project
+        </p>
+    </div>
+</body>
+</html>

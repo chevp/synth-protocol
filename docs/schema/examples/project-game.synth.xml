@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<synth version="1.0" xmlns="https://chevp.github.io/synth-protocol/schema/synth/1.0">
+<project schemaVersion="1.0">
+
+    <metadata id="synth-game">
+        <name>Synth Game</name>
+        <description>AI-Native RPG Demo Game</description>
+        <version>0.1.0</version>
+        <author>chevp</author>
+        <tags>
+            <tag>rpg</tag>
+            <tag>ai-native</tag>
+            <tag>demo</tag>
+        </tags>
+    </metadata>
+
+    <configuration>
+        <runtime mode="development"/>
+        <logging level="INFO"/>
+    </configuration>
+
+    <servers>
+        <server id="synth-hub" enabled="true">
+            <endpoint>http://localhost:8180/mcp</endpoint>
+            <protocol>grpc</protocol>
+        </server>
+    </servers>
+
+    <security>
+        <authentication type="none"/>
+        <cors enabled="true">
+            <allowOrigins>
+                <origin>http://localhost:3000</origin>
+                <origin>http://localhost:5173</origin>
+            </allowOrigins>
+        </cors>
+    </security>
+
+    <!-- Asset Mounts: VFS scheme → physical directory -->
+    <mounts>
+        <!-- Runtime-optimized assets (glTF→glb, PNG→KTX2) -->
+        <mount scheme="asset" path="C:/media-store-runtime" readOnly="true"/>
+
+        <!-- Raw source assets (Blender, high-res textures) -->
+        <mount scheme="asset-src" path="C:/media-store" readOnly="true"/>
+    </mounts>
+
+    <resources>
+        <resource id="main-scene" type="asset" uri="scenes/shopping-district/scene.synth.xml">
+            <metadata>
+                <entry key="preload">true</entry>
+                <entry key="priority">high</entry>
+            </metadata>
+        </resource>
+
+        <resource id="runtime-config" type="config" uri="config/runtime.synth.xml">
+            <metadata>
+                <entry key="platform">vulkan</entry>
+            </metadata>
+        </resource>
+    </resources>
+
+    <settings>
+        <setting key="hub.url" value="http://localhost:8180"/>
+        <setting key="hub.reconnect" value="true"/>
+        <setting key="defaultScene" value="shopping-district"/>
+        <setting key="enableDebugUI" value="true"/>
+        <setting key="logLevel" value="info"/>
+    </settings>
+
+</project>
+</synth>

@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    SCENE WITH VFS ASSET MOUNTS
+    Demonstrates how entities reference assets via URI schemes.
+
+    The mount-points are defined in the project file (synthProject/mounts):
+      asset://     → C:/media-store-runtime  (optimized, build output)
+      asset-src:// → C:/media-store          (raw source files)
+
+    At runtime, nuna-runtime resolves URIs through the VFS:
+      asset://models/buildings/tavern.glb
+        → C:/media-store-runtime/models/buildings/tavern.glb
+
+      asset-src://models/buildings/tavern.gltf
+        → C:/media-store/models/buildings/tavern.gltf
+
+    Convention:
+      - Use asset:// for production (optimized glb, KTX2 textures)
+      - Use asset-src:// for development (raw gltf, PNG textures)
+      - Scene XMLs stay in synth-game (Git-versioned, no binary assets)
+-->
+<synth version="1.0" xmlns="https://chevp.github.io/synth-protocol/schema/synth/1.0">
+<scene version="1.0" id="shopping-district">
+
+    <metadata>
+        <name>Shopping District</name>
+        <description>Town center with shops and NPCs</description>
+    </metadata>
+
+    <settings>
+        <camera mode="orthographic" angle="45" height="12" follow="player"/>
+    </settings>
+
+    <entities>
+
+        <!-- Ground: runtime-optimized asset -->
+        <entity id="ground" name="Ground Plane">
+            <transform>
+                <position x="0" y="0" z="0"/>
+                <scale x="50" y="1" z="50"/>
+            </transform>
+            <mesh ref="asset://models/environment/ground.glb"/>
+        </entity>
+
+        <!-- Building: runtime-optimized asset (glb + KTX2 textures) -->
+        <entity id="tavern" name="Tavern">
+            <component ref="components/buildings/tavern.synth.xml"/>
+            <transform>
+                <position x="5" y="0" z="8"/>
+                <rotation x="0" y="45" z="0"/>
+            </transform>
+            <mesh ref="asset://models/buildings/tavern.glb"/>
+            <properties>
+                <property name="producerId" type="string" value="tavern_01"/>
+            </properties>
+        </entity>
+
+        <!-- Building: raw source asset (for development preview) -->
+        <entity id="blacksmith" name="Blacksmith">
+            <component ref="components/buildings/blacksmith.synth.xml"/>
+            <transform>
+                <position x="-6" y="0" z="4"/>
+            </transform>
+            <!-- asset-src:// uses raw glTF from media-store (not yet optimized) -->
+            <mesh ref="asset-src://models/buildings/blacksmith.gltf"/>
+            <properties>
+                <property name="producerId" type="string" value="blacksmith_01"/>
+            </properties>
+        </entity>
+
+        <!-- NPC: runtime-optimized character model -->
+        <entity id="merchant_01" name="Merchant">
+            <component ref="components/npc/merchant.synth.xml"/>
+            <transform>
+                <position x="3" y="0" z="6"/>
+            </transform>
+            <mesh ref="asset://models/characters/merchant.glb"/>
+        </entity>
+
+        <!-- Vegetation: batch-placed from runtime assets -->
+        <entity id="tree_group" name="Trees">
+            <transform>
+                <position x="-10" y="0" z="0"/>
+            </transform>
+            <entity id="tree_01" name="Oak Tree">
+                <transform>
+                    <position x="0" y="0" z="0"/>
+                </transform>
+                <mesh ref="asset://models/environment/oak_tree.glb"/>
+            </entity>
+            <entity id="tree_02" name="Oak Tree">
+                <transform>
+                    <position x="3" y="0" z="2"/>
+                </transform>
+                <mesh ref="asset://models/environment/oak_tree.glb"/>
+            </entity>
+        </entity>
+
+    </entities>
+
+</scene>
+</synth>

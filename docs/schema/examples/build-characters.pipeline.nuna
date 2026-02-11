@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    CHARACTER ASSET BUILD PIPELINE
+    Exports characters with animations and optimizes for runtime.
+
+    Usage:
+      nuna-runtime.exe build-characters.pipeline.nuna
+
+    Flow:
+      media-store/models/characters/*.blend
+        > blender export (with animations + skins)
+        > gltf-transform optimize
+        > media-store-runtime/models/characters/*.glb
+-->
+<synthAssetPipeline version="1.0"
+                    xmlns="https://chevp.github.io/synth-protocol/schema/synth/pipeline/1.0">
+
+    <metadata id="build-characters">
+        <name>Build Character Assets</name>
+        <description>Export characters with skeletal animations and optimize</description>
+    </metadata>
+
+    <mounts>
+        <mount scheme="asset-src" path="C:/media-store" readOnly="true"/>
+        <mount scheme="asset" path="C:/media-store-runtime" readOnly="false"/>
+        <mount scheme="build" path="./build" readOnly="false"/>
+    </mounts>
+
+    <tools>
+        <tool id="blender" executable="blender" version="4.2">
+            <config>
+                <entry key="args">--background --python-exit-code 1</entry>
+            </config>
+        </tool>
+        <tool id="gltf-transform" executable="gltf-transform" version="4.0"/>
+    </tools>
+
+    <steps>
+        <!-- Export characters with animations -->
+        <step id="export" name="Export Characters" tool="blender" timeout="300">
+            <input>
+                <param name="source" type="directory">asset-src://models/characters</param>
+                <param name="pattern" type="glob">**/*.blend</param>
+                <param name="script" type="file">scripts/blender_gltf_export.py</param>
+            </input>
+            <output>
+                <param name="target" type="directory">build://gltf/characters</param>
+            </output>
+            <config>
+                <entry key="export_animations">true</entry>
+                <entry key="export_skins">true</entry>
+                <entry key="apply_modifiers">true</entry>
+            </config>
+        </step>
+
+        <!-- Optimize (careful with skinned meshes, no aggressive Draco) -->
+        <step id="optimize" name="Optimize Characters" tool="gltf-transform" dependsOn="export">
+            <input>
+                <param name="source" type="directory">build://gltf/characters</param>
+            </input>
+            <output>
+                <param name="target" type="directory">asset://models/characters</param>
+            </output>
+            <config>
+                <entry key="commands">dedup,prune</entry>
+            </config>
+        </step>
+    </steps>
+
+    <triggers>
+        <trigger type="manual"/>
+        <trigger type="file-watch" pattern="asset-src://models/characters/**/*.blend"/>
+    </triggers>
+
+</synthAssetPipeline>

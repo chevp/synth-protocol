@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:routes="https://chevp.github.io/synth-protocol/schema/synth/routes/1.0"
+           targetNamespace="https://chevp.github.io/synth-protocol/schema/synth/routes/1.0"
+           elementFormDefault="qualified">
+
+    <!-- =========================================================================
+         SYNTH ROUTES SCHEMA
+         Scene routing configuration (like Angular Router)
+         Root element: <synthRoutes>
+         ========================================================================= -->
+
+    <!-- Root Element -->
+    <xs:element name="synthRoutes" type="routes:SynthRoutesType"/>
+
+    <!-- Routes Container -->
+    <xs:complexType name="SynthRoutesType">
+        <xs:sequence>
+            <xs:element name="route" type="routes:RouteType" minOccurs="1" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Route Definition -->
+    <xs:complexType name="RouteType">
+        <xs:sequence>
+            <!-- Scene Reference -->
+            <xs:element name="scene" type="routes:SceneRefType"/>
+
+            <!-- Spawn Points -->
+            <xs:element name="spawnPoint" type="routes:SpawnPointType" minOccurs="1" maxOccurs="unbounded"/>
+
+            <!-- Route Parameters (optional) -->
+            <xs:element name="params" type="routes:ParamsType" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="path" type="xs:string" use="required"/>
+        <xs:attribute name="default" type="xs:boolean" default="false"/>
+    </xs:complexType>
+
+    <!-- Scene Reference -->
+    <xs:complexType name="SceneRefType">
+        <xs:attribute name="ref" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <!-- Spawn Point -->
+    <xs:complexType name="SpawnPointType">
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="x" type="xs:float" use="required"/>
+        <xs:attribute name="y" type="xs:float" use="required"/>
+        <xs:attribute name="z" type="xs:float" use="required"/>
+    </xs:complexType>
+
+    <!-- Route Parameters -->
+    <xs:complexType name="ParamsType">
+        <xs:sequence>
+            <xs:element name="param" type="routes:ParamType" minOccurs="1" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Parameter Definition -->
+    <xs:complexType name="ParamType">
+        <xs:attribute name="name" type="xs:string" use="required"/>
+        <xs:attribute name="type" type="routes:ParamTypeEnum" use="required"/>
+        <xs:attribute name="required" type="xs:boolean" default="false"/>
+    </xs:complexType>
+
+    <!-- Parameter Type Enumeration -->
+    <xs:simpleType name="ParamTypeEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="string"/>
+            <xs:enumeration value="int"/>
+            <xs:enumeration value="float"/>
+            <xs:enumeration value="bool"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+</xs:schema>

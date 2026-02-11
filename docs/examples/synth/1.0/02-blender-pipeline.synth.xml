@@ -11,10 +11,8 @@
   Protocol Version: 1.1.0
   Schema: synth-protocol/synth-core/*.proto, synth-protocol/synth-agent/*.proto
 -->
-<synthProject xmlns="https://chevp.github.io/synth-protocol/schema/synth/project/1.0"
-              xmlns:core="https://chevp.github.io/synth-protocol/schema/synth/core/1.0"
-              xmlns:mcp="https://chevp.github.io/synth-protocol/schema/synth/mcp/1.0"
-              xmlns:security="https://chevp.github.io/synth-protocol/schema/synth/security/1.0">
+<synth version="1.0" xmlns="https://chevp.github.io/synth-protocol/schema/synth/1.0">
+<project>
 
     <!-- =================================================================== -->
     <!-- FILE HEADER -->
@@ -32,13 +30,13 @@
     <!-- =================================================================== -->
     <!-- PROJECT ROOT -->
     <!-- =================================================================== -->
-    <project>
-        <core:entityId>
+    <metadata>
+        <entityId>
             <uuid>proj_blender_pipeline</uuid>
             <version>1</version>
             <createdAt>1733580000000</createdAt>
             <updatedAt>1733580000000</updatedAt>
-        </core:entityId>
+        </entityId>
         <name>Blender Asset Pipeline</name>
         <description>A project demonstrating Blender file processing with synth-nodejs-plugins and synth-plugin-blender</description>
         <schemaVersion>1.0.0</schemaVersion>
@@ -56,7 +54,7 @@
         </settings>
         <lastOpenedAt>1733580000000</lastOpenedAt>
         <lastOpenedBy>artist</lastOpenedBy>
-    </project>
+    </metadata>
 
     <!-- =================================================================== -->
     <!-- MCP SERVER REQUIREMENTS -->
@@ -66,12 +64,12 @@
     <mcpServers>
         <!-- Node.js Plugin Host - runs synth-nodejs-plugins -->
         <server>
-            <core:entityId>
+            <entityId>
                 <uuid>mcp_nodejs_host</uuid>
                 <version>1</version>
                 <createdAt>1733580000000</createdAt>
                 <updatedAt>1733580000000</updatedAt>
-            </core:entityId>
+            </entityId>
             <serverName>synth-nodejs-plugins</serverName>
             <version>1.0.0</version>
             <required>true</required>
@@ -90,12 +88,12 @@
 
         <!-- Blender MCP Server - provided by synth-plugin-blender -->
         <server>
-            <core:entityId>
+            <entityId>
                 <uuid>mcp_blender</uuid>
                 <version>1</version>
                 <createdAt>1733580000000</createdAt>
                 <updatedAt>1733580000000</updatedAt>
-            </core:entityId>
+            </entityId>
             <serverName>synth-plugin-blender</serverName>
             <version>1.0.0</version>
             <required>true</required>
@@ -116,12 +114,12 @@
 
         <!-- Vision Server for texture analysis (optional) -->
         <server>
-            <core:entityId>
+            <entityId>
                 <uuid>mcp_vision</uuid>
                 <version>1</version>
                 <createdAt>1733580000000</createdAt>
                 <updatedAt>1733580000000</updatedAt>
-            </core:entityId>
+            </entityId>
             <serverName>synth-vision</serverName>
             <version>1.0.0</version>
             <required>false</required>
@@ -138,12 +136,12 @@
     <plugins>
         <!-- synth-plugin-blender: Blender automation and file handling -->
         <plugin>
-            <core:entityId>
+            <entityId>
                 <uuid>plugin_blender</uuid>
                 <version>1</version>
                 <createdAt>1733580000000</createdAt>
                 <updatedAt>1733580000000</updatedAt>
-            </core:entityId>
+            </entityId>
             <artifact>io.synth.plugins:synth-plugin-blender:1.0.0</artifact>
             <type>PLUGIN_TYPE_NODEJS</type>
             <source>MARKETPLACE_SOURCE_DEV</source>
@@ -163,12 +161,12 @@
 
         <!-- synth-plugin-gltf: glTF processing -->
         <plugin>
-            <core:entityId>
+            <entityId>
                 <uuid>plugin_gltf</uuid>
                 <version>1</version>
                 <createdAt>1733580000000</createdAt>
                 <updatedAt>1733580000000</updatedAt>
-            </core:entityId>
+            </entityId>
             <artifact>io.synth.plugins:synth-plugin-gltf:1.0.0</artifact>
             <type>PLUGIN_TYPE_NODEJS</type>
             <source>MARKETPLACE_SOURCE_DEV</source>
@@ -404,56 +402,56 @@
     <!-- =================================================================== -->
     <tags>
         <tag>
-            <core:entityId>
+            <entityId>
                 <uuid>tag_high_poly</uuid>
                 <version>1</version>
                 <createdAt>1733580000000</createdAt>
                 <updatedAt>1733580000000</updatedAt>
-            </core:entityId>
+            </entityId>
             <name>High Poly</name>
             <color>#F44336</color>
             <category>quality</category>
         </tag>
         <tag>
-            <core:entityId>
+            <entityId>
                 <uuid>tag_low_poly</uuid>
                 <version>1</version>
                 <createdAt>1733580000000</createdAt>
                 <updatedAt>1733580000000</updatedAt>
-            </core:entityId>
+            </entityId>
             <name>Low Poly</name>
             <color>#4CAF50</color>
             <category>quality</category>
         </tag>
         <tag>
-            <core:entityId>
+            <entityId>
                 <uuid>tag_rigged</uuid>
                 <version>1</version>
                 <createdAt>1733580000000</createdAt>
                 <updatedAt>1733580000000</updatedAt>
-            </core:entityId>
+            </entityId>
             <name>Rigged</name>
             <color>#2196F3</color>
             <category>feature</category>
         </tag>
         <tag>
-            <core:entityId>
+            <entityId>
                 <uuid>tag_animated</uuid>
                 <version>1</version>
                 <createdAt>1733580000000</createdAt>
                 <updatedAt>1733580000000</updatedAt>
-            </core:entityId>
+            </entityId>
             <name>Animated</name>
             <color>#9C27B0</color>
             <category>feature</category>
         </tag>
         <tag>
-            <core:entityId>
+            <entityId>
                 <uuid>tag_export_ready</uuid>
                 <version>1</version>
                 <createdAt>1733580000000</createdAt>
                 <updatedAt>1733580000000</updatedAt>
-            </core:entityId>
+            </entityId>
             <name>Export Ready</name>
             <color>#FF9800</color>
             <category>status</category>
@@ -467,12 +465,12 @@
     <clusterNodes>
         <!-- Main Scene -->
         <node>
-            <core:entityId>
+            <entityId>
                 <uuid>scene_blender_workspace</uuid>
                 <version>1</version>
                 <createdAt>1733580000000</createdAt>
                 <updatedAt>1733580000000</updatedAt>
-            </core:entityId>
+            </entityId>
             <name>Blender Workspace</name>
             <nodeType>CLUSTER_NODE_TYPE_SCENE</nodeType>
             <state>CLUSTER_NODE_STATE_ACTIVE</state>
@@ -486,12 +484,12 @@
 
         <!-- Models Folder -->
         <node>
-            <core:entityId>
+            <entityId>
                 <uuid>folder_models</uuid>
                 <version>1</version>
                 <createdAt>1733580000000</createdAt>
                 <updatedAt>1733580000000</updatedAt>
-            </core:entityId>
+            </entityId>
             <name>Models</name>
             <nodeType>CLUSTER_NODE_TYPE_FOLDER</nodeType>
             <state>CLUSTER_NODE_STATE_ACTIVE</state>
@@ -506,12 +504,12 @@
 
         <!-- Character Blend File -->
         <node>
-            <core:entityId>
+            <entityId>
                 <uuid>blend_character</uuid>
                 <version>1</version>
                 <createdAt>1733580000000</createdAt>
                 <updatedAt>1733580000000</updatedAt>
-            </core:entityId>
+            </entityId>
             <name>character_hero.blend</name>
             <nodeType>CLUSTER_NODE_TYPE_ASSET</nodeType>
             <state>CLUSTER_NODE_STATE_ACTIVE</state>
@@ -536,12 +534,12 @@
 
         <!-- Environment Blend File -->
         <node>
-            <core:entityId>
+            <entityId>
                 <uuid>blend_environment</uuid>
                 <version>1</version>
                 <createdAt>1733580000000</createdAt>
                 <updatedAt>1733580000000</updatedAt>
-            </core:entityId>
+            </entityId>
             <name>environment_forest.blend</name>
             <nodeType>CLUSTER_NODE_TYPE_ASSET</nodeType>
             <state>CLUSTER_NODE_STATE_ACTIVE</state>
@@ -560,12 +558,12 @@
 
         <!-- Props Blend File -->
         <node>
-            <core:entityId>
+            <entityId>
                 <uuid>blend_props</uuid>
                 <version>1</version>
                 <createdAt>1733580000000</createdAt>
                 <updatedAt>1733580000000</updatedAt>
-            </core:entityId>
+            </entityId>
             <name>props_collection.blend</name>
             <nodeType>CLUSTER_NODE_TYPE_ASSET</nodeType>
             <state>CLUSTER_NODE_STATE_ACTIVE</state>
@@ -585,12 +583,12 @@
 
         <!-- Exports Folder -->
         <node>
-            <core:entityId>
+            <entityId>
                 <uuid>folder_exports</uuid>
                 <version>1</version>
                 <createdAt>1733580000000</createdAt>
                 <updatedAt>1733580000000</updatedAt>
-            </core:entityId>
+            </entityId>
             <name>Exports</name>
             <nodeType>CLUSTER_NODE_TYPE_FOLDER</nodeType>
             <state>CLUSTER_NODE_STATE_ACTIVE</state>
@@ -603,12 +601,12 @@
 
         <!-- Exported glTF -->
         <node>
-            <core:entityId>
+            <entityId>
                 <uuid>export_gltf</uuid>
                 <version>1</version>
                 <createdAt>1733580000000</createdAt>
                 <updatedAt>1733580000000</updatedAt>
-            </core:entityId>
+            </entityId>
             <name>character_hero.glb</name>
             <nodeType>CLUSTER_NODE_TYPE_ASSET</nodeType>
             <state>CLUSTER_NODE_STATE_ACTIVE</state>
@@ -624,12 +622,12 @@
 
         <!-- Scripts Folder -->
         <node>
-            <core:entityId>
+            <entityId>
                 <uuid>folder_scripts</uuid>
                 <version>1</version>
                 <createdAt>1733580000000</createdAt>
                 <updatedAt>1733580000000</updatedAt>
-            </core:entityId>
+            </entityId>
             <name>Scripts</name>
             <nodeType>CLUSTER_NODE_TYPE_FOLDER</nodeType>
             <state>CLUSTER_NODE_STATE_ACTIVE</state>
@@ -642,12 +640,12 @@
 
         <!-- Batch Export Script -->
         <node>
-            <core:entityId>
+            <entityId>
                 <uuid>script_batch_export</uuid>
                 <version>1</version>
                 <createdAt>1733580000000</createdAt>
                 <updatedAt>1733580000000</updatedAt>
-            </core:entityId>
+            </entityId>
             <name>batch_export.py</name>
             <nodeType>CLUSTER_NODE_TYPE_DOCUMENT</nodeType>
             <state>CLUSTER_NODE_STATE_ACTIVE</state>
@@ -667,12 +665,12 @@
     <components>
         <!-- Scene Settings -->
         <component>
-            <core:entityId>
+            <entityId>
                 <uuid>comp_scene_settings</uuid>
                 <version>1</version>
                 <createdAt>1733580000000</createdAt>
                 <updatedAt>1733580000000</updatedAt>
-            </core:entityId>
+            </entityId>
             <clusterNodeId>scene_blender_workspace</clusterNodeId>
             <componentType>scene_settings</componentType>
             <state>COMPONENT_STATE_ENABLED</state>
@@ -693,12 +691,12 @@
 
         <!-- Character Blend Info -->
         <component>
-            <core:entityId>
+            <entityId>
                 <uuid>comp_character_blend_info</uuid>
                 <version>1</version>
                 <createdAt>1733580000000</createdAt>
                 <updatedAt>1733580000000</updatedAt>
-            </core:entityId>
+            </entityId>
             <clusterNodeId>blend_character</clusterNodeId>
             <componentType>blender_file_info</componentType>
             <state>COMPONENT_STATE_ENABLED</state>
@@ -728,12 +726,12 @@
 
         <!-- Batch Export Script Content -->
         <component>
-            <core:entityId>
+            <entityId>
                 <uuid>comp_batch_export_script</uuid>
                 <version>1</version>
                 <createdAt>1733580000000</createdAt>
                 <updatedAt>1733580000000</updatedAt>
-            </core:entityId>
+            </entityId>
             <clusterNodeId>script_batch_export</clusterNodeId>
             <componentType>text_content</componentType>
             <state>COMPONENT_STATE_ENABLED</state>
@@ -750,12 +748,12 @@
     <pipelines>
         <!-- Blender to glTF Export Pipeline -->
         <pipeline>
-            <core:entityId>
+            <entityId>
                 <uuid>pipeline_blend_to_gltf</uuid>
                 <version>1</version>
                 <createdAt>1733580000000</createdAt>
                 <updatedAt>1733580000000</updatedAt>
-            </core:entityId>
+            </entityId>
             <name>Blender to glTF Export</name>
             <description>Export .blend files to optimized glTF format</description>
             <steps>
@@ -810,12 +808,12 @@
 
         <!-- LOD Generation Pipeline -->
         <pipeline>
-            <core:entityId>
+            <entityId>
                 <uuid>pipeline_lod_generation</uuid>
                 <version>1</version>
                 <createdAt>1733580000000</createdAt>
                 <updatedAt>1733580000000</updatedAt>
-            </core:entityId>
+            </entityId>
             <name>LOD Generation</name>
             <description>Generate Level of Detail meshes from high-poly source</description>
             <steps>
@@ -870,12 +868,12 @@
     <!-- =================================================================== -->
     <assets>
         <asset>
-            <core:entityId>
+            <entityId>
                 <uuid>asset_thumbnail</uuid>
                 <version>1</version>
                 <createdAt>1733580000000</createdAt>
                 <updatedAt>1733580000000</updatedAt>
-            </core:entityId>
+            </entityId>
             <name>project-thumbnail</name>
             <type>ASSET_TYPE_TEXTURE</type>
             <sourcePath>./assets/thumbnail.png</sourcePath>
@@ -889,12 +887,12 @@
             </metadata>
         </asset>
         <asset>
-            <core:entityId>
+            <entityId>
                 <uuid>asset_blend_character</uuid>
                 <version>1</version>
                 <createdAt>1733580000000</createdAt>
                 <updatedAt>1733580000000</updatedAt>
-            </core:entityId>
+            </entityId>
             <name>character_hero.blend</name>
             <type>ASSET_TYPE_MODEL_3D</type>
             <sourcePath>./models/character_hero.blend</sourcePath>
@@ -910,4 +908,5 @@
         </asset>
     </assets>
 
-</synthProject>
+</project>
+</synth>

@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    FULL GAME ASSET BUILD PIPELINE
+    Orchestrates all asset builds in dependency order.
+    Equivalent to "Build All" in a CI/CD system.
+
+    Usage:
+      nuna-runtime.exe full-build.pipeline.nuna
+
+    Runs these stages:
+      1. Export all .blend files to glTF (parallel per category)
+      2. Optimize meshes with Draco compression
+      3. Compress textures to KTX2
+      4. Assemble final runtime bundles
+-->
+<synthAssetPipeline version="1.0"
+                    xmlns="https://chevp.github.io/synth-protocol/schema/synth/pipeline/1.0">
+
+    <metadata id="full-build">
+        <name>Full Game Asset Build</name>
+        <description>Complete asset build from raw Blender to runtime-ready</description>
+        <author>chevp</author>
+    </metadata>
+
+    <mounts>
+        <mount scheme="asset-src" path="C:/media-store" readOnly="true"/>
+        <mount scheme="asset" path="C:/media-store-runtime" readOnly="false"/>
+        <mount scheme="build" path="./build" readOnly="false"/>
+    </mounts>
+
+    <tools>
+        <tool id="blender" executable="blender" version="4.2">
+            <config>
+                <entry key="args">--background --python-exit-code 1</entry>
+            </config>
+        </tool>
+        <tool id="gltf-transform" executable="gltf-transform" version="4.0"/>
+        <tool id="toktx" executable="toktx" version="4.3"/>
+        <tool id="gltfpack" executable="gltfpack" version="0.21"/>
+    </tools>
+
+    <env>
+        <var name="BLENDER_USER_SCRIPTS" value="./scripts"/>
+    </env>
+
+    <steps>
+        <!-- ============== EXPORT PHASE (parallel) ============== -->
+
+        <step id="export-buildings" name="Export Buildings" tool="blender" timeout="600">
+            <input>
+                <param name="source" type="directory">asset-src://models/buildings</param>
+                <param name="pattern" type="glob">**/*.blend</param>
+                <param name="script" type="file">scripts/blender_gltf_export.py</param>
+            </input>
+            <output>
+                <param name="target" type="directory">build://gltf/buildings</param>
+            </output>
+            <config>
+                <entry key="apply_modifiers">true</entry>
+                <entry key="export_lights">false</entry>
+            </config>
+        </step>
+
+        <step id="export-environment" name="Export Environment" tool="blender" timeout="600">
+            <input>
+                <param name="source" type="directory">asset-src://models/environment</param>
+                <param name="pattern" type="glob">**/*.blend</param>
+                <param name="script" type="file">scripts/blender_gltf_export.py</param>
+            </input>
+            <output>
+                <param name="target" type="directory">build://gltf/environment</param>
+            </output>
+        </step>
+
+        <step id="export-characters" name="Export Characters" tool="blender" timeout="300">
+            <input>
+                <param name="source" type="directory">asset-src://models/characters</param>
+                <param name="pattern" type="glob">**/*.blend</param>
+                <param name="script" type="file">scripts/blender_gltf_export.py</param>
+            </input>
+            <output>
+                <param name="target" type="directory">build://gltf/characters</param>
+            </output>
+            <config>
+                <entry key="export_animations">true</entry>
+                <entry key="export_skins">true</entry>
+            </config>
+        </step>
+
+        <step id="export-props" name="Export Props" tool="blender" timeout="300">
+            <input>
+                <param name="source" type="directory">asset-src://models/props</param>
+                <param name="pattern" type="glob">**/*.blend</param>
+                <param name="script" type="file">scripts/blender_gltf_export.py</param>
+            </input>
+            <output>
+                <param name="target" type="directory">build://gltf/props</param>
+            </output>
+        </step>
+
+        <!-- ============== OPTIMIZE PHASE ============== -->
+
+        <step id="optimize-static" name="Optimize Static Meshes" tool="gltf-transform"
+              dependsOn="export-buildings,export-environment,export-props">
+            <input>
+                <param name="source" type="directory">build://gltf</param>
+                <param name="exclude" type="glob">characters/**</param>
+            </input>
+            <output>
+                <param name="target" type="directory">build://optimized/static</param>
+            </output>
+            <config>
+                <entry key="commands">dedup,draco,prune</entry>
+                <entry key="draco_method">edgebreaker</entry>
+                <entry key="draco_quantize_position">14</entry>
+            </config>
+        </step>
+
+        <step id="optimize-characters" name="Optimize Characters" tool="gltf-transform"
+              dependsOn="export-characters">
+            <input>
+                <param name="source" type="directory">build://gltf/characters</param>
+            </input>
+            <output>
+                <param name="target" type="directory">build://optimized/characters</param>
+            </output>
+            <config>
+                <!-- No Draco for skinned meshes -->
+                <entry key="commands">dedup,prune</entry>
+            </config>
+        </step>
+
+        <!-- ============== TEXTURE PHASE (parallel with optimize) ============== -->
+
+        <step id="compress-textures" name="Compress Textures" tool="toktx"
+              dependsOn="export-buildings,export-environment,export-characters,export-props">
+            <input>
+                <param name="source" type="directory">build://gltf</param>
+                <param name="pattern" type="glob">**/*.png</param>
+            </input>
+            <output>
+                <param name="target" type="directory">build://textures</param>
+            </output>
+            <config>
+                <entry key="codec">uastc</entry>
+                <entry key="quality">2</entry>
+                <entry key="zstd">18</entry>
+                <entry key="generate_mipmap">true</entry>
+            </config>
+        </step>
+
+        <!-- ============== ASSEMBLE PHASE ============== -->
+
+        <step id="assemble-runtime" name="Assemble Runtime Assets" tool="gltfpack"
+              dependsOn="optimize-static,optimize-characters,compress-textures">
+            <input>
+                <param name="static" type="directory" ref="optimize-static.output.target"/>
+                <param name="characters" type="directory" ref="optimize-characters.output.target"/>
+                <param name="textures" type="directory" ref="compress-textures.output.target"/>
+            </input>
+            <output>
+                <param name="target" type="directory">asset://</param>
+            </output>
+            <config>
+                <entry key="texture_format">ktx2</entry>
+            </config>
+        </step>
+    </steps>
+
+    <triggers>
+        <trigger type="manual"/>
+        <trigger type="schedule" value="0 2 * * *"/>
+        <trigger type="hub-event" value="pipeline.full-build.requested"/>
+    </triggers>
+
+    <settings>
+        <setting key="parallelSteps" value="4"/>
+        <setting key="logDir" value="./logs/pipeline"/>
+        <setting key="cleanBuildDir" value="true"/>
+        <setting key="notifyOnComplete" value="true"/>
+    </settings>
+
+</synthAssetPipeline>

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<synth version="1.0" xmlns="https://chevp.github.io/synth-protocol/schema/synth/1.0">
+<component version="1.0" id="npc-merchant">
+
+    <metadata>
+        <name>Merchant NPC</name>
+        <type>npc</type>
+    </metadata>
+
+    <!-- Mesh Reference (Asset URI) -->
+    <mesh ref="synth://assets/models/character_merchant"/>
+
+    <properties>
+        <!-- NPC Identity -->
+        <property name="npcId" type="string" value="merchant_general_001"/>
+        <property name="npcName" type="string" value="Hans the Trader"/>
+        <property name="faction" type="string" value="merchants_guild"/>
+
+        <!-- Behavior -->
+        <property name="aiType" type="string" value="stationary"/>
+        <property name="interactable" type="bool" value="true"/>
+        <property name="dialogueTree" type="string" value="synth://dialogues/merchant_general"/>
+
+        <!-- Animation States -->
+        <property name="idleAnimation" type="string" value="idle_looking_around"/>
+        <property name="talkAnimation" type="string" value="talk_friendly"/>
+
+        <!-- Shop System -->
+        <property name="hasShop" type="bool" value="true"/>
+        <property name="shopInventory" type="string" value="synth://data/shops/general_goods"/>
+    </properties>
+
+</component>
+</synth>

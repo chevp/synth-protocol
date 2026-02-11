@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    WORLD ASSET BUILD PIPELINE
+    Converts raw Blender files from media-store to runtime-optimized assets.
+
+    Usage:
+      nuna-runtime.exe build-world.pipeline.nuna
+      (or double-click with nuna-runtime file association)
+
+    Flow:
+      media-store/models/buildings/*.blend
+        > blender export > *.gltf
+        > gltf-transform optimize > *.glb
+        > media-store-runtime/models/buildings/*.glb
+-->
+<synthAssetPipeline version="1.0"
+                    xmlns="https://chevp.github.io/synth-protocol/schema/synth/pipeline/1.0">
+
+    <metadata id="build-world">
+        <name>Build World Assets</name>
+        <description>Export and optimize world assets (buildings, props, terrain)</description>
+        <author>chevp</author>
+    </metadata>
+
+    <!-- VFS mounts: where to read/write assets -->
+    <mounts>
+        <mount scheme="asset-src" path="C:/media-store" readOnly="true"/>
+        <mount scheme="asset" path="C:/media-store-runtime" readOnly="false"/>
+        <mount scheme="build" path="./build" readOnly="false"/>
+    </mounts>
+
+    <!-- CLI tools (resolved via PATH or absolute path) -->
+    <tools>
+        <tool id="blender" executable="blender" version="4.2">
+            <config>
+                <entry key="args">--background --python-exit-code 1</entry>
+            </config>
+        </tool>
+        <tool id="gltf-transform" executable="gltf-transform" version="4.0"/>
+        <tool id="toktx" executable="toktx" version="4.3"/>
+    </tools>
+
+    <env>
+        <var name="BLENDER_USER_SCRIPTS" value="./scripts"/>
+    </env>
+
+    <!-- Step DAG -->
+    <steps>
+        <!-- Step 1: Export buildings from Blender -->
+        <step id="export-buildings" name="Export Buildings" tool="blender" timeout="600">
+            <input>
+                <param name="source" type="directory">asset-src://models/buildings</param>
+                <param name="pattern" type="glob">**/*.blend</param>
+                <param name="script" type="file">scripts/blender_gltf_export.py</param>
+            </input>
+            <output>
+                <param name="target" type="directory">build://gltf/buildings</param>
+            </output>
+            <config>
+                <entry key="apply_modifiers">true</entry>
+                <entry key="export_lights">false</entry>
+                <entry key="export_cameras">false</entry>
+            </config>
+        </step>
+
+        <!-- Step 2: Export environment assets from Blender -->
+        <step id="export-environment" name="Export Environment" tool="blender" timeout="600">
+            <input>
+                <param name="source" type="directory">asset-src://models/environment</param>
+                <param name="pattern" type="glob">**/*.blend</param>
+                <param name="script" type="file">scripts/blender_gltf_export.py</param>
+            </input>
+            <output>
+                <param name="target" type="directory">build://gltf/environment</param>
+            </output>
+            <config>
+                <entry key="apply_modifiers">true</entry>
+            </config>
+        </step>
+
+        <!-- Step 3: Optimize meshes (runs after both exports) -->
+        <step id="optimize-meshes" name="Optimize Meshes" tool="gltf-transform"
+              dependsOn="export-buildings,export-environment">
+            <input>
+                <param name="source" type="directory">build://gltf</param>
+                <param name="pattern" type="glob">**/*.gltf</param>
+            </input>
+            <output>
+                <param name="target" type="directory">build://optimized</param>
+            </output>
+            <config>
+                <entry key="commands">dedup,draco,prune</entry>
+                <entry key="draco_method">edgebreaker</entry>
+                <entry key="draco_quantize_position">14</entry>
+            </config>
+        </step>
+
+        <!-- Step 4: Compress textures to KTX2 (parallel with mesh optimize) -->
+        <step id="compress-textures" name="Compress Textures" tool="toktx"
+              dependsOn="export-buildings,export-environment">
+            <input>
+                <param name="source" type="directory">build://gltf</param>
+                <param name="pattern" type="glob">**/*.png</param>
+            </input>
+            <output>
+                <param name="target" type="directory">build://textures</param>
+            </output>
+            <config>
+                <entry key="codec">uastc</entry>
+                <entry key="quality">2</entry>
+                <entry key="zstd">18</entry>
+                <entry key="generate_mipmap">true</entry>
+            </config>
+        </step>
+
+        <!-- Step 5: Assemble final runtime assets -->
+        <step id="assemble" name="Assemble Runtime Assets" tool="gltf-transform"
+              dependsOn="optimize-meshes,compress-textures">
+            <input>
+                <param name="meshes" type="directory" ref="optimize-meshes.output.target"/>
+                <param name="textures" type="directory" ref="compress-textures.output.target"/>
+            </input>
+            <output>
+                <param name="target" type="directory">asset://models</param>
+            </output>
+            <config>
+                <entry key="texture_format">ktx2</entry>
+            </config>
+        </step>
+    </steps>
+
+    <triggers>
+        <trigger type="manual"/>
+        <trigger type="file-watch" pattern="asset-src://models/buildings/**/*.blend"/>
+        <trigger type="file-watch" pattern="asset-src://models/environment/**/*.blend"/>
+        <trigger type="hub-event" value="pipeline.build-world.requested"/>
+    </triggers>
+
+    <settings>
+        <setting key="parallelSteps" value="4"/>
+        <setting key="logDir" value="./logs/pipeline"/>
+        <setting key="cleanBuildDir" value="false"/>
+    </settings>
+
+</synthAssetPipeline>

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<synth version="1.0" xmlns="https://chevp.github.io/synth-protocol/schema/synth/1.0">
+<routes>
+
+    <!-- Main World Route (Default) -->
+    <route id="shopping-district" path="/world/shopping-district" default="true">
+        <scene ref="scenes/shopping-district/scene.synth.xml"/>
+        <spawnPoint id="spawn_center" x="0" y="0.1" z="0"/>
+        <spawnPoint id="spawn_north" x="0" y="0.1" z="20"/>
+    </route>
+
+    <!-- Shop Interiors -->
+    <route id="bakery-interior" path="/world/shop/bakery_001">
+        <scene ref="scenes/shop-interiors/bakery/scene.synth.xml"/>
+        <spawnPoint id="spawn_entrance" x="0" y="0.1" z="5"/>
+        <params>
+            <param name="shopId" type="string" required="true"/>
+            <param name="returnRoute" type="string"/>
+        </params>
+    </route>
+
+    <route id="townhall-interior" path="/world/townhall/interior">
+        <scene ref="scenes/townhall/interior.synth.xml"/>
+        <spawnPoint id="spawn_main_hall" x="0" y="0.1" z="8"/>
+        <params>
+            <param name="returnRoute" type="string"/>
+        </params>
+    </route>
+
+    <!-- Special Areas -->
+    <route id="character-customization" path="/character/customize">
+        <scene ref="scenes/character-creator/scene.synth.xml"/>
+        <spawnPoint id="spawn_center" x="0" y="0" z="0"/>
+        <params>
+            <param name="allowExit" type="bool"/>
+            <param name="nextRoute" type="string"/>
+        </params>
+    </route>
+
+    <!-- Debug/Test Routes -->
+    <route id="test-environment" path="/debug/test-env">
+        <scene ref="scenes/test/environment-test.synth.xml"/>
+        <spawnPoint id="spawn_origin" x="0" y="0" z="0"/>
+        <params>
+            <param name="debugMode" type="bool"/>
+        </params>
+    </route>
+
+</routes>
+</synth>

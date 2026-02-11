@@ -1,0 +1,259 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    ASSET PIPELINE PROJECT (embedded pipelines)
+    Defines the complete Blender-to-runtime asset build pipeline.
+    Executed by nuna-runtime.exe via CLI subprocess calls.
+    Triggered manually from synth-cluster-editor or via file-watch.
+
+    NOTE: For standalone pipelines, see *.pipeline.nuna files
+    (build-world.pipeline.nuna, build-characters.pipeline.nuna, etc.)
+    These can be double-clicked to run with nuna-runtime.
+-->
+<synth version="1.0" xmlns="https://chevp.github.io/synth-protocol/schema/synth/1.0">
+<project schemaVersion="1.0">
+
+    <metadata id="asset-pipeline">
+        <name>Synth Game Asset Pipeline</name>
+        <description>Blender to runtime asset conversion pipeline</description>
+        <version>1.0.0</version>
+        <author>chevp</author>
+        <tags>
+            <tag>pipeline</tag>
+            <tag>blender</tag>
+            <tag>asset-build</tag>
+        </tags>
+    </metadata>
+
+    <configuration>
+        <runtime mode="production">
+            <workDir>./assets/build</workDir>
+        </runtime>
+    </configuration>
+
+    <!-- =====================================================================
+         TOOL REGISTRY
+         CLI tools available for pipeline steps.
+         synth-core resolves paths via PATH or explicit executable.
+         ===================================================================== -->
+    <toolRegistry>
+        <tool id="blender" executable="blender" version="4.2">
+            <config>
+                <entry key="args">--background --python-exit-code 1</entry>
+            </config>
+        </tool>
+        <tool id="gltf-transform" executable="gltf-transform" version="4.0">
+            <config>
+                <entry key="install">npm install -g @gltf-transform/cli</entry>
+            </config>
+        </tool>
+        <tool id="toktx" executable="toktx" version="4.3">
+            <config>
+                <entry key="install">vcpkg install ktx-software</entry>
+            </config>
+        </tool>
+        <tool id="gltfpack" executable="gltfpack" version="0.21"/>
+    </toolRegistry>
+
+    <!-- =====================================================================
+         PIPELINES
+         Each pipeline is a DAG of steps executed by synth-core.
+         Steps reference tools from the registry.
+         ===================================================================== -->
+    <pipelines>
+        <!-- Full Build: Blender -> glTF -> Optimize -> Compress -> Bundle -->
+        <pipeline id="full-asset-build" name="Full Asset Build">
+            <description>Complete pipeline: Blender export, mesh optimization, texture compression, bundling</description>
+            <steps>
+                <!-- Step 1: Export all .blend files to glTF -->
+                <step id="blender-export" tool="blender" timeout="300">
+                    <input>
+                        <param name="source" type="directory">assets/raw</param>
+                        <param name="pattern">**/*.blend</param>
+                        <param name="script">scripts/blender_gltf_export.py</param>
+                    </input>
+                    <output>
+                        <param name="target" type="directory">assets/build/gltf</param>
+                        <param name="format">glb</param>
+                    </output>
+                    <config>
+                        <entry key="export_animations">true</entry>
+                        <entry key="export_lights">false</entry>
+                        <entry key="apply_modifiers">true</entry>
+                    </config>
+                </step>
+
+                <!-- Step 2: Optimize meshes (Draco compression, dedup) -->
+                <step id="mesh-optimize" tool="gltf-transform" dependsOn="blender-export">
+                    <input>
+                        <param name="source" type="directory">assets/build/gltf</param>
+                        <param name="pattern">**/*.glb</param>
+                    </input>
+                    <output>
+                        <param name="target" type="directory">assets/build/optimized</param>
+                    </output>
+                    <config>
+                        <entry key="commands">dedup,draco,prune</entry>
+                        <entry key="draco_method">edgebreaker</entry>
+                        <entry key="draco_quantize_position">14</entry>
+                    </config>
+                </step>
+
+                <!-- Step 3: Compress textures to KTX2 -->
+                <step id="texture-compress" tool="toktx" dependsOn="blender-export">
+                    <input>
+                        <param name="source" type="directory">assets/build/gltf</param>
+                        <param name="pattern">**/*.png</param>
+                    </input>
+                    <output>
+                        <param name="target" type="directory">assets/build/textures</param>
+                        <param name="format">ktx2</param>
+                    </output>
+                    <config>
+                        <entry key="codec">uastc</entry>
+                        <entry key="quality">2</entry>
+                        <entry key="zstd">18</entry>
+                        <entry key="generate_mipmap">true</entry>
+                    </config>
+                </step>
+
+                <!-- Step 4: Pack final bundles (depends on BOTH mesh + texture) -->
+                <step id="bundle-pack" tool="gltfpack" dependsOn="mesh-optimize,texture-compress">
+                    <input>
+                        <param name="meshes" type="directory" ref="mesh-optimize.output.target"/>
+                        <param name="textures" type="directory" ref="texture-compress.output.target"/>
+                    </input>
+                    <output>
+                        <param name="target" type="directory">assets/runtime</param>
+                    </output>
+                    <config>
+                        <entry key="texture_format">ktx2</entry>
+                        <entry key="simplify_ratio">0.75</entry>
+                    </config>
+                </step>
+            </steps>
+
+            <triggers>
+                <trigger type="manual"/>
+                <trigger type="file-watch" pattern="assets/raw/**/*.blend"/>
+                <trigger type="hub-event" value="pipeline.asset-build.requested"/>
+            </triggers>
+        </pipeline>
+
+        <!-- Incremental: Only re-export changed .blend files -->
+        <pipeline id="incremental-build" name="Incremental Asset Build">
+            <description>Only processes changed files since last build</description>
+            <steps>
+                <step id="detect-changes" tool="blender">
+                    <input>
+                        <param name="source" type="directory">assets/raw</param>
+                        <param name="manifest">assets/build/.manifest.json</param>
+                    </input>
+                    <output>
+                        <param name="changed" type="file">assets/build/.changed.json</param>
+                    </output>
+                </step>
+
+                <step id="export-changed" tool="blender" dependsOn="detect-changes">
+                    <input>
+                        <param name="filelist" type="file" ref="detect-changes.output.changed"/>
+                        <param name="script">scripts/blender_gltf_export.py</param>
+                    </input>
+                    <output>
+                        <param name="target" type="directory">assets/build/gltf</param>
+                    </output>
+                </step>
+
+                <step id="optimize-changed" tool="gltf-transform" dependsOn="export-changed">
+                    <input>
+                        <param name="source" type="directory">assets/build/gltf</param>
+                    </input>
+                    <output>
+                        <param name="target" type="directory">assets/runtime</param>
+                    </output>
+                    <config>
+                        <entry key="commands">dedup,draco,prune</entry>
+                    </config>
+                </step>
+            </steps>
+
+            <triggers>
+                <trigger type="file-watch" pattern="assets/raw/**/*.blend"/>
+            </triggers>
+        </pipeline>
+
+        <!-- Texture-only: Re-compress all textures without re-exporting from Blender -->
+        <pipeline id="texture-recompress" name="Texture Recompression">
+            <description>Re-compress textures with different quality settings</description>
+            <steps>
+                <step id="compress-all" tool="toktx">
+                    <input>
+                        <param name="source" type="directory">assets/build/gltf</param>
+                        <param name="pattern">**/*.png</param>
+                    </input>
+                    <output>
+                        <param name="target" type="directory">assets/build/textures</param>
+                    </output>
+                    <config>
+                        <entry key="codec">uastc</entry>
+                        <entry key="quality">3</entry>
+                        <entry key="zstd">18</entry>
+                        <entry key="generate_mipmap">true</entry>
+                    </config>
+                </step>
+            </steps>
+
+            <triggers>
+                <trigger type="manual"/>
+            </triggers>
+        </pipeline>
+    </pipelines>
+
+    <!-- =====================================================================
+         ASSET MOUNTS
+         VFS scheme > physical directory for asset resolution.
+         ===================================================================== -->
+    <mounts>
+        <mount scheme="asset-src" path="C:/media-store" readOnly="true"/>
+        <mount scheme="asset" path="C:/media-store-runtime" readOnly="false"/>
+    </mounts>
+
+    <!-- =====================================================================
+         RESOURCES
+         Source assets and output directories referenced by pipelines.
+         ===================================================================== -->
+    <resources>
+        <!-- Source Blender files -->
+        <resource id="raw-assets" type="directory" uri="assets/raw">
+            <metadata>
+                <entry key="description">Raw Blender source files</entry>
+                <entry key="size_estimate">400GB</entry>
+            </metadata>
+        </resource>
+
+        <!-- Individual Blender sources -->
+        <resource id="town-buildings" type="blend" uri="assets/raw/town/buildings.blend"/>
+        <resource id="town-props" type="blend" uri="assets/raw/town/props.blend"/>
+        <resource id="characters" type="blend" uri="assets/raw/characters/all_characters.blend"/>
+        <resource id="terrain" type="blend" uri="assets/raw/environment/terrain.blend"/>
+        <resource id="vegetation" type="blend" uri="assets/raw/environment/vegetation.blend"/>
+
+        <!-- Output directories -->
+        <resource id="runtime-assets" type="directory" uri="assets/runtime">
+            <metadata>
+                <entry key="description">Optimized runtime-ready assets</entry>
+            </metadata>
+        </resource>
+
+        <!-- Pipeline scripts -->
+        <resource id="export-script" type="script" uri="scripts/blender_gltf_export.py"/>
+    </resources>
+
+    <settings>
+        <setting key="hub.url" value="http://localhost:8180"/>
+        <setting key="pipeline.workDir" value="./assets/build"/>
+        <setting key="pipeline.parallelSteps" value="4"/>
+        <setting key="pipeline.logDir" value="./logs/pipeline"/>
+    </settings>
+
+</project>
+</synth>

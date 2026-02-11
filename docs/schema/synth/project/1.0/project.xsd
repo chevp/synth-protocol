@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
            xmlns:project="https://chevp.github.io/synth-protocol/schema/synth/project/1.0"
+           xmlns:common="https://chevp.github.io/synth-protocol/schema/synth/common-types"
            xmlns:core="https://chevp.github.io/synth-protocol/schema/synth/core/1.0"
            xmlns:mcp="https://chevp.github.io/synth-protocol/schema/synth/mcp/1.0"
            xmlns:security="https://chevp.github.io/synth-protocol/schema/synth/security/1.0"
@@ -8,10 +9,11 @@
            elementFormDefault="qualified">
 
     <!-- Imports -->
+    <xs:import namespace="https://chevp.github.io/synth-protocol/schema/synth/common-types"
+               schemaLocation="../../common-types.xsd"/>
     <xs:import namespace="https://chevp.github.io/synth-protocol/schema/synth/core/1.0" schemaLocation="../core/1.0/core.xsd"/>
     <xs:import namespace="https://chevp.github.io/synth-protocol/schema/synth/mcp/1.0" schemaLocation="../mcp/1.0/mcp.xsd"/>
     <xs:import namespace="https://chevp.github.io/synth-protocol/schema/synth/security/1.0" schemaLocation="../security/1.0/security.xsd"/>
-
     <!-- =========================================================================
          SYNTH PROJECT SCHEMA
          Root element for Synth project configuration files (.synth)
@@ -35,14 +37,20 @@
             <!-- Security Configuration -->
             <xs:element ref="security:security" minOccurs="0"/>
 
-            <!-- Plugin Configuration -->
-            <xs:element name="plugins" type="project:PluginsType" minOccurs="0"/>
+            <!-- Tool Registry (CLI tools used by pipelines) -->
+            <xs:element name="toolRegistry" type="project:ToolRegistryType" minOccurs="0"/>
 
             <!-- Pipeline Definitions -->
             <xs:element name="pipelines" type="project:PipelinesType" minOccurs="0"/>
 
+            <!-- Asset Mounts (VFS mount-points for asset resolution) -->
+            <xs:element name="mounts" type="project:MountsType" minOccurs="0"/>
+
             <!-- Resource References -->
             <xs:element name="resources" type="project:ResourcesType" minOccurs="0"/>
+
+            <!-- Settings (key-value pairs) -->
+            <xs:element name="settings" type="project:ProjectSettingsType" minOccurs="0"/>
         </xs:sequence>
         <xs:attribute name="version" type="xs:string" default="1.0"/>
         <xs:attribute name="schemaVersion" type="xs:string" default="1.0"/>
@@ -68,23 +76,33 @@
         </xs:sequence>
     </xs:complexType>
 
-    <!-- Plugins Configuration -->
-    <xs:complexType name="PluginsType">
+    <!-- =========================================================================
+         TOOL REGISTRY
+         Declares external CLI tools used by pipeline steps.
+         The executor (synth-core) resolves tool paths at runtime.
+         ========================================================================= -->
+
+    <xs:complexType name="ToolRegistryType">
         <xs:sequence>
-            <xs:element name="plugin" type="project:PluginRefType" maxOccurs="unbounded"/>
+            <xs:element name="tool" type="project:ToolDefType" maxOccurs="unbounded"/>
         </xs:sequence>
     </xs:complexType>
 
-    <xs:complexType name="PluginRefType">
+    <xs:complexType name="ToolDefType">
         <xs:sequence>
-            <xs:element name="config" type="project:ConfigMapType" minOccurs="0"/>
+            <xs:element name="config" type="project:ProjectConfigMapType" minOccurs="0"/>
         </xs:sequence>
         <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="executable" type="xs:string" use="required"/>
         <xs:attribute name="version" type="xs:string"/>
-        <xs:attribute name="enabled" type="xs:boolean" default="true"/>
     </xs:complexType>
 
-    <!-- Pipelines Configuration -->
+    <!-- =========================================================================
+         PIPELINES CONFIGURATION
+         Declarative task chains executed by synth-core (C++).
+         Steps reference tools from the registry and define I/O.
+         ========================================================================= -->
+
     <xs:complexType name="PipelinesType">
         <xs:sequence>
             <xs:element name="pipeline" type="project:PipelineType" maxOccurs="unbounded"/>
@@ -99,6 +117,7 @@
         </xs:sequence>
         <xs:attribute name="id" type="xs:string" use="required"/>
         <xs:attribute name="name" type="xs:string"/>
+        <xs:attribute name="enabled" type="xs:boolean" default="true"/>
     </xs:complexType>
 
     <xs:complexType name="StepsType">
@@ -111,11 +130,13 @@
         <xs:sequence>
             <xs:element name="input" type="project:IOType" minOccurs="0"/>
             <xs:element name="output" type="project:IOType" minOccurs="0"/>
-            <xs:element name="config" type="project:ConfigMapType" minOccurs="0"/>
+            <xs:element name="config" type="project:ProjectConfigMapType" minOccurs="0"/>
         </xs:sequence>
         <xs:attribute name="id" type="xs:string" use="required"/>
         <xs:attribute name="tool" type="xs:string" use="required"/>
         <xs:attribute name="dependsOn" type="xs:string"/>
+        <xs:attribute name="timeout" type="xs:int"/>
+        <xs:attribute name="continueOnError" type="xs:boolean" default="false"/>
     </xs:complexType>
 
     <xs:complexType name="IOType">
@@ -143,6 +164,7 @@
     <xs:complexType name="TriggerType">
         <xs:attribute name="type" type="project:TriggerTypeEnum" use="required"/>
         <xs:attribute name="value" type="xs:string"/>
+        <xs:attribute name="pattern" type="xs:string"/>
     </xs:complexType>
 
     <xs:simpleType name="TriggerTypeEnum">
@@ -151,8 +173,58 @@
             <xs:enumeration value="schedule"/>
             <xs:enumeration value="file-watch"/>
             <xs:enumeration value="event"/>
+            <xs:enumeration value="hub-event"/>
         </xs:restriction>
     </xs:simpleType>
+
+    <!-- =========================================================================
+         PROJECT CONFIG MAP
+         Local config map type to avoid cross-namespace issues with entry elements.
+         ========================================================================= -->
+
+    <xs:complexType name="ProjectConfigMapType">
+        <xs:sequence>
+            <xs:element name="entry" type="project:ProjectConfigEntryType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="ProjectConfigEntryType">
+        <xs:simpleContent>
+            <xs:extension base="xs:string">
+                <xs:attribute name="key" type="xs:string" use="required"/>
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+
+    <!-- Project Settings (local type to avoid cross-namespace issues) -->
+    <xs:complexType name="ProjectSettingsType">
+        <xs:sequence>
+            <xs:element name="setting" type="project:ProjectSettingType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="ProjectSettingType">
+        <xs:attribute name="key" type="xs:string" use="required"/>
+        <xs:attribute name="value" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <!-- =========================================================================
+         ASSET MOUNTS
+         VFS mount-points mapping URI schemes to physical directories.
+         nuna-runtime resolves asset://path and asset-src://path at runtime.
+         ========================================================================= -->
+
+    <xs:complexType name="MountsType">
+        <xs:sequence>
+            <xs:element name="mount" type="project:MountType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="MountType">
+        <xs:attribute name="scheme" type="xs:string" use="required"/>
+        <xs:attribute name="path" type="xs:string" use="required"/>
+        <xs:attribute name="readOnly" type="xs:boolean" default="true"/>
+    </xs:complexType>
 
     <!-- Resources Configuration -->
     <xs:complexType name="ResourcesType">
@@ -163,7 +235,7 @@
 
     <xs:complexType name="ResourceType">
         <xs:sequence>
-            <xs:element name="metadata" type="project:ConfigMapType" minOccurs="0"/>
+            <xs:element name="metadata" type="project:ProjectConfigMapType" minOccurs="0"/>
         </xs:sequence>
         <xs:attribute name="id" type="xs:string" use="required"/>
         <xs:attribute name="type" type="project:ResourceTypeEnum" use="required"/>
@@ -177,22 +249,13 @@
             <xs:enumeration value="config"/>
             <xs:enumeration value="asset"/>
             <xs:enumeration value="script"/>
+            <xs:enumeration value="blend"/>
+            <xs:enumeration value="texture"/>
+            <xs:enumeration value="shader"/>
+            <xs:enumeration value="audio"/>
+            <xs:enumeration value="scene"/>
+            <xs:enumeration value="directory"/>
         </xs:restriction>
     </xs:simpleType>
-
-    <!-- Generic Config Map -->
-    <xs:complexType name="ConfigMapType">
-        <xs:sequence>
-            <xs:element name="entry" type="project:ConfigEntryType" maxOccurs="unbounded"/>
-        </xs:sequence>
-    </xs:complexType>
-
-    <xs:complexType name="ConfigEntryType">
-        <xs:simpleContent>
-            <xs:extension base="xs:string">
-                <xs:attribute name="key" type="xs:string" use="required"/>
-            </xs:extension>
-        </xs:simpleContent>
-    </xs:complexType>
 
 </xs:schema>

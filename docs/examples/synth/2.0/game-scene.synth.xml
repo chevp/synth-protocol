@@ -11,10 +11,8 @@
 
   Schema Version: 2.0.0
 -->
-<synthProject xmlns="https://chevp.github.io/synth-protocol/schema/synth/project/2.0"
-              xmlns:core="https://chevp.github.io/synth-protocol/schema/synth/core/2.0"
-              xmlns:runtime="https://chevp.github.io/synth-protocol/schema/synth/runtime/2.0"
-              version="2.0">
+<synth version="1.0" xmlns="https://chevp.github.io/synth-protocol/schema/synth/1.0">
+<project>
 
     <!-- ═══════════════════════════════════════════════════════════════════════ -->
     <!-- PROJECT HEADER -->
@@ -30,11 +28,11 @@
     <!-- ═══════════════════════════════════════════════════════════════════════ -->
     <!-- PROJECT METADATA -->
     <!-- ═══════════════════════════════════════════════════════════════════════ -->
-    <project>
-        <core:entityId>
+    <metadata>
+        <entityId>
             <uuid>proj_game_rpg_demo</uuid>
             <version>1</version>
-        </core:entityId>
+        </entityId>
         <name>RPG Demo Scene</name>
         <description>Example game scene demonstrating processors, jobs and worker threads</description>
         <settings>
@@ -44,288 +42,288 @@
             <autoSaveEnabled>true</autoSaveEnabled>
             <autoSaveIntervalSeconds>300</autoSaveIntervalSeconds>
         </settings>
-    </project>
+    </metadata>
 
     <!-- ═══════════════════════════════════════════════════════════════════════ -->
     <!-- RUNTIME CONFIGURATION (NEW in 2.0) -->
     <!-- Thread pools, job queues, processor pipeline -->
     <!-- ═══════════════════════════════════════════════════════════════════════ -->
-    <runtime:configuration>
+    <runtimeConfiguration>
 
         <!-- Worker Thread Pools -->
-        <runtime:threadPools>
+        <threadPools>
             <!-- I/O Pool: File loading, SQLite, Network -->
-            <runtime:pool id="io_pool" type="IO">
-                <runtime:threads platform="desktop_16core">4</runtime:threads>
-                <runtime:threads platform="desktop_8core">2</runtime:threads>
-                <runtime:threads platform="android_highend">2</runtime:threads>
-                <runtime:threads platform="android_midrange">1</runtime:threads>
-                <runtime:queueSize>256</runtime:queueSize>
-            </runtime:pool>
+            <pool id="io_pool" type="IO">
+                <threads platform="desktop_16core">4</threads>
+                <threads platform="desktop_8core">2</threads>
+                <threads platform="android_highend">2</threads>
+                <threads platform="android_midrange">1</threads>
+                <queueSize>256</queueSize>
+            </pool>
 
             <!-- Compute Pool: Mesh optimization, texture compression, physics -->
-            <runtime:pool id="compute_pool" type="COMPUTE">
-                <runtime:threads platform="desktop_16core">8</runtime:threads>
-                <runtime:threads platform="desktop_8core">4</runtime:threads>
-                <runtime:threads platform="android_highend">4</runtime:threads>
-                <runtime:threads platform="android_midrange">2</runtime:threads>
-                <runtime:queueSize>128</runtime:queueSize>
-            </runtime:pool>
+            <pool id="compute_pool" type="COMPUTE">
+                <threads platform="desktop_16core">8</threads>
+                <threads platform="desktop_8core">4</threads>
+                <threads platform="android_highend">4</threads>
+                <threads platform="android_midrange">2</threads>
+                <queueSize>128</queueSize>
+            </pool>
 
             <!-- Dedicated Threads: Audio, Network realtime -->
-            <runtime:pool id="dedicated_pool" type="DEDICATED">
-                <runtime:thread id="audio_thread" affinity="high_priority"/>
-                <runtime:thread id="network_thread" affinity="normal"/>
-            </runtime:pool>
-        </runtime:threadPools>
+            <pool id="dedicated_pool" type="DEDICATED">
+                <thread id="audio_thread" affinity="high_priority"/>
+                <thread id="network_thread" affinity="normal"/>
+            </pool>
+        </threadPools>
 
         <!-- Job Definitions -->
-        <runtime:jobs>
+        <jobs>
             <!-- Asset Loading Jobs (I/O Pool) -->
-            <runtime:job id="GltfLoadJob" pool="io_pool" priority="HIGH">
-                <runtime:description>Load and parse GLTF/GLB files</runtime:description>
-                <runtime:submitProcessor>SceneLoadOrchestratorProcessor</runtime:submitProcessor>
-                <runtime:resultProcessor>AssetLoadResultProcessor</runtime:resultProcessor>
-                <runtime:estimatedDurationMs>10-500</runtime:estimatedDurationMs>
-            </runtime:job>
+            <job id="GltfLoadJob" pool="io_pool" priority="HIGH">
+                <description>Load and parse GLTF/GLB files</description>
+                <submitProcessor>SceneLoadOrchestratorProcessor</submitProcessor>
+                <resultProcessor>AssetLoadResultProcessor</resultProcessor>
+                <estimatedDurationMs>10-500</estimatedDurationMs>
+            </job>
 
-            <runtime:job id="TextureDecodeJob" pool="io_pool" priority="HIGH">
-                <runtime:description>Decode PNG/JPG to raw pixels</runtime:description>
-                <runtime:submitProcessor>SceneLoadOrchestratorProcessor</runtime:submitProcessor>
-                <runtime:resultProcessor>AssetLoadResultProcessor</runtime:resultProcessor>
-                <runtime:estimatedDurationMs>5-50</runtime:estimatedDurationMs>
-            </runtime:job>
+            <job id="TextureDecodeJob" pool="io_pool" priority="HIGH">
+                <description>Decode PNG/JPG to raw pixels</description>
+                <submitProcessor>SceneLoadOrchestratorProcessor</submitProcessor>
+                <resultProcessor>AssetLoadResultProcessor</resultProcessor>
+                <estimatedDurationMs>5-50</estimatedDurationMs>
+            </job>
 
-            <runtime:job id="AudioDecodeJob" pool="io_pool" priority="NORMAL">
-                <runtime:description>Decode OGG/WAV to PCM</runtime:description>
-                <runtime:submitProcessor>SceneLoadOrchestratorProcessor</runtime:submitProcessor>
-                <runtime:resultProcessor>AssetLoadResultProcessor</runtime:resultProcessor>
-                <runtime:estimatedDurationMs>10-100</runtime:estimatedDurationMs>
-            </runtime:job>
+            <job id="AudioDecodeJob" pool="io_pool" priority="NORMAL">
+                <description>Decode OGG/WAV to PCM</description>
+                <submitProcessor>SceneLoadOrchestratorProcessor</submitProcessor>
+                <resultProcessor>AssetLoadResultProcessor</resultProcessor>
+                <estimatedDurationMs>10-100</estimatedDurationMs>
+            </job>
 
             <!-- Editor Persistence Jobs (I/O Pool, Low Priority) -->
-            <runtime:job id="AutoSaveJob" pool="io_pool" priority="LOW">
-                <runtime:description>Serialize scene to temp file</runtime:description>
-                <runtime:submitProcessor>AutoSaveProcessor</runtime:submitProcessor>
-                <runtime:resultProcessor>StatusBarProcessor</runtime:resultProcessor>
-                <runtime:estimatedDurationMs>10-200</runtime:estimatedDurationMs>
-            </runtime:job>
+            <job id="AutoSaveJob" pool="io_pool" priority="LOW">
+                <description>Serialize scene to temp file</description>
+                <submitProcessor>AutoSaveProcessor</submitProcessor>
+                <resultProcessor>StatusBarProcessor</resultProcessor>
+                <estimatedDurationMs>10-200</estimatedDurationMs>
+            </job>
 
-            <runtime:job id="SceneSaveJob" pool="io_pool" priority="NORMAL">
-                <runtime:description>Save scene to .synth file</runtime:description>
-                <runtime:submitProcessor>SceneSaveProcessor</runtime:submitProcessor>
-                <runtime:resultProcessor>StatusBarProcessor</runtime:resultProcessor>
-                <runtime:estimatedDurationMs>10-200</runtime:estimatedDurationMs>
-            </runtime:job>
+            <job id="SceneSaveJob" pool="io_pool" priority="NORMAL">
+                <description>Save scene to .synth file</description>
+                <submitProcessor>SceneSaveProcessor</submitProcessor>
+                <resultProcessor>StatusBarProcessor</resultProcessor>
+                <estimatedDurationMs>10-200</estimatedDurationMs>
+            </job>
 
             <!-- Database Jobs (I/O Pool) -->
-            <runtime:job id="AssetCacheWriteJob" pool="io_pool" priority="LOW">
-                <runtime:description>Write asset to SQLite cache</runtime:description>
-                <runtime:submitProcessor>GpuUploadProcessor</runtime:submitProcessor>
-                <runtime:fireAndForget>true</runtime:fireAndForget>
-            </runtime:job>
+            <job id="AssetCacheWriteJob" pool="io_pool" priority="LOW">
+                <description>Write asset to SQLite cache</description>
+                <submitProcessor>GpuUploadProcessor</submitProcessor>
+                <fireAndForget>true</fireAndForget>
+            </job>
 
             <!-- Compute Jobs (Compute Pool) -->
-            <runtime:job id="MeshOptimizeJob" pool="compute_pool" priority="NORMAL">
-                <runtime:description>Optimize mesh with meshoptimizer</runtime:description>
-                <runtime:submitProcessor>SceneLoadOrchestratorProcessor</runtime:submitProcessor>
-                <runtime:resultProcessor>AssetLoadResultProcessor</runtime:resultProcessor>
-                <runtime:estimatedDurationMs>50-500</runtime:estimatedDurationMs>
-            </runtime:job>
+            <job id="MeshOptimizeJob" pool="compute_pool" priority="NORMAL">
+                <description>Optimize mesh with meshoptimizer</description>
+                <submitProcessor>SceneLoadOrchestratorProcessor</submitProcessor>
+                <resultProcessor>AssetLoadResultProcessor</resultProcessor>
+                <estimatedDurationMs>50-500</estimatedDurationMs>
+            </job>
 
-            <runtime:job id="NavMeshBuildJob" pool="compute_pool" priority="BACKGROUND">
-                <runtime:description>Generate navigation mesh</runtime:description>
-                <runtime:submitProcessor>EditorMenuBarProcessor</runtime:submitProcessor>
-                <runtime:resultProcessor>StatusBarProcessor</runtime:resultProcessor>
-                <runtime:estimatedDurationMs>500-5000</runtime:estimatedDurationMs>
-            </runtime:job>
+            <job id="NavMeshBuildJob" pool="compute_pool" priority="BACKGROUND">
+                <description>Generate navigation mesh</description>
+                <submitProcessor>EditorMenuBarProcessor</submitProcessor>
+                <resultProcessor>StatusBarProcessor</resultProcessor>
+                <estimatedDurationMs>500-5000</estimatedDurationMs>
+            </job>
 
-            <runtime:job id="PhysicsColliderBakeJob" pool="compute_pool" priority="NORMAL">
-                <runtime:description>Bake mesh to collision shape</runtime:description>
-                <runtime:submitProcessor>SceneLoadOrchestratorProcessor</runtime:submitProcessor>
-                <runtime:resultProcessor>AssetLoadResultProcessor</runtime:resultProcessor>
-                <runtime:estimatedDurationMs>50-500</runtime:estimatedDurationMs>
-            </runtime:job>
-        </runtime:jobs>
+            <job id="PhysicsColliderBakeJob" pool="compute_pool" priority="NORMAL">
+                <description>Bake mesh to collision shape</description>
+                <submitProcessor>SceneLoadOrchestratorProcessor</submitProcessor>
+                <resultProcessor>AssetLoadResultProcessor</resultProcessor>
+                <estimatedDurationMs>50-500</estimatedDurationMs>
+            </job>
+        </jobs>
 
         <!-- Processor Pipeline Configuration -->
-        <runtime:processors>
+        <processors>
             <!-- Runtime Processors (Order 0-999) - Always active -->
-            <runtime:stage name="Input" orderRange="0-49">
-                <runtime:processor order="10" name="PlatformEventProcessor" enabled="true"/>
-                <runtime:processor order="20" name="InputMappingProcessor" enabled="true"/>
-                <runtime:processor order="30" name="GestureRecognitionProcessor" enabled="true"/>
-                <runtime:processor order="40" name="InputBufferProcessor" enabled="true"/>
-            </runtime:stage>
+            <stage name="Input" orderRange="0-49">
+                <processor order="10" name="PlatformEventProcessor" enabled="true"/>
+                <processor order="20" name="InputMappingProcessor" enabled="true"/>
+                <processor order="30" name="GestureRecognitionProcessor" enabled="true"/>
+                <processor order="40" name="InputBufferProcessor" enabled="true"/>
+            </stage>
 
-            <runtime:stage name="Data" orderRange="50-99">
-                <runtime:processor order="50" name="DatabaseConnectProcessor" enabled="true"/>
-                <runtime:processor order="60" name="PendingWriteProcessor" enabled="true"/>
-                <runtime:processor order="70" name="AssetCacheCheckProcessor" enabled="true"/>
-                <runtime:processor order="80" name="ConfigLoadProcessor" enabled="true"/>
-                <runtime:processor order="90" name="StatePersistProcessor" enabled="true"/>
-                <runtime:processor order="95" name="JobSchedulerProcessor" enabled="true"/>
-                <runtime:processor order="96" name="AssetLoadResultProcessor" enabled="true"/>
-                <runtime:processor order="97" name="SceneLoadOrchestratorProcessor" enabled="true"/>
-            </runtime:stage>
+            <stage name="Data" orderRange="50-99">
+                <processor order="50" name="DatabaseConnectProcessor" enabled="true"/>
+                <processor order="60" name="PendingWriteProcessor" enabled="true"/>
+                <processor order="70" name="AssetCacheCheckProcessor" enabled="true"/>
+                <processor order="80" name="ConfigLoadProcessor" enabled="true"/>
+                <processor order="90" name="StatePersistProcessor" enabled="true"/>
+                <processor order="95" name="JobSchedulerProcessor" enabled="true"/>
+                <processor order="96" name="AssetLoadResultProcessor" enabled="true"/>
+                <processor order="97" name="SceneLoadOrchestratorProcessor" enabled="true"/>
+            </stage>
 
-            <runtime:stage name="Network" orderRange="100-199">
-                <runtime:processor order="100" name="NetworkReceiveProcessor" enabled="true"/>
-                <runtime:processor order="110" name="ProtocolDecodeProcessor" enabled="true"/>
-                <runtime:processor order="120" name="StateReconcileProcessor" enabled="true"/>
-                <runtime:processor order="180" name="NetworkSendProcessor" enabled="true"/>
-                <runtime:processor order="190" name="LatencyTrackProcessor" enabled="true"/>
-            </runtime:stage>
+            <stage name="Network" orderRange="100-199">
+                <processor order="100" name="NetworkReceiveProcessor" enabled="true"/>
+                <processor order="110" name="ProtocolDecodeProcessor" enabled="true"/>
+                <processor order="120" name="StateReconcileProcessor" enabled="true"/>
+                <processor order="180" name="NetworkSendProcessor" enabled="true"/>
+                <processor order="190" name="LatencyTrackProcessor" enabled="true"/>
+            </stage>
 
-            <runtime:stage name="GameLogic" orderRange="200-299">
-                <runtime:processor order="200" name="StateMachineProcessor" enabled="true"/>
-                <runtime:processor order="210" name="CommandExecuteProcessor" enabled="true"/>
-                <runtime:processor order="220" name="MovementProcessor" enabled="true"/>
-                <runtime:processor order="230" name="CollisionProcessor" enabled="true"/>
-                <runtime:processor order="240" name="InteractionProcessor" enabled="true"/>
-                <runtime:processor order="250" name="InventoryProcessor" enabled="true"/>
-                <runtime:processor order="260" name="QuestProcessor" enabled="true"/>
-                <runtime:processor order="270" name="AIProcessor" enabled="true"/>
-                <runtime:processor order="280" name="TriggerProcessor" enabled="true"/>
-            </runtime:stage>
+            <stage name="GameLogic" orderRange="200-299">
+                <processor order="200" name="StateMachineProcessor" enabled="true"/>
+                <processor order="210" name="CommandExecuteProcessor" enabled="true"/>
+                <processor order="220" name="MovementProcessor" enabled="true"/>
+                <processor order="230" name="CollisionProcessor" enabled="true"/>
+                <processor order="240" name="InteractionProcessor" enabled="true"/>
+                <processor order="250" name="InventoryProcessor" enabled="true"/>
+                <processor order="260" name="QuestProcessor" enabled="true"/>
+                <processor order="270" name="AIProcessor" enabled="true"/>
+                <processor order="280" name="TriggerProcessor" enabled="true"/>
+            </stage>
 
-            <runtime:stage name="Physics" orderRange="300-399">
-                <runtime:processor order="300" name="PhysicsStepProcessor" enabled="true">
-                    <runtime:config>
+            <stage name="Physics" orderRange="300-399">
+                <processor order="300" name="PhysicsStepProcessor" enabled="true">
+                    <config>
                         <entry key="fixedTimestep">0.016666</entry>
                         <entry key="maxSubsteps">4</entry>
                         <entry key="gravity">0,-9.81,0</entry>
-                    </runtime:config>
-                </runtime:processor>
-                <runtime:processor order="310" name="RigidBodyProcessor" enabled="true"/>
-                <runtime:processor order="320" name="CharacterControllerProcessor" enabled="true"/>
-                <runtime:processor order="330" name="RaycastProcessor" enabled="true"/>
-                <runtime:processor order="380" name="PhysicsSyncProcessor" enabled="true"/>
-            </runtime:stage>
+                    </config>
+                </processor>
+                <processor order="310" name="RigidBodyProcessor" enabled="true"/>
+                <processor order="320" name="CharacterControllerProcessor" enabled="true"/>
+                <processor order="330" name="RaycastProcessor" enabled="true"/>
+                <processor order="380" name="PhysicsSyncProcessor" enabled="true"/>
+            </stage>
 
-            <runtime:stage name="Animation" orderRange="400-499">
-                <runtime:processor order="400" name="AnimationUpdateProcessor" enabled="true"/>
-                <runtime:processor order="410" name="AnimationBlendProcessor" enabled="true"/>
-                <runtime:processor order="420" name="IKProcessor" enabled="true"/>
-                <runtime:processor order="450" name="SkinningProcessor" enabled="true"/>
-                <runtime:processor order="460" name="MorphTargetProcessor" enabled="true"/>
-            </runtime:stage>
+            <stage name="Animation" orderRange="400-499">
+                <processor order="400" name="AnimationUpdateProcessor" enabled="true"/>
+                <processor order="410" name="AnimationBlendProcessor" enabled="true"/>
+                <processor order="420" name="IKProcessor" enabled="true"/>
+                <processor order="450" name="SkinningProcessor" enabled="true"/>
+                <processor order="460" name="MorphTargetProcessor" enabled="true"/>
+            </stage>
 
-            <runtime:stage name="Scene" orderRange="500-599">
-                <runtime:processor order="500" name="SceneGraphUpdateProcessor" enabled="true"/>
-                <runtime:processor order="510" name="TransformProcessor" enabled="true"/>
-                <runtime:processor order="520" name="BoundingVolumeProcessor" enabled="true"/>
-                <runtime:processor order="530" name="FrustumCullProcessor" enabled="true"/>
-                <runtime:processor order="540" name="LODSelectProcessor" enabled="true"/>
-                <runtime:processor order="580" name="RenderListProcessor" enabled="true"/>
-                <runtime:processor order="598" name="GpuUploadProcessor" enabled="true"/>
-            </runtime:stage>
+            <stage name="Scene" orderRange="500-599">
+                <processor order="500" name="SceneGraphUpdateProcessor" enabled="true"/>
+                <processor order="510" name="TransformProcessor" enabled="true"/>
+                <processor order="520" name="BoundingVolumeProcessor" enabled="true"/>
+                <processor order="530" name="FrustumCullProcessor" enabled="true"/>
+                <processor order="540" name="LODSelectProcessor" enabled="true"/>
+                <processor order="580" name="RenderListProcessor" enabled="true"/>
+                <processor order="598" name="GpuUploadProcessor" enabled="true"/>
+            </stage>
 
-            <runtime:stage name="Render" orderRange="600-799">
-                <runtime:processor order="600" name="FrameBeginProcessor" enabled="true"/>
-                <runtime:processor order="610" name="CommandBufferBeginProcessor" enabled="true"/>
-                <runtime:processor order="620" name="ShadowMapProcessor" enabled="true">
-                    <runtime:config>
+            <stage name="Render" orderRange="600-799">
+                <processor order="600" name="FrameBeginProcessor" enabled="true"/>
+                <processor order="610" name="CommandBufferBeginProcessor" enabled="true"/>
+                <processor order="620" name="ShadowMapProcessor" enabled="true">
+                    <config>
                         <entry key="resolution">2048</entry>
                         <entry key="cascadeCount">4</entry>
-                    </runtime:config>
-                </runtime:processor>
-                <runtime:processor order="630" name="DepthPrepassProcessor" enabled="true"/>
-                <runtime:processor order="660" name="ForwardOpaqueProcessor" enabled="true"/>
-                <runtime:processor order="670" name="SkyboxProcessor" enabled="true"/>
-                <runtime:processor order="680" name="TransparentProcessor" enabled="true"/>
-                <runtime:processor order="690" name="ParticleProcessor" enabled="true"/>
-                <runtime:processor order="700" name="BloomProcessor" enabled="true">
-                    <runtime:config>
+                    </config>
+                </processor>
+                <processor order="630" name="DepthPrepassProcessor" enabled="true"/>
+                <processor order="660" name="ForwardOpaqueProcessor" enabled="true"/>
+                <processor order="670" name="SkyboxProcessor" enabled="true"/>
+                <processor order="680" name="TransparentProcessor" enabled="true"/>
+                <processor order="690" name="ParticleProcessor" enabled="true"/>
+                <processor order="700" name="BloomProcessor" enabled="true">
+                    <config>
                         <entry key="threshold">1.0</entry>
                         <entry key="intensity">0.5</entry>
-                    </runtime:config>
-                </runtime:processor>
-                <runtime:processor order="710" name="SSAOProcessor" enabled="true"/>
-                <runtime:processor order="730" name="TonemapProcessor" enabled="true">
-                    <runtime:config>
+                    </config>
+                </processor>
+                <processor order="710" name="SSAOProcessor" enabled="true"/>
+                <processor order="730" name="TonemapProcessor" enabled="true">
+                    <config>
                         <entry key="exposure">1.0</entry>
                         <entry key="gamma">2.2</entry>
-                    </runtime:config>
-                </runtime:processor>
-                <runtime:processor order="740" name="FXAAProcessor" enabled="true"/>
-                <runtime:processor order="750" name="ImGuiNewFrameProcessor" enabled="true"/>
-                <runtime:processor order="760" name="GameUIProcessor" enabled="true"/>
-                <runtime:processor order="765" name="DebugOverlayProcessor" enabled="false"/>
-                <runtime:processor order="778" name="ImGuiRenderProcessor" enabled="true"/>
-                <runtime:processor order="779" name="ImGuiSubmitProcessor" enabled="true"/>
-                <runtime:processor order="780" name="CommandBufferEndProcessor" enabled="true"/>
-                <runtime:processor order="790" name="QueueSubmitProcessor" enabled="true"/>
-                <runtime:processor order="795" name="PresentProcessor" enabled="true"/>
-            </runtime:stage>
+                    </config>
+                </processor>
+                <processor order="740" name="FXAAProcessor" enabled="true"/>
+                <processor order="750" name="ImGuiNewFrameProcessor" enabled="true"/>
+                <processor order="760" name="GameUIProcessor" enabled="true"/>
+                <processor order="765" name="DebugOverlayProcessor" enabled="false"/>
+                <processor order="778" name="ImGuiRenderProcessor" enabled="true"/>
+                <processor order="779" name="ImGuiSubmitProcessor" enabled="true"/>
+                <processor order="780" name="CommandBufferEndProcessor" enabled="true"/>
+                <processor order="790" name="QueueSubmitProcessor" enabled="true"/>
+                <processor order="795" name="PresentProcessor" enabled="true"/>
+            </stage>
 
-            <runtime:stage name="Audio" orderRange="800-899">
-                <runtime:processor order="800" name="AudioUpdateProcessor" enabled="true"/>
-                <runtime:processor order="810" name="Audio3DProcessor" enabled="true"/>
-                <runtime:processor order="820" name="AudioMixProcessor" enabled="true"/>
-                <runtime:processor order="880" name="AudioSubmitProcessor" enabled="true"/>
-            </runtime:stage>
+            <stage name="Audio" orderRange="800-899">
+                <processor order="800" name="AudioUpdateProcessor" enabled="true"/>
+                <processor order="810" name="Audio3DProcessor" enabled="true"/>
+                <processor order="820" name="AudioMixProcessor" enabled="true"/>
+                <processor order="880" name="AudioSubmitProcessor" enabled="true"/>
+            </stage>
 
-            <runtime:stage name="Cleanup" orderRange="900-999">
-                <runtime:processor order="900" name="FrameStatsProcessor" enabled="true"/>
-                <runtime:processor order="910" name="MemoryResetProcessor" enabled="true"/>
-                <runtime:processor order="920" name="ResourceGCProcessor" enabled="true"/>
-                <runtime:processor order="990" name="FrameEndProcessor" enabled="true"/>
-            </runtime:stage>
+            <stage name="Cleanup" orderRange="900-999">
+                <processor order="900" name="FrameStatsProcessor" enabled="true"/>
+                <processor order="910" name="MemoryResetProcessor" enabled="true"/>
+                <processor order="920" name="ResourceGCProcessor" enabled="true"/>
+                <processor order="990" name="FrameEndProcessor" enabled="true"/>
+            </stage>
 
             <!-- Editor Processors (Order 1000-1999) - Only when studioMode=true -->
-            <runtime:stage name="EditorInput" orderRange="1000-1049" requiresStudioMode="true">
-                <runtime:processor order="1000" name="EditorCameraProcessor" enabled="true"/>
-                <runtime:processor order="1010" name="EditorHotkeyProcessor" enabled="true"/>
-                <runtime:processor order="1020" name="EditorMousePickProcessor" enabled="true"/>
-                <runtime:processor order="1030" name="EditorDragDropProcessor" enabled="true"/>
-            </runtime:stage>
+            <stage name="EditorInput" orderRange="1000-1049" requiresStudioMode="true">
+                <processor order="1000" name="EditorCameraProcessor" enabled="true"/>
+                <processor order="1010" name="EditorHotkeyProcessor" enabled="true"/>
+                <processor order="1020" name="EditorMousePickProcessor" enabled="true"/>
+                <processor order="1030" name="EditorDragDropProcessor" enabled="true"/>
+            </stage>
 
-            <runtime:stage name="EditorLogic" orderRange="1050-1099" requiresStudioMode="true">
-                <runtime:processor order="1050" name="SelectionProcessor" enabled="true"/>
-                <runtime:processor order="1060" name="UndoRedoProcessor" enabled="true"/>
-                <runtime:processor order="1070" name="CopyPasteProcessor" enabled="true"/>
-                <runtime:processor order="1080" name="TransformEditProcessor" enabled="true"/>
-            </runtime:stage>
+            <stage name="EditorLogic" orderRange="1050-1099" requiresStudioMode="true">
+                <processor order="1050" name="SelectionProcessor" enabled="true"/>
+                <processor order="1060" name="UndoRedoProcessor" enabled="true"/>
+                <processor order="1070" name="CopyPasteProcessor" enabled="true"/>
+                <processor order="1080" name="TransformEditProcessor" enabled="true"/>
+            </stage>
 
-            <runtime:stage name="EditorScene" orderRange="1100-1149" requiresStudioMode="true">
-                <runtime:processor order="1100" name="GridProcessor" enabled="true"/>
-                <runtime:processor order="1110" name="GizmoProcessor" enabled="true"/>
-                <runtime:processor order="1120" name="BoundsVisualizerProcessor" enabled="true"/>
-                <runtime:processor order="1130" name="LightVisualizerProcessor" enabled="true"/>
-                <runtime:processor order="1140" name="CameraPreviewProcessor" enabled="true"/>
-            </runtime:stage>
+            <stage name="EditorScene" orderRange="1100-1149" requiresStudioMode="true">
+                <processor order="1100" name="GridProcessor" enabled="true"/>
+                <processor order="1110" name="GizmoProcessor" enabled="true"/>
+                <processor order="1120" name="BoundsVisualizerProcessor" enabled="true"/>
+                <processor order="1130" name="LightVisualizerProcessor" enabled="true"/>
+                <processor order="1140" name="CameraPreviewProcessor" enabled="true"/>
+            </stage>
 
-            <runtime:stage name="EditorUI" orderRange="1200-1299" requiresStudioMode="true">
-                <runtime:processor order="1200" name="EditorMenuBarProcessor" enabled="true"/>
-                <runtime:processor order="1210" name="SceneHierarchyProcessor" enabled="true"/>
-                <runtime:processor order="1220" name="InspectorProcessor" enabled="true"/>
-                <runtime:processor order="1230" name="AssetBrowserProcessor" enabled="true"/>
-                <runtime:processor order="1240" name="ConsoleProcessor" enabled="true"/>
-                <runtime:processor order="1250" name="ViewportToolbarProcessor" enabled="true"/>
-                <runtime:processor order="1260" name="StatusBarProcessor" enabled="true"/>
-            </runtime:stage>
+            <stage name="EditorUI" orderRange="1200-1299" requiresStudioMode="true">
+                <processor order="1200" name="EditorMenuBarProcessor" enabled="true"/>
+                <processor order="1210" name="SceneHierarchyProcessor" enabled="true"/>
+                <processor order="1220" name="InspectorProcessor" enabled="true"/>
+                <processor order="1230" name="AssetBrowserProcessor" enabled="true"/>
+                <processor order="1240" name="ConsoleProcessor" enabled="true"/>
+                <processor order="1250" name="ViewportToolbarProcessor" enabled="true"/>
+                <processor order="1260" name="StatusBarProcessor" enabled="true"/>
+            </stage>
 
-            <runtime:stage name="EditorPersistence" orderRange="1300-1349" requiresStudioMode="true">
-                <runtime:processor order="1300" name="SceneSaveProcessor" enabled="true"/>
-                <runtime:processor order="1310" name="SceneLoadProcessor" enabled="true"/>
-                <runtime:processor order="1320" name="AutoSaveProcessor" enabled="true">
-                    <runtime:config>
+            <stage name="EditorPersistence" orderRange="1300-1349" requiresStudioMode="true">
+                <processor order="1300" name="SceneSaveProcessor" enabled="true"/>
+                <processor order="1310" name="SceneLoadProcessor" enabled="true"/>
+                <processor order="1320" name="AutoSaveProcessor" enabled="true">
+                    <config>
                         <entry key="intervalMinutes">5</entry>
                         <entry key="maxBackups">3</entry>
-                    </runtime:config>
-                </runtime:processor>
-                <runtime:processor order="1330" name="ProjectSettingsProcessor" enabled="true"/>
-            </runtime:stage>
+                    </config>
+                </processor>
+                <processor order="1330" name="ProjectSettingsProcessor" enabled="true"/>
+            </stage>
 
-            <runtime:stage name="EditorPlayMode" orderRange="1400-1449" requiresStudioMode="true">
-                <runtime:processor order="1400" name="PlayModeProcessor" enabled="true"/>
-                <runtime:processor order="1410" name="PlayModeStateProcessor" enabled="true"/>
-                <runtime:processor order="1420" name="PlayModePauseProcessor" enabled="true"/>
-            </runtime:stage>
-        </runtime:processors>
+            <stage name="EditorPlayMode" orderRange="1400-1449" requiresStudioMode="true">
+                <processor order="1400" name="PlayModeProcessor" enabled="true"/>
+                <processor order="1410" name="PlayModeStateProcessor" enabled="true"/>
+                <processor order="1420" name="PlayModePauseProcessor" enabled="true"/>
+            </stage>
+        </processors>
 
-    </runtime:configuration>
+    </runtimeConfiguration>
 
     <!-- ═══════════════════════════════════════════════════════════════════════ -->
     <!-- SCENE HIERARCHY -->
@@ -333,10 +331,10 @@
     <clusterNodes>
         <!-- Scene Root -->
         <node>
-            <core:entityId>
+            <entityId>
                 <uuid>scene_village</uuid>
                 <version>1</version>
-            </core:entityId>
+            </entityId>
             <name>Village Scene</name>
             <nodeType>CLUSTER_NODE_TYPE_SCENE</nodeType>
             <childIds>
@@ -350,10 +348,10 @@
 
         <!-- Environment Group -->
         <node>
-            <core:entityId>
+            <entityId>
                 <uuid>entity_environment</uuid>
                 <version>1</version>
-            </core:entityId>
+            </entityId>
             <name>Environment</name>
             <nodeType>CLUSTER_NODE_TYPE_FOLDER</nodeType>
             <parentId>scene_village</parentId>
@@ -367,10 +365,10 @@
 
         <!-- Terrain -->
         <node>
-            <core:entityId>
+            <entityId>
                 <uuid>entity_terrain</uuid>
                 <version>1</version>
-            </core:entityId>
+            </entityId>
             <name>Terrain</name>
             <nodeType>CLUSTER_NODE_TYPE_ENTITY</nodeType>
             <parentId>entity_environment</parentId>
@@ -378,10 +376,10 @@
 
         <!-- Player Entity -->
         <node>
-            <core:entityId>
+            <entityId>
                 <uuid>entity_player</uuid>
                 <version>1</version>
-            </core:entityId>
+            </entityId>
             <name>Player</name>
             <nodeType>CLUSTER_NODE_TYPE_ENTITY</nodeType>
             <parentId>scene_village</parentId>
@@ -393,10 +391,10 @@
 
         <!-- NPC -->
         <node>
-            <core:entityId>
+            <entityId>
                 <uuid>entity_npc_merchant</uuid>
                 <version>1</version>
-            </core:entityId>
+            </entityId>
             <name>Merchant NPC</name>
             <nodeType>CLUSTER_NODE_TYPE_ENTITY</nodeType>
             <parentId>scene_village</parentId>
@@ -408,10 +406,10 @@
 
         <!-- Lights -->
         <node>
-            <core:entityId>
+            <entityId>
                 <uuid>entity_lights</uuid>
                 <version>1</version>
-            </core:entityId>
+            </entityId>
             <name>Lights</name>
             <nodeType>CLUSTER_NODE_TYPE_FOLDER</nodeType>
             <parentId>scene_village</parentId>
@@ -422,10 +420,10 @@
         </node>
 
         <node>
-            <core:entityId>
+            <entityId>
                 <uuid>entity_sun</uuid>
                 <version>1</version>
-            </core:entityId>
+            </entityId>
             <name>Sun Light</name>
             <nodeType>CLUSTER_NODE_TYPE_ENTITY</nodeType>
             <parentId>entity_lights</parentId>
@@ -438,10 +436,10 @@
     <components>
         <!-- Player Transform -->
         <component>
-            <core:entityId>
+            <entityId>
                 <uuid>comp_player_transform</uuid>
                 <version>1</version>
-            </core:entityId>
+            </entityId>
             <clusterNodeId>entity_player</clusterNodeId>
             <componentType>transform</componentType>
             <data encoding="json">{
@@ -453,10 +451,10 @@
 
         <!-- Player Mesh Renderer (references GLTF asset) -->
         <component>
-            <core:entityId>
+            <entityId>
                 <uuid>comp_player_mesh</uuid>
                 <version>1</version>
-            </core:entityId>
+            </entityId>
             <clusterNodeId>entity_player</clusterNodeId>
             <componentType>mesh_renderer</componentType>
             <data encoding="json">{
@@ -468,10 +466,10 @@
 
         <!-- Player Animation -->
         <component>
-            <core:entityId>
+            <entityId>
                 <uuid>comp_player_animation</uuid>
                 <version>1</version>
-            </core:entityId>
+            </entityId>
             <clusterNodeId>entity_player</clusterNodeId>
             <componentType>animator</componentType>
             <data encoding="json">{
@@ -483,10 +481,10 @@
 
         <!-- Player Character Controller -->
         <component>
-            <core:entityId>
+            <entityId>
                 <uuid>comp_player_controller</uuid>
                 <version>1</version>
-            </core:entityId>
+            </entityId>
             <clusterNodeId>entity_player</clusterNodeId>
             <componentType>character_controller</componentType>
             <data encoding="json">{
@@ -499,10 +497,10 @@
 
         <!-- Sun Light Component -->
         <component>
-            <core:entityId>
+            <entityId>
                 <uuid>comp_sun_light</uuid>
                 <version>1</version>
-            </core:entityId>
+            </entityId>
             <clusterNodeId>entity_sun</clusterNodeId>
             <componentType>directional_light</componentType>
             <data encoding="json">{
@@ -517,10 +515,10 @@
 
         <!-- NPC AI Component -->
         <component>
-            <core:entityId>
+            <entityId>
                 <uuid>comp_npc_ai</uuid>
                 <version>1</version>
-            </core:entityId>
+            </entityId>
             <clusterNodeId>entity_npc_merchant</clusterNodeId>
             <componentType>npc_behavior</componentType>
             <data encoding="json">{
@@ -537,10 +535,10 @@
     <!-- ═══════════════════════════════════════════════════════════════════════ -->
     <assets>
         <asset>
-            <core:entityId>
+            <entityId>
                 <uuid>asset_player_model</uuid>
                 <version>1</version>
-            </core:entityId>
+            </entityId>
             <name>Player Character</name>
             <type>ASSET_TYPE_MODEL</type>
             <sourcePath>./assets/models/player.glb</sourcePath>
@@ -557,10 +555,10 @@
         </asset>
 
         <asset>
-            <core:entityId>
+            <entityId>
                 <uuid>asset_terrain</uuid>
                 <version>1</version>
-            </core:entityId>
+            </entityId>
             <name>Village Terrain</name>
             <type>ASSET_TYPE_MODEL</type>
             <sourcePath>./assets/models/terrain_village.glb</sourcePath>
@@ -574,10 +572,10 @@
         </asset>
 
         <asset>
-            <core:entityId>
+            <entityId>
                 <uuid>asset_ambient_music</uuid>
                 <version>1</version>
-            </core:entityId>
+            </entityId>
             <name>Village Ambient</name>
             <type>ASSET_TYPE_AUDIO</type>
             <sourcePath>./assets/audio/ambient_village.ogg</sourcePath>
@@ -596,29 +594,30 @@
     <!-- ═══════════════════════════════════════════════════════════════════════ -->
     <tags>
         <tag>
-            <core:entityId><uuid>tag_controllable</uuid></core:entityId>
+            <entityId><uuid>tag_controllable</uuid></entityId>
             <name>Controllable</name>
             <color>#2196F3</color>
             <category>gameplay</category>
         </tag>
         <tag>
-            <core:entityId><uuid>tag_persistent</uuid></core:entityId>
+            <entityId><uuid>tag_persistent</uuid></entityId>
             <name>Persistent</name>
             <color>#4CAF50</color>
             <category>system</category>
         </tag>
         <tag>
-            <core:entityId><uuid>tag_npc</uuid></core:entityId>
+            <entityId><uuid>tag_npc</uuid></entityId>
             <name>NPC</name>
             <color>#FF9800</color>
             <category>gameplay</category>
         </tag>
         <tag>
-            <core:entityId><uuid>tag_interactable</uuid></core:entityId>
+            <entityId><uuid>tag_interactable</uuid></entityId>
             <name>Interactable</name>
             <color>#9C27B0</color>
             <category>gameplay</category>
         </tag>
     </tags>
 
-</synthProject>
+</project>
+</synth>

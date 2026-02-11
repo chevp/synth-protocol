@@ -1,0 +1,315 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    GAME PRODUCTION PROJECT
+    Complete game project with integrated asset pipelines,
+    runtime configuration, and hub connectivity.
+    Combines: project config + tool registry + pipelines + resources
+-->
+<synth version="1.0" xmlns="https://chevp.github.io/synth-protocol/schema/synth/1.0">
+<project schemaVersion="1.0">
+
+    <metadata id="synth-game-production">
+        <name>Synth Game</name>
+        <description>AI-Native RPG with integrated asset pipeline</description>
+        <version>0.2.0</version>
+        <author>chevp</author>
+        <tags>
+            <tag>rpg</tag>
+            <tag>ai-native</tag>
+            <tag>vulkan</tag>
+            <tag>android</tag>
+        </tags>
+    </metadata>
+
+    <configuration>
+        <runtime mode="development">
+            <workDir>./assets/build</workDir>
+        </runtime>
+        <logging level="INFO"/>
+    </configuration>
+
+    <servers>
+        <server id="synth-hub" enabled="true">
+            <endpoint>http://localhost:8180/mcp</endpoint>
+            <protocol>grpc</protocol>
+        </server>
+    </servers>
+
+    <security>
+        <authentication type="none"/>
+        <cors enabled="true">
+            <allowOrigins>
+                <origin>http://localhost:3000</origin>
+                <origin>http://localhost:5173</origin>
+            </allowOrigins>
+        </cors>
+    </security>
+
+    <!-- =====================================================================
+         TOOL REGISTRY
+         ===================================================================== -->
+    <toolRegistry>
+        <tool id="blender" executable="blender" version="4.2">
+            <config>
+                <entry key="args">--background --python-exit-code 1</entry>
+            </config>
+        </tool>
+        <tool id="gltf-transform" executable="gltf-transform" version="4.0"/>
+        <tool id="toktx" executable="toktx" version="4.3"/>
+        <tool id="gltfpack" executable="gltfpack" version="0.21"/>
+    </toolRegistry>
+
+    <!-- =====================================================================
+         PIPELINES
+         ===================================================================== -->
+    <pipelines>
+        <!-- World Assets: Buildings, Props, Environment -->
+        <pipeline id="build-world" name="Build World Assets">
+            <description>Export and optimize world assets (buildings, props, terrain)</description>
+            <steps>
+                <step id="export-buildings" tool="blender" timeout="600">
+                    <input>
+                        <param name="source" type="directory">assets/raw/town</param>
+                        <param name="pattern">*.blend</param>
+                        <param name="script">scripts/blender_gltf_export.py</param>
+                    </input>
+                    <output>
+                        <param name="target" type="directory">assets/build/gltf/town</param>
+                    </output>
+                    <config>
+                        <entry key="apply_modifiers">true</entry>
+                        <entry key="export_lights">false</entry>
+                    </config>
+                </step>
+
+                <step id="export-environment" tool="blender" timeout="600">
+                    <input>
+                        <param name="source" type="directory">assets/raw/environment</param>
+                        <param name="pattern">*.blend</param>
+                        <param name="script">scripts/blender_gltf_export.py</param>
+                    </input>
+                    <output>
+                        <param name="target" type="directory">assets/build/gltf/environment</param>
+                    </output>
+                </step>
+
+                <step id="optimize-world" tool="gltf-transform" dependsOn="export-buildings,export-environment">
+                    <input>
+                        <param name="source" type="directory">assets/build/gltf</param>
+                    </input>
+                    <output>
+                        <param name="target" type="directory">assets/runtime/models</param>
+                    </output>
+                    <config>
+                        <entry key="commands">dedup,draco,prune</entry>
+                    </config>
+                </step>
+            </steps>
+
+            <triggers>
+                <trigger type="manual"/>
+                <trigger type="hub-event" value="pipeline.build-world.requested"/>
+            </triggers>
+        </pipeline>
+
+        <!-- Character Assets: Models + Animations -->
+        <pipeline id="build-characters" name="Build Character Assets">
+            <description>Export characters with animations and optimize</description>
+            <steps>
+                <step id="export-characters" tool="blender" timeout="300">
+                    <input>
+                        <param name="source" type="directory">assets/raw/characters</param>
+                        <param name="pattern">*.blend</param>
+                        <param name="script">scripts/blender_gltf_export.py</param>
+                    </input>
+                    <output>
+                        <param name="target" type="directory">assets/build/gltf/characters</param>
+                    </output>
+                    <config>
+                        <entry key="export_animations">true</entry>
+                        <entry key="export_skins">true</entry>
+                    </config>
+                </step>
+
+                <step id="optimize-characters" tool="gltf-transform" dependsOn="export-characters">
+                    <input>
+                        <param name="source" type="directory">assets/build/gltf/characters</param>
+                    </input>
+                    <output>
+                        <param name="target" type="directory">assets/runtime/characters</param>
+                    </output>
+                    <config>
+                        <entry key="commands">dedup,draco,prune</entry>
+                    </config>
+                </step>
+            </steps>
+
+            <triggers>
+                <trigger type="manual"/>
+                <trigger type="file-watch" pattern="assets/raw/characters/**/*.blend"/>
+            </triggers>
+        </pipeline>
+
+        <!-- Textures: Compress all textures to KTX2 -->
+        <pipeline id="build-textures" name="Build Textures">
+            <description>Compress all textures to KTX2 with Basis Universal</description>
+            <steps>
+                <step id="compress-textures" tool="toktx">
+                    <input>
+                        <param name="source" type="directory">assets/build/gltf</param>
+                        <param name="pattern">**/*.png</param>
+                    </input>
+                    <output>
+                        <param name="target" type="directory">assets/runtime/textures</param>
+                    </output>
+                    <config>
+                        <entry key="codec">uastc</entry>
+                        <entry key="quality">2</entry>
+                        <entry key="zstd">18</entry>
+                        <entry key="generate_mipmap">true</entry>
+                    </config>
+                </step>
+            </steps>
+
+            <triggers>
+                <trigger type="manual"/>
+            </triggers>
+        </pipeline>
+
+        <!-- Full Build: Runs all pipelines in dependency order -->
+        <pipeline id="full-build" name="Full Game Build">
+            <description>Complete game asset build (all assets from scratch)</description>
+            <steps>
+                <step id="clean" tool="gltf-transform">
+                    <config>
+                        <entry key="action">clean</entry>
+                        <entry key="target">assets/build</entry>
+                    </config>
+                </step>
+
+                <step id="build-all-world" tool="blender" dependsOn="clean" timeout="1200">
+                    <input>
+                        <param name="source" type="directory">assets/raw</param>
+                        <param name="pattern">**/*.blend</param>
+                        <param name="script">scripts/blender_gltf_export.py</param>
+                    </input>
+                    <output>
+                        <param name="target" type="directory">assets/build/gltf</param>
+                    </output>
+                </step>
+
+                <step id="optimize-all" tool="gltf-transform" dependsOn="build-all-world">
+                    <input>
+                        <param name="source" type="directory">assets/build/gltf</param>
+                    </input>
+                    <output>
+                        <param name="target" type="directory">assets/build/optimized</param>
+                    </output>
+                    <config>
+                        <entry key="commands">dedup,draco,prune</entry>
+                    </config>
+                </step>
+
+                <step id="compress-all-textures" tool="toktx" dependsOn="build-all-world">
+                    <input>
+                        <param name="source" type="directory">assets/build/gltf</param>
+                        <param name="pattern">**/*.png</param>
+                    </input>
+                    <output>
+                        <param name="target" type="directory">assets/build/textures</param>
+                    </output>
+                    <config>
+                        <entry key="codec">uastc</entry>
+                        <entry key="quality">2</entry>
+                    </config>
+                </step>
+
+                <step id="final-bundle" tool="gltfpack" dependsOn="optimize-all,compress-all-textures">
+                    <input>
+                        <param name="meshes" type="directory" ref="optimize-all.output.target"/>
+                        <param name="textures" type="directory" ref="compress-all-textures.output.target"/>
+                    </input>
+                    <output>
+                        <param name="target" type="directory">assets/runtime</param>
+                    </output>
+                </step>
+            </steps>
+
+            <triggers>
+                <trigger type="manual"/>
+                <trigger type="schedule" value="0 2 * * *"/>
+            </triggers>
+        </pipeline>
+    </pipelines>
+
+    <!-- =====================================================================
+         ASSET MOUNTS
+         VFS scheme → physical directory. nuna-runtime resolves at startup.
+         asset://  = optimized runtime assets (build output, disposable)
+         asset-src://  = raw source assets (media-store, read-only)
+         ===================================================================== -->
+    <mounts>
+        <mount scheme="asset" path="C:/media-store-runtime" readOnly="true"/>
+        <mount scheme="asset-src" path="C:/media-store" readOnly="true"/>
+    </mounts>
+
+    <!-- =====================================================================
+         RESOURCES
+         ===================================================================== -->
+    <resources>
+        <!-- Source directories -->
+        <resource id="raw-assets" type="directory" uri="assets/raw"/>
+        <resource id="runtime-assets" type="directory" uri="assets/runtime"/>
+
+        <!-- Key Blender files -->
+        <resource id="town-buildings" type="blend" uri="assets/raw/town/buildings.blend"/>
+        <resource id="town-props" type="blend" uri="assets/raw/town/props.blend"/>
+        <resource id="shop-interiors" type="blend" uri="assets/raw/town/shop_interiors.blend"/>
+        <resource id="characters-main" type="blend" uri="assets/raw/characters/main_characters.blend"/>
+        <resource id="characters-npcs" type="blend" uri="assets/raw/characters/npcs.blend"/>
+        <resource id="terrain" type="blend" uri="assets/raw/environment/terrain.blend"/>
+        <resource id="vegetation" type="blend" uri="assets/raw/environment/vegetation.blend"/>
+
+        <!-- Scenes -->
+        <resource id="main-scene" type="scene" uri="scenes/shopping-district/scene.synth.xml">
+            <metadata>
+                <entry key="preload">true</entry>
+                <entry key="priority">high</entry>
+            </metadata>
+        </resource>
+        <resource id="test-scene" type="scene" uri="scenes/test/environment-test.synth.xml"/>
+
+        <!-- Pipeline scripts -->
+        <resource id="export-script" type="script" uri="scripts/blender_gltf_export.py"/>
+        <resource id="batch-script" type="script" uri="scripts/blender_batch_export.py"/>
+
+        <!-- Runtime config -->
+        <resource id="renderer-config" type="config" uri="config/runtime-frost-studio.synth.xml"/>
+        <resource id="server-config" type="config" uri="config/runtime-game-server.synth.xml"/>
+    </resources>
+
+    <settings>
+        <!-- Hub -->
+        <setting key="hub.url" value="http://localhost:8180"/>
+        <setting key="hub.reconnect" value="true"/>
+
+        <!-- Game -->
+        <setting key="defaultScene" value="shopping-district"/>
+        <setting key="defaultSpawnPoint" value="spawn_center"/>
+        <setting key="enableDebugUI" value="true"/>
+
+        <!-- Pipeline -->
+        <setting key="pipeline.workDir" value="./assets/build"/>
+        <setting key="pipeline.parallelSteps" value="4"/>
+        <setting key="pipeline.logDir" value="./logs/pipeline"/>
+
+        <!-- Renderer -->
+        <setting key="renderer.targetFps" value="60"/>
+        <setting key="renderer.vsync" value="true"/>
+
+        <!-- Logging -->
+        <setting key="logLevel" value="info"/>
+    </settings>
+
+</project>
+</synth>
