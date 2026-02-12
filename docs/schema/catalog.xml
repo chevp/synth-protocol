@@ -62,6 +62,12 @@
     <uri name="https://chevp.github.io/synth-protocol/schema/synth/events/1.0"
          uri="synth/events/1.0/events.xsd"/>
 
+    <!-- Elyrion Scene Schema -->
+    <uri name="schemas/elyrion_schema.v1.xsd"
+         uri="elyrion.xsd"/>
+    <uri name="https://chevp.github.io/synth-protocol/schema/elyrion/1.0"
+         uri="elyrion.xsd"/>
+
     <!-- Unified schemas -->
     <uri name="https://chevp.github.io/synth-protocol/schema/unified/elyrion/1.0"
          uri="unified/elyrion.xsd"/>

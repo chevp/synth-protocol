@@ -1,0 +1,400 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+
+  <!-- Root element: elyrion -->
+  <xs:element name="elyrion">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="name" type="xs:string" minOccurs="0"/>
+        <xs:element name="description" type="xs:string" minOccurs="0"/>
+        <xs:element name="entryScene" type="xs:string" minOccurs="0"/>
+        <xs:element name="dependencies" minOccurs="0">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="dependency" maxOccurs="unbounded">
+                <xs:complexType>
+                  <xs:attribute name="id" type="xs:string" use="required"/>
+                  <xs:attribute name="version" type="xs:string"/>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="remote" minOccurs="0">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="url" type="xs:anyURI"/>
+              <xs:element name="fallback" type="xs:boolean" minOccurs="0"/>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="assets" minOccurs="0">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="asset" maxOccurs="unbounded">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="meta" minOccurs="0">
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="param" minOccurs="0" maxOccurs="unbounded">
+                            <xs:complexType>
+                              <xs:attribute name="name" type="xs:string" use="required"/>
+                              <xs:attribute name="value" type="xs:string" use="required"/>
+                            </xs:complexType>
+                          </xs:element>
+                        </xs:sequence>
+                        <xs:attribute name="type" type="xs:string"/>
+                        <xs:attribute name="size" type="xs:long"/>
+                        <xs:attribute name="sha256" type="xs:string"/>
+                      </xs:complexType>
+                    </xs:element>
+                    <xs:element name="variants" minOccurs="0">
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="variant" maxOccurs="unbounded">
+                            <xs:complexType>
+                              <xs:sequence>
+                                <xs:element name="model" minOccurs="0">
+                                  <xs:complexType>
+                                    <xs:attribute name="id" type="xs:string" use="required"/>
+                                    <xs:attribute name="type" type="xs:string"/>
+                                    <xs:attribute name="src" type="xs:anyURI"/>
+                                  </xs:complexType>
+                                </xs:element>
+                                <xs:element name="textures" minOccurs="0">
+                                  <xs:complexType>
+                                    <xs:sequence>
+                                      <xs:element name="texture" maxOccurs="unbounded">
+                                        <xs:complexType>
+                                          <xs:attribute name="name" type="xs:string" use="required"/>
+                                          <xs:attribute name="id" type="xs:string" use="required"/>
+                                          <xs:attribute name="type" type="xs:string"/>
+                                          <xs:attribute name="size" type="xs:long"/>
+                                          <xs:attribute name="sha256" type="xs:string"/>
+                                        </xs:complexType>
+                                      </xs:element>
+                                    </xs:sequence>
+                                  </xs:complexType>
+                                </xs:element>
+                              </xs:sequence>
+                              <xs:attribute name="id" type="xs:string" use="required"/>
+                              <xs:attribute name="quality" type="xs:int"/>
+                              <xs:attribute name="platform" type="xs:string"/>
+                            </xs:complexType>
+                          </xs:element>
+                        </xs:sequence>
+                      </xs:complexType>
+                    </xs:element>
+                  </xs:sequence>
+                  <xs:attribute name="id" type="xs:string" use="required"/>
+                  <xs:attribute name="src" type="xs:anyURI"/>
+                  <xs:attribute name="type" type="xs:string"/>
+                  <xs:attribute name="version" type="xs:string"/>
+                  <xs:attribute name="pipeline" type="xs:string"/>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="scenes" minOccurs="0">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="scene" maxOccurs="unbounded">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="entities" minOccurs="0">
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="entity" maxOccurs="unbounded">
+                            <xs:complexType>
+                              <xs:sequence>
+                                <xs:element name="pos" minOccurs="0">
+                                  <xs:complexType>
+                                    <xs:attribute name="x" type="xs:float" use="required"/>
+                                    <xs:attribute name="y" type="xs:float" use="required"/>
+                                    <xs:attribute name="z" type="xs:float" use="required"/>
+                                  </xs:complexType>
+                                </xs:element>
+                                <xs:element name="rot" minOccurs="0">
+                                  <xs:complexType>
+                                    <xs:attribute name="x" type="xs:float" use="required"/>
+                                    <xs:attribute name="y" type="xs:float" use="required"/>
+                                    <xs:attribute name="z" type="xs:float" use="required"/>
+                                    <xs:attribute name="w" type="xs:float" use="required"/>
+                                  </xs:complexType>
+                                </xs:element>
+                                <xs:element name="model-task" minOccurs="0">
+                                  <xs:complexType>
+                                    <xs:sequence>
+                                      <xs:element name="param" minOccurs="0" maxOccurs="unbounded">
+                                        <xs:complexType>
+                                          <xs:attribute name="name" type="xs:string" use="required"/>
+                                          <xs:attribute name="value" type="xs:string" use="required"/>
+                                        </xs:complexType>
+                                      </xs:element>
+                                    </xs:sequence>
+                                    <xs:attribute name="type" type="xs:string" use="required"/>
+                                  </xs:complexType>
+                                </xs:element>
+                              </xs:sequence>
+                              <xs:attribute name="id" type="xs:string" use="required"/>
+                              <xs:attribute name="type" type="xs:string"/>
+                              <xs:attribute name="asset" type="xs:string"/>
+                            </xs:complexType>
+                          </xs:element>
+                        </xs:sequence>
+                      </xs:complexType>
+                    </xs:element>
+                    <xs:element name="instructions" minOccurs="0">
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="instruction" maxOccurs="unbounded">
+                            <xs:complexType>
+                              <xs:sequence>
+                                <xs:element name="param" minOccurs="0" maxOccurs="unbounded">
+                                  <xs:complexType>
+                                    <xs:attribute name="name" type="xs:string" use="required"/>
+                                    <xs:attribute name="value" type="xs:string" use="required"/>
+                                  </xs:complexType>
+                                </xs:element>
+                              </xs:sequence>
+                              <xs:attribute name="action" type="xs:anyURI" use="required"/>
+                              <xs:attribute name="trigger" type="xs:string"/>
+                            </xs:complexType>
+                          </xs:element>
+                        </xs:sequence>
+                      </xs:complexType>
+                    </xs:element>
+                    <xs:element name="environment" minOccurs="0">
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="skybox" minOccurs="0">
+                            <xs:complexType>
+                              <xs:attribute name="name" type="xs:string" use="required"/>
+                              <xs:attribute name="type" type="xs:string"/>
+                              <xs:attribute name="src" type="xs:anyURI"/>
+                            </xs:complexType>
+                          </xs:element>
+                        </xs:sequence>
+                      </xs:complexType>
+                    </xs:element>
+                    <xs:element name="camera" minOccurs="0">
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="pos" minOccurs="0">
+                            <xs:complexType>
+                              <xs:attribute name="x" type="xs:float" use="required"/>
+                              <xs:attribute name="y" type="xs:float" use="required"/>
+                              <xs:attribute name="z" type="xs:float" use="required"/>
+                            </xs:complexType>
+                          </xs:element>
+                          <xs:element name="rot" minOccurs="0">
+                            <xs:complexType>
+                              <xs:attribute name="x" type="xs:float" use="required"/>
+                              <xs:attribute name="y" type="xs:float" use="required"/>
+                              <xs:attribute name="z" type="xs:float" use="required"/>
+                            </xs:complexType>
+                          </xs:element>
+                        </xs:sequence>
+                        <xs:attribute name="type" type="xs:string"/>
+                        <xs:attribute name="fov" type="xs:float"/>
+                        <xs:attribute name="znear" type="xs:float"/>
+                        <xs:attribute name="zfar" type="xs:float"/>
+                      </xs:complexType>
+                    </xs:element>
+                  </xs:sequence>
+                  <xs:attribute name="id" type="xs:string" use="required"/>
+                  <xs:attribute name="name" type="xs:string"/>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="streams" minOccurs="0">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="stream" maxOccurs="unbounded">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="instruction" maxOccurs="unbounded">
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="param" minOccurs="0" maxOccurs="unbounded">
+                            <xs:complexType>
+                              <xs:attribute name="name" type="xs:string" use="required"/>
+                              <xs:attribute name="value" type="xs:string" use="required"/>
+                            </xs:complexType>
+                          </xs:element>
+                        </xs:sequence>
+                        <xs:attribute name="action" type="xs:anyURI" use="required"/>
+                        <xs:attribute name="trigger" type="xs:string"/>
+                      </xs:complexType>
+                    </xs:element>
+                  </xs:sequence>
+                  <xs:attribute name="id" type="xs:string" use="required"/>
+                  <xs:attribute name="type" type="xs:string"/>
+                  <xs:attribute name="rate" type="xs:string"/>
+                  <xs:attribute name="priority" type="xs:string"/>
+                  <xs:attribute name="prio" type="xs:string"/>
+                  <xs:attribute name="src" type="xs:string"/>
+                  <xs:attribute name="trigger" type="xs:string"/>
+                  <xs:attribute name="once" type="xs:boolean"/>
+                  <xs:attribute name="timestamp" type="xs:dateTime"/>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="embedded-elyrions" minOccurs="0">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="iely" maxOccurs="unbounded">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="param" minOccurs="0" maxOccurs="unbounded">
+                      <xs:complexType>
+                        <xs:attribute name="name" type="xs:string" use="required"/>
+                        <xs:attribute name="value" type="xs:string" use="required"/>
+                      </xs:complexType>
+                    </xs:element>
+                  </xs:sequence>
+                  <xs:attribute name="name" type="xs:string" use="required"/>
+                  <xs:attribute name="src" type="xs:anyURI" use="required"/>
+                  <xs:attribute name="pos" type="xs:string"/>
+                  <xs:attribute name="rot" type="xs:string"/>
+                  <xs:attribute name="size" type="xs:string"/>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="systems" minOccurs="0">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="system" maxOccurs="unbounded">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="param" minOccurs="0" maxOccurs="unbounded">
+                      <xs:complexType>
+                        <xs:attribute name="name" type="xs:string" use="required"/>
+                        <xs:attribute name="value" type="xs:string" use="required"/>
+                      </xs:complexType>
+                    </xs:element>
+                  </xs:sequence>
+                  <xs:attribute name="name" type="xs:string" use="required"/>
+                  <xs:attribute name="src" type="xs:anyURI" use="required"/>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="spawn-stream" minOccurs="0" maxOccurs="unbounded">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="stream" maxOccurs="unbounded">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="instruction" maxOccurs="unbounded">
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="param" minOccurs="0" maxOccurs="unbounded">
+                            <xs:complexType>
+                              <xs:attribute name="name" type="xs:string" use="required"/>
+                              <xs:attribute name="value" type="xs:string" use="required"/>
+                            </xs:complexType>
+                          </xs:element>
+                        </xs:sequence>
+                        <xs:attribute name="action" type="xs:anyURI" use="required"/>
+                      </xs:complexType>
+                    </xs:element>
+                  </xs:sequence>
+                  <xs:attribute name="id" type="xs:string" use="required"/>
+                  <xs:attribute name="type" type="xs:string"/>
+                  <xs:attribute name="rate" type="xs:string"/>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+            <xs:attribute name="id" type="xs:string" use="required"/>
+            <xs:attribute name="trigger" type="xs:string" use="required"/>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="ui" minOccurs="0">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="layout" maxOccurs="unbounded">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:choice minOccurs="0" maxOccurs="unbounded">
+                      <xs:element name="root" type="uiContainerType"/>
+                      <xs:element name="card" type="uiCardType"/>
+                    </xs:choice>
+                  </xs:sequence>
+                  <xs:attribute name="id" type="xs:string" use="required"/>
+                  <xs:attribute name="anchor" type="xs:string"/>
+                  <xs:attribute name="offset-y" type="xs:int"/>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="scripts" minOccurs="0">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="script" maxOccurs="unbounded">
+                <xs:complexType mixed="true">
+                  <xs:attribute name="id" type="xs:string" use="required"/>
+                  <xs:attribute name="lang" type="xs:string" use="required"/>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+      </xs:sequence>
+      <xs:attribute name="id" type="xs:string" use="required"/>
+      <xs:attribute name="version" type="xs:string" use="required"/>
+      <xs:attribute name="author" type="xs:string"/>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- UI Types -->
+  <xs:complexType name="uiContainerType">
+    <xs:sequence>
+      <xs:element name="children" minOccurs="0">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="button" minOccurs="0" maxOccurs="unbounded">
+              <xs:complexType>
+                <xs:attribute name="id" type="xs:string" use="required"/>
+                <xs:attribute name="text" type="xs:string" use="required"/>
+                <xs:attribute name="action" type="xs:anyURI" use="required"/>
+              </xs:complexType>
+            </xs:element>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+    <xs:attribute name="type" type="xs:string" use="required"/>
+    <xs:attribute name="layout" type="xs:string"/>
+  </xs:complexType>
+
+  <xs:complexType name="uiCardType">
+    <xs:sequence>
+      <xs:element name="text" minOccurs="0" maxOccurs="unbounded">
+        <xs:complexType mixed="true">
+          <xs:attribute name="id" type="xs:string" use="required"/>
+          <xs:attribute name="font-size" type="xs:int"/>
+          <xs:attribute name="color" type="xs:string"/>
+          <xs:attribute name="align" type="xs:string"/>
+          <xs:attribute name="y" type="xs:int"/>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:string" use="required"/>
+    <xs:attribute name="width" type="xs:int"/>
+    <xs:attribute name="height" type="xs:int"/>
+    <xs:attribute name="background" type="xs:string"/>
+    <xs:attribute name="border-radius" type="xs:int"/>
+  </xs:complexType>
+
+</xs:schema>

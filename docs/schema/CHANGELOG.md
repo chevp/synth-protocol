@@ -20,7 +20,7 @@
 - **File**: `synth/scene/1.0/scene.xsd`
 - **Namespace**: `https://chevp.github.io/synth-protocol/schema/synth/scene/1.0`
 - **Purpose**: XML Schema Definition for Synth scene files
-- **Root Element**: `<synth-scene>`
+- **Root Element**: `<synthScene>`
 - **Features**:
   - Scene metadata
   - Camera settings (orthographic, perspective)

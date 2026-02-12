@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <synth version="1.0" xmlns="https://chevp.github.io/synth-protocol/schema/synth/1.0">
-<component version="1.0" id="building-townhall">
+<component id="building-townhall">
 
     <metadata>
         <name>Town Hall</name>

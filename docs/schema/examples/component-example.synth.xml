@@ -9,7 +9,7 @@
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xsi:schemaLocation="https://chevp.github.io/synth-protocol/schema/synth/1.0
                            https://chevp.github.io/synth-protocol/schema/synth/1.0/synth.xsd">
-<component version="1.0" id="example-building">
+<component id="example-building">
 
     <metadata>
         <name>Example Building</name>
@@ -34,7 +34,7 @@
         <property name="gridSize" type="float" value="2.0"/>
 
         <!-- Vector properties -->
-        <property name="offset" type="vec3" value="0,0,0"/>
+        <property name="offset" type="vec3" value="0 0 0"/>
 
         <!-- Color properties -->
         <property name="highlightColor" type="color" value="#4CAF50"/>

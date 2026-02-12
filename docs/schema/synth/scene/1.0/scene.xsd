@@ -12,11 +12,11 @@
     <!-- =========================================================================
          SYNTH SCENE SCHEMA
          Used by synth-game scene definitions (.synth.xml)
-         Root element: <synth-scene>
+         Root element: <synthScene>
          ========================================================================= -->
 
     <!-- Root Element -->
-    <xs:element name="synth-scene" type="scene:SynthSceneType"/>
+    <xs:element name="synthScene" type="scene:SynthSceneType"/>
 
     <!-- Scene Type Definition -->
     <xs:complexType name="SynthSceneType">

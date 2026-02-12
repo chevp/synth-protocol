@@ -43,13 +43,20 @@
             <xs:enumeration value="int"/>
             <xs:enumeration value="float"/>
             <xs:enumeration value="bool"/>
-            <xs:enumeration value="vec2"/>
-            <xs:enumeration value="vec3"/>
-            <xs:enumeration value="color"/>
+            <xs:enumeration value="vec2"/>  <!-- Format: "x y" (space-separated) -->
+            <xs:enumeration value="vec3"/>  <!-- Format: "x y z" (space-separated) -->
+            <xs:enumeration value="color"/> <!-- Format: "#RRGGBB" or "r g b a" (space-separated RGBA) -->
         </xs:restriction>
     </xs:simpleType>
 
-    <!-- Single property: <property name="speed" type="float" value="4.0"/> -->
+    <!-- Single property: <property name="speed" type="float" value="4.0"/>
+         Vector properties use space-separated values:
+           <property name="sunDirection" type="vec3" value="0.3 -0.7 0.5"/>
+           <property name="offset" type="vec2" value="10 20"/>
+         Colors can use hex or space-separated RGBA:
+           <property name="tint" type="color" value="#4CAF50"/>
+           <property name="baseColor" type="color" value="0.8 0.8 0.8 1.0"/>
+    -->
     <xs:complexType name="PropertyType">
         <xs:attribute name="name" type="xs:string" use="required"/>
         <xs:attribute name="type" type="common:PropertyTypeEnum" use="required"/>
@@ -65,7 +72,11 @@
 
     <!-- ===== Settings System ===== -->
 
-    <!-- Single setting: <setting key="maxFrames" value="2"/> -->
+    <!-- Single setting: <setting key="maxFrames" value="2"/>
+         Vector settings use space-separated values:
+           <setting key="camera.defaultPosition" value="0 3 15"/>
+           <setting key="gravity" value="0 -9.81 0"/>
+    -->
     <xs:complexType name="SettingType">
         <xs:attribute name="key" type="xs:string" use="required"/>
         <xs:attribute name="value" type="xs:string" use="required"/>

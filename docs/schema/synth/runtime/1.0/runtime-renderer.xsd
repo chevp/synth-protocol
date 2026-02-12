@@ -200,6 +200,7 @@
             <xs:element name="asset-root" type="runtime:PathUriType" minOccurs="0"/>
             <xs:element name="shader-dir" type="runtime:PathUriType" minOccurs="0"/>
             <xs:element name="log-dir" type="runtime:PathUriType" minOccurs="0"/>
+            <xs:element name="gltf-error-placeholder" type="runtime:PathUriType" minOccurs="0"/>
             <xs:element name="mounts" type="runtime:MountsType" minOccurs="0"/>
         </xs:sequence>
     </xs:complexType>

@@ -10,10 +10,10 @@
     <synth version="1.0"><component>...</component></synth>
     <synth version="1.0"><routes>...</routes></synth>
     <synth version="1.0"><runtime>...</runtime></synth>
-    <synth version="1.0"><runtime-renderer>...</runtime-renderer></synth>
-    <synth version="1.0"><runtime-logic>...</runtime-logic></synth>
-    <synth version="1.0"><game-project>...</game-project></synth>
-    <synth version="1.0"><asset-registry>...</asset-registry></synth>
+    <synth version="1.0"><runtimeRenderer>...</runtimeRenderer></synth>
+    <synth version="1.0"><runtimeLogic>...</runtimeLogic></synth>
+    <synth version="1.0"><gameProject>...</gameProject></synth>
+    <synth version="1.0"><assetRegistry>...</assetRegistry></synth>
     <synth version="1.0"><extension>...</extension></synth>
 -->
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
@@ -34,10 +34,10 @@
             <xs:element name="component" type="s:ComponentType"/>
             <xs:element name="routes" type="s:RoutesType"/>
             <xs:element name="runtime" type="s:RuntimeType"/>
-            <xs:element name="runtime-renderer" type="s:RuntimeRendererType"/>
-            <xs:element name="runtime-logic" type="s:RuntimeLogicType"/>
-            <xs:element name="game-project" type="s:GameProjectType"/>
-            <xs:element name="asset-registry" type="s:AssetRegistryType"/>
+            <xs:element name="runtimeRenderer" type="s:RuntimeRendererType"/>
+            <xs:element name="runtimeLogic" type="s:RuntimeLogicType"/>
+            <xs:element name="gameProject" type="s:GameProjectType"/>
+            <xs:element name="assetRegistry" type="s:AssetRegistryType"/>
             <xs:element name="extension" type="s:ExtensionContainerType"/>
         </xs:choice>
         <xs:attribute name="version" type="xs:string" default="1.0"/>
@@ -418,7 +418,6 @@
             <xs:element name="uiLayout" type="s:UILayoutType" minOccurs="0"/>
             <xs:element name="stateMachine" type="s:StateMachineType" minOccurs="0"/>
         </xs:sequence>
-        <xs:attribute name="version" type="xs:string" use="required"/>
         <xs:attribute name="id" type="xs:string" use="required"/>
     </xs:complexType>
 
@@ -748,7 +747,7 @@
 
     <!-- ================================================================= -->
     <!-- RUNTIME-RENDERER (.frost files)                                   -->
-    <!-- <synth><runtime-renderer>...</runtime-renderer></synth>           -->
+    <!-- <synth><runtimeRenderer>...</runtimeRenderer></synth>             -->
     <!-- ================================================================= -->
 
     <xs:complexType name="RuntimeRendererType">
@@ -760,6 +759,7 @@
             <xs:element name="http-server" type="s:HttpServerType" minOccurs="0"/>
             <xs:element name="debug" type="s:DebugType" minOccurs="0"/>
             <xs:element name="scene" type="s:RendererSceneRefType"/>
+            <xs:element name="extensions" type="s:ExtensionContainerType" minOccurs="0"/>
             <xs:element name="secrets" type="s:SecretsType" minOccurs="0"/>
             <xs:element name="defaults" type="s:RuntimeDefaultsType" minOccurs="0"/>
             <xs:element name="settings" type="s:SettingsType" minOccurs="0"/>
@@ -786,6 +786,7 @@
             <xs:element name="asset-root" type="s:PathUriType" minOccurs="0"/>
             <xs:element name="shader-dir" type="s:PathUriType" minOccurs="0"/>
             <xs:element name="log-dir" type="s:PathUriType" minOccurs="0"/>
+            <xs:element name="gltf-error-placeholder" type="s:PathUriType" minOccurs="0"/>
             <xs:element name="mounts" type="s:MountsType" minOccurs="0"/>
         </xs:sequence>
     </xs:complexType>
@@ -830,7 +831,7 @@
 
     <!-- ================================================================= -->
     <!-- RUNTIME-LOGIC                                                     -->
-    <!-- <synth><runtime-logic>...</runtime-logic></synth>                 -->
+    <!-- <synth><runtimeLogic>...</runtimeLogic></synth>                   -->
     <!-- ================================================================= -->
 
     <xs:complexType name="RuntimeLogicType">
@@ -937,7 +938,7 @@
 
     <!-- ================================================================= -->
     <!-- GAME-PROJECT (.cryo files)                                        -->
-    <!-- <synth><game-project>...</game-project></synth>                   -->
+    <!-- <synth><gameProject>...</gameProject></synth>                     -->
     <!-- ================================================================= -->
 
     <xs:complexType name="GameProjectType">
@@ -1006,7 +1007,7 @@
 
     <!-- ================================================================= -->
     <!-- ASSET-REGISTRY                                                    -->
-    <!-- <synth><asset-registry>...</asset-registry></synth>               -->
+    <!-- <synth><assetRegistry>...</assetRegistry></synth>                 -->
     <!-- ================================================================= -->
 
     <xs:complexType name="AssetRegistryType">
