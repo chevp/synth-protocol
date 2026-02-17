@@ -80,7 +80,7 @@
 
     <xs:complexType name="PropertyType">
         <xs:attribute name="name" type="xs:string" use="required"/>
-        <xs:attribute name="type" type="s:PropertyTypeEnum" use="required"/>
+        <xs:attribute name="type" type="s:PropertyTypeEnum" use="optional"/>
         <xs:attribute name="value" type="xs:string" use="required"/>
     </xs:complexType>
 
@@ -415,11 +415,45 @@
             <xs:element name="metadata" type="s:ComponentMetadataType"/>
             <xs:element name="mesh" type="s:MeshRefType" minOccurs="0"/>
             <xs:element name="properties" type="s:PropertiesType" minOccurs="0"/>
+            <xs:element name="scripts" type="s:ComponentScriptsType" minOccurs="0"/>
             <xs:element name="uiLayout" type="s:UILayoutType" minOccurs="0"/>
             <xs:element name="stateMachine" type="s:StateMachineType" minOccurs="0"/>
         </xs:sequence>
         <xs:attribute name="id" type="xs:string" use="required"/>
     </xs:complexType>
+
+    <xs:complexType name="ComponentScriptsType">
+        <xs:sequence>
+            <xs:element name="script" type="s:ComponentScriptType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="ComponentScriptType">
+        <xs:simpleContent>
+            <xs:extension base="xs:string">
+                <xs:attribute name="event" type="s:ScriptEventEnum" use="required"/>
+                <xs:attribute name="lang" type="s:ScriptLangEnum" default="lua"/>
+                <xs:attribute name="src" type="xs:string" use="optional"/>
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+
+    <xs:simpleType name="ScriptEventEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="onClick"/>
+            <xs:enumeration value="onEnter"/>
+            <xs:enumeration value="onExit"/>
+            <xs:enumeration value="onUse"/>
+            <xs:enumeration value="onSpawn"/>
+            <xs:enumeration value="onDestroy"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="ScriptLangEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="lua"/>
+        </xs:restriction>
+    </xs:simpleType>
 
     <xs:complexType name="ComponentMetadataType">
         <xs:sequence>
@@ -1008,13 +1042,56 @@
     <!-- ================================================================= -->
     <!-- ASSET-REGISTRY                                                    -->
     <!-- <synth><assetRegistry>...</assetRegistry></synth>                 -->
+    <!--                                                                   -->
+    <!-- Two modes:                                                        -->
+    <!--   External: packages reference files via uri="path/to/file.xml"   -->
+    <!--   Inline:  components/fragments defined directly in the registry  -->
     <!-- ================================================================= -->
 
     <xs:complexType name="AssetRegistryType">
         <xs:sequence>
             <xs:element name="manifest" type="s:ManifestType"/>
             <xs:element name="packages" type="s:PackagesType"/>
+            <xs:element name="components" type="s:InlineComponentsType" minOccurs="0"/>
+            <xs:element name="fragments" type="s:InlineFragmentsType" minOccurs="0"/>
         </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="InlineComponentsType">
+        <xs:sequence>
+            <xs:element name="component" type="s:ComponentType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="InlineFragmentsType">
+        <xs:sequence>
+            <xs:element name="fragment" type="s:FragmentType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="FragmentType">
+        <xs:sequence>
+            <xs:element name="entity" type="s:FragmentEntityType" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="description" type="xs:string"/>
+    </xs:complexType>
+
+    <xs:complexType name="FragmentEntityType">
+        <xs:sequence>
+            <xs:element name="pos" type="s:Vec3Type" minOccurs="0"/>
+            <xs:element name="rot" type="s:RotationType" minOccurs="0"/>
+            <xs:element name="properties" type="s:PropertiesType" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="componentRef" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="RotationType">
+        <xs:attribute name="x" type="xs:float" use="required"/>
+        <xs:attribute name="y" type="xs:float" use="required"/>
+        <xs:attribute name="z" type="xs:float" use="required"/>
+        <xs:attribute name="w" type="xs:float" default="1"/>
     </xs:complexType>
 
     <xs:complexType name="ManifestType">
@@ -1065,6 +1142,7 @@
             <xs:enumeration value="texture"/>
             <xs:enumeration value="scene"/>
             <xs:enumeration value="component"/>
+            <xs:enumeration value="fragment"/>
             <xs:enumeration value="shader"/>
             <xs:enumeration value="audio"/>
         </xs:restriction>
@@ -1096,6 +1174,7 @@
     <xs:complexType name="SynthExtensionType">
         <xs:sequence>
             <xs:element name="metadata" type="s:MetadataBaseType" minOccurs="0"/>
+            <xs:element name="services" type="s:ExtensionServicesType" minOccurs="0"/>
             <xs:element name="settings" type="s:SettingsType" minOccurs="0"/>
             <xs:element name="dependencies" type="s:ExtensionDependenciesType" minOccurs="0"/>
         </xs:sequence>
@@ -1114,5 +1193,68 @@
     <xs:complexType name="ExtensionDependencyRefType">
         <xs:attribute name="ref" type="xs:string" use="required"/>
     </xs:complexType>
+
+    <!-- Extension Service API Declaration -->
+
+    <xs:complexType name="ExtensionServicesType">
+        <xs:sequence>
+            <xs:element name="service" type="s:ServiceDeclarationType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="ServiceDeclarationType">
+        <xs:sequence>
+            <xs:element name="description" type="xs:string" minOccurs="0"/>
+            <xs:element name="function" type="s:ServiceFunctionType" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="luaBinding" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="ServiceFunctionType">
+        <xs:sequence>
+            <xs:element name="description" type="xs:string" minOccurs="0"/>
+            <xs:element name="param" type="s:ServiceParamType" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="returns" type="s:ServiceReturnType" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="name" type="xs:string" use="required"/>
+        <xs:attribute name="async" type="xs:boolean" default="false"/>
+    </xs:complexType>
+
+    <xs:complexType name="ServiceParamType">
+        <xs:sequence>
+            <xs:element name="description" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="name" type="xs:string" use="required"/>
+        <xs:attribute name="type" type="s:ServiceValueTypeEnum" use="required"/>
+        <xs:attribute name="optional" type="xs:boolean" default="false"/>
+    </xs:complexType>
+
+    <xs:complexType name="ServiceReturnType">
+        <xs:sequence>
+            <xs:element name="field" type="s:ServiceFieldType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="type" type="s:ServiceValueTypeEnum" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="ServiceFieldType">
+        <xs:attribute name="name" type="xs:string" use="required"/>
+        <xs:attribute name="type" type="s:ServiceValueTypeEnum" use="required"/>
+    </xs:complexType>
+
+    <xs:simpleType name="ServiceValueTypeEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="void"/>
+            <xs:enumeration value="bool"/>
+            <xs:enumeration value="int"/>
+            <xs:enumeration value="float"/>
+            <xs:enumeration value="string"/>
+            <xs:enumeration value="vec3"/>
+            <xs:enumeration value="vec2"/>
+            <xs:enumeration value="table"/>
+            <xs:enumeration value="entity"/>
+            <xs:enumeration value="entity[]"/>
+        </xs:restriction>
+    </xs:simpleType>
 
 </xs:schema>
