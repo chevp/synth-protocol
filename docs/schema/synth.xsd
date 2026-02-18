@@ -39,6 +39,7 @@
             <xs:element name="gameProject" type="s:GameProjectType"/>
             <xs:element name="assetRegistry" type="s:AssetRegistryType"/>
             <xs:element name="extension" type="s:ExtensionContainerType"/>
+            <xs:element name="shopCatalog" type="s:ShopCatalogType"/>
         </xs:choice>
         <xs:attribute name="version" type="xs:string" default="1.0"/>
     </xs:complexType>
@@ -347,6 +348,7 @@
         </xs:sequence>
         <xs:attribute name="version" type="xs:string" use="required"/>
         <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="script" type="xs:string" use="optional"/>
     </xs:complexType>
 
     <xs:complexType name="SceneSettingsType">
@@ -472,13 +474,54 @@
     <xs:complexType name="UIPanelType">
         <xs:sequence>
             <xs:element name="widget" type="s:UIWidgetType" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="list" type="s:UIListType" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="panel" type="s:UIPanelType" minOccurs="0" maxOccurs="unbounded"/>
         </xs:sequence>
         <xs:attribute name="id" type="xs:string" use="required"/>
         <xs:attribute name="anchor" type="xs:string"/>
+        <xs:attribute name="layout" type="s:UILayoutModeEnum" default="vertical"/>
         <xs:attribute name="width" type="xs:int"/>
         <xs:attribute name="height" type="xs:int"/>
+        <xs:attribute name="padding" type="xs:int"/>
+        <xs:attribute name="gap" type="xs:int"/>
+        <xs:attribute name="background" type="xs:string"/>
         <xs:attribute name="visible" type="xs:boolean" default="true"/>
         <xs:attribute name="visibleWhen" type="xs:string"/>
+        <xs:attribute name="modal" type="xs:boolean" default="false"/>
+        <xs:attribute name="dataSource" type="xs:string"/>
+        <xs:attribute name="scrollable" type="xs:boolean" default="false"/>
+    </xs:complexType>
+
+    <xs:simpleType name="UILayoutModeEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="vertical"/>
+            <xs:enumeration value="horizontal"/>
+            <xs:enumeration value="grid"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:complexType name="UIListType">
+        <xs:sequence>
+            <xs:element name="itemTemplate" type="s:UIItemTemplateType"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="dataSource" type="xs:string" use="required"/>
+        <xs:attribute name="layout" type="s:UILayoutModeEnum" default="vertical"/>
+        <xs:attribute name="width" type="xs:int"/>
+        <xs:attribute name="height" type="xs:int"/>
+        <xs:attribute name="scrollable" type="xs:boolean" default="true"/>
+        <xs:attribute name="gap" type="xs:int"/>
+    </xs:complexType>
+
+    <xs:complexType name="UIItemTemplateType">
+        <xs:sequence>
+            <xs:element name="widget" type="s:UIWidgetType" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="panel" type="s:UIPanelType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="height" type="xs:int"/>
+        <xs:attribute name="layout" type="s:UILayoutModeEnum" default="horizontal"/>
+        <xs:attribute name="gap" type="xs:int"/>
+        <xs:attribute name="padding" type="xs:int"/>
     </xs:complexType>
 
     <xs:complexType name="UIWidgetType">
@@ -497,6 +540,8 @@
         <xs:attribute name="width" type="xs:int"/>
         <xs:attribute name="height" type="xs:int"/>
         <xs:attribute name="format" type="xs:string"/>
+        <xs:attribute name="src" type="xs:string"/>
+        <xs:attribute name="disabledWhen" type="xs:string"/>
     </xs:complexType>
 
     <xs:simpleType name="UIWidgetTypeEnum">
@@ -504,6 +549,9 @@
             <xs:enumeration value="text"/>
             <xs:enumeration value="button"/>
             <xs:enumeration value="image"/>
+            <xs:enumeration value="icon"/>
+            <xs:enumeration value="separator"/>
+            <xs:enumeration value="spacer"/>
         </xs:restriction>
     </xs:simpleType>
 
@@ -1157,6 +1205,88 @@
     <xs:complexType name="PackageDependencyType">
         <xs:attribute name="package" type="xs:string" use="required"/>
         <xs:attribute name="minVersion" type="xs:string" use="optional"/>
+    </xs:complexType>
+
+    <!-- ================================================================= -->
+    <!-- SHOP-CATALOG                                                      -->
+    <!-- <synth><shopCatalog>...</shopCatalog></synth>                     -->
+    <!--                                                                   -->
+    <!-- Producer-editable shop contents. Referenced from entities via      -->
+    <!-- property shopCatalog="shops/blacksmith.synth.xml"                  -->
+    <!-- ================================================================= -->
+
+    <xs:complexType name="ShopCatalogType">
+        <xs:sequence>
+            <xs:element name="metadata" type="s:MetadataBaseType"/>
+            <xs:element name="categories" type="s:ShopCategoriesType"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="ShopCategoriesType">
+        <xs:sequence>
+            <xs:element name="category" type="s:ShopCategoryType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="ShopCategoryType">
+        <xs:sequence>
+            <xs:element name="name" type="xs:string"/>
+            <xs:element name="item" type="s:ShopItemType" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="ShopItemType">
+        <xs:sequence>
+            <xs:element name="name" type="xs:string"/>
+            <xs:element name="description" type="xs:string" minOccurs="0"/>
+            <xs:element name="icon" type="s:MeshRefType" minOccurs="0"/>
+            <xs:element name="price" type="s:ShopPriceType"/>
+            <xs:element name="requirements" type="s:ShopRequirementsType" minOccurs="0"/>
+            <xs:element name="stock" type="s:ShopStockType" minOccurs="0"/>
+            <xs:element name="properties" type="s:PropertiesType" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="ShopPriceType">
+        <xs:attribute name="currency" type="s:ShopCurrencyEnum" use="required"/>
+        <xs:attribute name="amount" type="xs:int" use="required"/>
+    </xs:complexType>
+
+    <xs:simpleType name="ShopCurrencyEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="gold"/>
+            <xs:enumeration value="credits"/>
+            <xs:enumeration value="gems"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:complexType name="ShopRequirementsType">
+        <xs:sequence>
+            <xs:element name="requirement" type="s:ShopRequirementType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="ShopRequirementType">
+        <xs:attribute name="type" type="s:ShopRequirementEnum" use="required"/>
+        <xs:attribute name="value" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <xs:simpleType name="ShopRequirementEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="level"/>
+            <xs:enumeration value="quest"/>
+            <xs:enumeration value="reputation"/>
+            <xs:enumeration value="item"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:complexType name="ShopStockType">
+        <xs:attribute name="unlimited" type="xs:boolean" default="true"/>
+        <xs:attribute name="max" type="xs:int" use="optional"/>
+        <xs:attribute name="refreshInterval" type="xs:int" use="optional"/>
     </xs:complexType>
 
     <!-- ================================================================= -->
