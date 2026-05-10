@@ -1029,6 +1029,10 @@
             <xs:element name="backend" type="s:BackendType"/>
             <xs:element name="renderer" type="s:GameRendererType"/>
             <xs:element name="paths" type="s:GamePathsType" minOccurs="0"/>
+            <xs:element name="packs" type="s:GamePacksType" minOccurs="0"/>
+            <xs:element name="scenes" type="s:GameScenesType" minOccurs="0"/>
+            <xs:element name="data" type="s:GameDataType" minOccurs="0"/>
+            <xs:element name="scripts" type="s:GameScriptsType" minOccurs="0"/>
             <xs:element name="launcher" type="s:LauncherType" minOccurs="0"/>
         </xs:sequence>
         <xs:attribute name="version" type="xs:string" use="required"/>
@@ -1036,12 +1040,71 @@
 
     <xs:complexType name="GameProjectMetadataType">
         <xs:sequence>
+            <xs:element name="id" type="xs:string" minOccurs="0"/>
             <xs:element name="name" type="xs:string"/>
             <xs:element name="description" type="xs:string" minOccurs="0"/>
             <xs:element name="version" type="xs:string" minOccurs="0"/>
             <xs:element name="author" type="xs:string" minOccurs="0"/>
             <xs:element name="created" type="xs:dateTime" minOccurs="0"/>
         </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="GamePacksType">
+        <xs:sequence>
+            <xs:element name="pack" type="s:GamePackEntryType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="GamePackEntryType">
+        <xs:simpleContent>
+            <xs:extension base="xs:string">
+                <xs:attribute name="kind" type="s:GamePackKindEnum"/>
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+
+    <xs:simpleType name="GamePackKindEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="prefab"/>
+            <xs:enumeration value="mechanic"/>
+            <xs:enumeration value="ui"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:complexType name="GameScenesType">
+        <xs:sequence>
+            <xs:element name="scene" type="s:GameSceneEntryType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="entry" type="xs:string"/>
+    </xs:complexType>
+
+    <xs:complexType name="GameSceneEntryType">
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="href" type="xs:string" use="required"/>
+        <xs:attribute name="kind" type="xs:string"/>
+    </xs:complexType>
+
+    <xs:complexType name="GameDataType">
+        <xs:sequence>
+            <xs:element name="file" type="s:GameDataFileType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="schemaRef" type="xs:string"/>
+    </xs:complexType>
+
+    <xs:complexType name="GameDataFileType">
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="href" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="GameScriptsType">
+        <xs:sequence>
+            <xs:element name="stateMachine" type="s:GameScriptRefType" minOccurs="0"/>
+            <xs:element name="glue" type="s:GameScriptRefType" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="GameScriptRefType">
+        <xs:attribute name="href" type="xs:string" use="required"/>
     </xs:complexType>
 
     <xs:complexType name="BackendType">
