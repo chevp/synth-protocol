@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:us="https://chevp.github.io/synth-protocol/schema/synth/settings/1.0"
+           xmlns:common="https://chevp.github.io/synth-protocol/schema/synth/common-types"
+           targetNamespace="https://chevp.github.io/synth-protocol/schema/synth/settings/1.0"
+           elementFormDefault="qualified">
+
+    <xs:import namespace="https://chevp.github.io/synth-protocol/schema/synth/common-types"
+               schemaLocation="../../common-types.xsd"/>
+
+    <!-- =========================================================================
+         SYNTH USER-SETTINGS SCHEMA
+         User-Preferences (Graphics, Audio, Controls, Accessibility).
+         Abgegrenzt von runtime.xsd <settings> (das ist Engine-Konfiguration).
+         Root element: <synthUserSettings>
+         ========================================================================= -->
+
+    <xs:element name="synthUserSettings" type="us:SynthUserSettingsType"/>
+
+    <xs:complexType name="SynthUserSettingsType">
+        <xs:sequence>
+            <xs:element name="graphics" type="us:GraphicsType" minOccurs="0"/>
+            <xs:element name="audio" type="us:AudioPrefsType" minOccurs="0"/>
+            <xs:element name="controls" type="us:ControlsType" minOccurs="0"/>
+            <xs:element name="accessibility" type="us:AccessibilityType" minOccurs="0"/>
+            <xs:element name="custom" type="common:PropertiesType" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="version" type="xs:string" use="required"/>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <!-- ===== Graphics ===== -->
+    <xs:complexType name="GraphicsType">
+        <xs:attribute name="preset" type="us:QualityPresetEnum" default="medium"/>
+        <xs:attribute name="resolutionWidth" type="xs:int"/>
+        <xs:attribute name="resolutionHeight" type="xs:int"/>
+        <xs:attribute name="refreshRateHz" type="xs:int"/>
+        <xs:attribute name="windowMode" type="us:WindowModeEnum" default="fullscreen"/>
+        <xs:attribute name="vsync" type="xs:boolean" default="true"/>
+        <xs:attribute name="fpsLimit" type="xs:int" default="0"/>
+        <xs:attribute name="renderScale" type="xs:float" default="1.0"/>
+        <xs:attribute name="shadowQuality" type="us:QualityEnum" default="medium"/>
+        <xs:attribute name="textureQuality" type="us:QualityEnum" default="medium"/>
+        <xs:attribute name="effectQuality" type="us:QualityEnum" default="medium"/>
+        <xs:attribute name="postFXProfile" type="xs:string"/>
+        <xs:attribute name="antialiasing" type="us:AAEnum" default="taa"/>
+        <xs:attribute name="anisotropy" type="xs:int" default="8"/>
+        <xs:attribute name="hdr" type="xs:boolean" default="false"/>
+        <xs:attribute name="brightness" type="xs:float" default="1.0"/>
+    </xs:complexType>
+
+    <xs:simpleType name="QualityPresetEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="low"/>
+            <xs:enumeration value="medium"/>
+            <xs:enumeration value="high"/>
+            <xs:enumeration value="ultra"/>
+            <xs:enumeration value="custom"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="QualityEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="off"/>
+            <xs:enumeration value="low"/>
+            <xs:enumeration value="medium"/>
+            <xs:enumeration value="high"/>
+            <xs:enumeration value="ultra"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="WindowModeEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="windowed"/>
+            <xs:enumeration value="borderless"/>
+            <xs:enumeration value="fullscreen"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="AAEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="none"/>
+            <xs:enumeration value="fxaa"/>
+            <xs:enumeration value="smaa"/>
+            <xs:enumeration value="taa"/>
+            <xs:enumeration value="msaa2x"/>
+            <xs:enumeration value="msaa4x"/>
+            <xs:enumeration value="msaa8x"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ===== Audio Preferences ===== -->
+    <xs:complexType name="AudioPrefsType">
+        <xs:sequence>
+            <xs:element name="busVolume" type="us:BusVolumeType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="masterVolume" type="xs:float" default="1.0"/>
+        <xs:attribute name="muteOnFocusLoss" type="xs:boolean" default="false"/>
+        <xs:attribute name="device" type="xs:string"/>
+        <xs:attribute name="outputMode" type="us:OutputModeEnum" default="stereo"/>
+    </xs:complexType>
+
+    <xs:complexType name="BusVolumeType">
+        <xs:attribute name="bus" type="xs:string" use="required"/>
+        <xs:attribute name="volume" type="xs:float" use="required"/>
+    </xs:complexType>
+
+    <xs:simpleType name="OutputModeEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="mono"/>
+            <xs:enumeration value="stereo"/>
+            <xs:enumeration value="surround5_1"/>
+            <xs:enumeration value="surround7_1"/>
+            <xs:enumeration value="headphones"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ===== Controls (Key-Rebinding) ===== -->
+    <xs:complexType name="ControlsType">
+        <xs:sequence>
+            <xs:element name="rebind" type="us:RebindType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="mouseSensitivity" type="xs:float" default="1.0"/>
+        <xs:attribute name="invertY" type="xs:boolean" default="false"/>
+        <xs:attribute name="gamepadSensitivity" type="xs:float" default="1.0"/>
+        <xs:attribute name="gamepadDeadzone" type="xs:float" default="0.15"/>
+        <xs:attribute name="vibration" type="xs:boolean" default="true"/>
+    </xs:complexType>
+
+    <xs:complexType name="RebindType">
+        <xs:attribute name="actionRef" type="xs:string" use="required"/>
+        <xs:attribute name="device" type="xs:string" use="required"/>
+        <xs:attribute name="path" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <!-- ===== Accessibility ===== -->
+    <xs:complexType name="AccessibilityType">
+        <xs:attribute name="subtitles" type="xs:boolean" default="true"/>
+        <xs:attribute name="subtitleSize" type="us:SizeEnum" default="medium"/>
+        <xs:attribute name="subtitleBackground" type="xs:float" default="0.5"/>
+        <xs:attribute name="colorblindMode" type="us:ColorblindModeEnum" default="none"/>
+        <xs:attribute name="highContrast" type="xs:boolean" default="false"/>
+        <xs:attribute name="reduceMotion" type="xs:boolean" default="false"/>
+        <xs:attribute name="reduceFlashes" type="xs:boolean" default="false"/>
+        <xs:attribute name="screenShake" type="xs:boolean" default="true"/>
+        <xs:attribute name="cameraShake" type="xs:boolean" default="true"/>
+        <xs:attribute name="uiScale" type="xs:float" default="1.0"/>
+        <xs:attribute name="screenReader" type="xs:boolean" default="false"/>
+    </xs:complexType>
+
+    <xs:simpleType name="SizeEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="small"/>
+            <xs:enumeration value="medium"/>
+            <xs:enumeration value="large"/>
+            <xs:enumeration value="xlarge"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="ColorblindModeEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="none"/>
+            <xs:enumeration value="protanopia"/>
+            <xs:enumeration value="deuteranopia"/>
+            <xs:enumeration value="tritanopia"/>
+            <xs:enumeration value="monochrome"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+</xs:schema>

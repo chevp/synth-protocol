@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:svc="https://chevp.github.io/synth-protocol/schema/synth/service/1.0"
+           xmlns:common="https://chevp.github.io/synth-protocol/schema/synth/common-types"
+           targetNamespace="https://chevp.github.io/synth-protocol/schema/synth/service/1.0"
+           elementFormDefault="qualified">
+
+    <xs:import namespace="https://chevp.github.io/synth-protocol/schema/synth/common-types"
+               schemaLocation="../../common-types.xsd"/>
+
+    <!-- =========================================================================
+         SYNTH SERVICE SCHEMA
+         In-Process DI für Game-Logic-Singletons (Angular @Injectable-Pendant).
+         Abgegrenzt von synth-wire (gRPC-Services) und extension-services (Lua-API).
+
+         Lifecycle:
+         - singleton: einmal pro Runtime
+         - scoped:    pro Scene / Route aktiv
+         - transient: neu pro Resolution
+         Root element: <synthServices>
+         ========================================================================= -->
+
+    <xs:element name="synthServices" type="svc:SynthServicesType"/>
+
+    <xs:complexType name="SynthServicesType">
+        <xs:sequence>
+            <xs:element name="service" type="svc:ServiceType" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="version" type="xs:string" use="required"/>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="ServiceType">
+        <xs:sequence>
+            <xs:element name="description" type="xs:string" minOccurs="0"/>
+            <xs:element name="provides" type="svc:ProvidesType" minOccurs="0"/>
+            <xs:element name="dependencies" type="svc:DependenciesType" minOccurs="0"/>
+            <xs:element name="config" type="common:PropertiesType" minOccurs="0"/>
+            <xs:element name="lifecycle" type="svc:LifecycleHooksType" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="implementation" type="xs:string" use="required"/>
+        <xs:attribute name="lifecycle" type="svc:LifecycleEnum" default="singleton"/>
+        <xs:attribute name="lazy" type="xs:boolean" default="true"/>
+        <xs:attribute name="enabled" type="xs:boolean" default="true"/>
+    </xs:complexType>
+
+    <xs:simpleType name="LifecycleEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="singleton"/>
+            <xs:enumeration value="scoped"/>
+            <xs:enumeration value="transient"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Interfaces provided by this service (for DI lookups) -->
+    <xs:complexType name="ProvidesType">
+        <xs:sequence>
+            <xs:element name="interface" type="svc:InterfaceRefType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="InterfaceRefType">
+        <xs:attribute name="id" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <!-- Constructor-Dependencies -->
+    <xs:complexType name="DependenciesType">
+        <xs:sequence>
+            <xs:element name="dependency" type="svc:DependencyType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="DependencyType">
+        <xs:attribute name="serviceRef" type="xs:string" use="required"/>
+        <xs:attribute name="optional" type="xs:boolean" default="false"/>
+        <xs:attribute name="paramName" type="xs:string"/>
+    </xs:complexType>
+
+    <!-- Lifecycle-Hooks (init, ready, shutdown) -->
+    <xs:complexType name="LifecycleHooksType">
+        <xs:attribute name="onInit" type="xs:string"/>
+        <xs:attribute name="onReady" type="xs:string"/>
+        <xs:attribute name="onShutdown" type="xs:string"/>
+        <xs:attribute name="initTimeoutMs" type="xs:int" default="5000"/>
+    </xs:complexType>
+
+</xs:schema>

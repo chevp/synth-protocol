@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:audio="https://chevp.github.io/synth-protocol/schema/synth/audio/1.0"
+           xmlns:common="https://chevp.github.io/synth-protocol/schema/synth/common-types"
+           targetNamespace="https://chevp.github.io/synth-protocol/schema/synth/audio/1.0"
+           elementFormDefault="qualified">
+
+    <xs:import namespace="https://chevp.github.io/synth-protocol/schema/synth/common-types"
+               schemaLocation="../../common-types.xsd"/>
+
+    <!-- =========================================================================
+         SYNTH AUDIO SCHEMA
+         Mixer, Buses, 3D-Spatial-Audio, Reverb-Zones, Cues.
+         Geht über das bisherige `audio`-AssetType-Enum hinaus.
+         Root element: <synthAudio>
+         ========================================================================= -->
+
+    <xs:element name="synthAudio" type="audio:SynthAudioType"/>
+
+    <xs:complexType name="SynthAudioType">
+        <xs:sequence>
+            <xs:element name="settings" type="audio:AudioSettingsType" minOccurs="0"/>
+            <xs:element name="mixer" type="audio:MixerType" minOccurs="0"/>
+            <xs:element name="clips" type="audio:ClipsType" minOccurs="0"/>
+            <xs:element name="cues" type="audio:CuesType" minOccurs="0"/>
+            <xs:element name="reverbZones" type="audio:ReverbZonesType" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="version" type="xs:string" use="required"/>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="AudioSettingsType">
+        <xs:attribute name="sampleRate" type="xs:int" default="48000"/>
+        <xs:attribute name="channels" type="xs:int" default="2"/>
+        <xs:attribute name="bufferSize" type="xs:int" default="512"/>
+        <xs:attribute name="speedOfSound" type="xs:float" default="343.0"/>
+        <xs:attribute name="dopplerFactor" type="xs:float" default="1.0"/>
+        <xs:attribute name="distanceModel" type="audio:DistanceModelEnum" default="inverse"/>
+    </xs:complexType>
+
+    <xs:simpleType name="DistanceModelEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="linear"/>
+            <xs:enumeration value="inverse"/>
+            <xs:enumeration value="exponential"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ===== Mixer & Buses ===== -->
+    <xs:complexType name="MixerType">
+        <xs:sequence>
+            <xs:element name="bus" type="audio:BusType" maxOccurs="unbounded"/>
+            <xs:element name="snapshot" type="audio:SnapshotType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="BusType">
+        <xs:sequence>
+            <xs:element name="effect" type="audio:EffectType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="parent" type="xs:string"/>
+        <xs:attribute name="volumeDb" type="xs:float" default="0.0"/>
+        <xs:attribute name="muted" type="xs:boolean" default="false"/>
+        <xs:attribute name="solo" type="xs:boolean" default="false"/>
+        <xs:attribute name="duckTarget" type="xs:string"/>
+        <xs:attribute name="duckAmountDb" type="xs:float"/>
+    </xs:complexType>
+
+    <xs:complexType name="EffectType">
+        <xs:sequence>
+            <xs:element name="param" type="audio:EffectParamType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="type" type="audio:EffectTypeEnum" use="required"/>
+        <xs:attribute name="bypass" type="xs:boolean" default="false"/>
+    </xs:complexType>
+
+    <xs:simpleType name="EffectTypeEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="lowpass"/>
+            <xs:enumeration value="highpass"/>
+            <xs:enumeration value="bandpass"/>
+            <xs:enumeration value="eq"/>
+            <xs:enumeration value="reverb"/>
+            <xs:enumeration value="echo"/>
+            <xs:enumeration value="chorus"/>
+            <xs:enumeration value="distortion"/>
+            <xs:enumeration value="compressor"/>
+            <xs:enumeration value="limiter"/>
+            <xs:enumeration value="pitchShift"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:complexType name="EffectParamType">
+        <xs:attribute name="name" type="xs:string" use="required"/>
+        <xs:attribute name="value" type="xs:float" use="required"/>
+    </xs:complexType>
+
+    <!-- Snapshots: vorgemixte Mixer-Zustände (Underwater, Combat, Menu) -->
+    <xs:complexType name="SnapshotType">
+        <xs:sequence>
+            <xs:element name="busOverride" type="audio:BusOverrideType" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="transitionMs" type="xs:int" default="500"/>
+    </xs:complexType>
+
+    <xs:complexType name="BusOverrideType">
+        <xs:attribute name="bus" type="xs:string" use="required"/>
+        <xs:attribute name="volumeDb" type="xs:float"/>
+    </xs:complexType>
+
+    <!-- ===== Clips ===== -->
+    <xs:complexType name="ClipsType">
+        <xs:sequence>
+            <xs:element name="clip" type="audio:ClipType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="ClipType">
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="uri" type="xs:anyURI" use="required"/>
+        <xs:attribute name="bus" type="xs:string"/>
+        <xs:attribute name="streaming" type="xs:boolean" default="false"/>
+        <xs:attribute name="preload" type="xs:boolean" default="true"/>
+        <xs:attribute name="loop" type="xs:boolean" default="false"/>
+        <xs:attribute name="format" type="audio:ClipFormatEnum"/>
+    </xs:complexType>
+
+    <xs:simpleType name="ClipFormatEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="wav"/>
+            <xs:enumeration value="ogg"/>
+            <xs:enumeration value="mp3"/>
+            <xs:enumeration value="flac"/>
+            <xs:enumeration value="opus"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ===== Cues: spielbare Logik-Einheiten ===== -->
+    <xs:complexType name="CuesType">
+        <xs:sequence>
+            <xs:element name="cue" type="audio:CueType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="CueType">
+        <xs:sequence>
+            <xs:element name="clipRef" type="audio:CueClipRefType" minOccurs="1" maxOccurs="unbounded"/>
+            <xs:element name="spatial" type="audio:SpatialType" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="select" type="audio:SelectModeEnum" default="single"/>
+        <xs:attribute name="volumeDb" type="xs:float" default="0.0"/>
+        <xs:attribute name="pitchRandomMin" type="xs:float" default="1.0"/>
+        <xs:attribute name="pitchRandomMax" type="xs:float" default="1.0"/>
+        <xs:attribute name="bus" type="xs:string"/>
+        <xs:attribute name="polyphony" type="xs:int" default="8"/>
+        <xs:attribute name="priority" type="xs:int" default="128"/>
+    </xs:complexType>
+
+    <xs:simpleType name="SelectModeEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="single"/>
+            <xs:enumeration value="random"/>
+            <xs:enumeration value="roundRobin"/>
+            <xs:enumeration value="sequence"/>
+            <xs:enumeration value="layered"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:complexType name="CueClipRefType">
+        <xs:attribute name="ref" type="xs:string" use="required"/>
+        <xs:attribute name="weight" type="xs:float" default="1.0"/>
+    </xs:complexType>
+
+    <xs:complexType name="SpatialType">
+        <xs:attribute name="mode" type="audio:SpatialModeEnum" default="2d"/>
+        <xs:attribute name="minDistance" type="xs:float" default="1.0"/>
+        <xs:attribute name="maxDistance" type="xs:float" default="50.0"/>
+        <xs:attribute name="rolloff" type="audio:DistanceModelEnum" default="inverse"/>
+        <xs:attribute name="hrtf" type="xs:boolean" default="false"/>
+        <xs:attribute name="occlusion" type="xs:boolean" default="false"/>
+    </xs:complexType>
+
+    <xs:simpleType name="SpatialModeEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="2d"/>
+            <xs:enumeration value="3d"/>
+            <xs:enumeration value="ambisonic"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ===== Reverb-Zones ===== -->
+    <xs:complexType name="ReverbZonesType">
+        <xs:sequence>
+            <xs:element name="zone" type="audio:ReverbZoneType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="ReverbZoneType">
+        <xs:sequence>
+            <xs:element name="position" type="common:Vec3Type"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="preset" type="audio:ReverbPresetEnum" default="room"/>
+        <xs:attribute name="minDistance" type="xs:float" default="5"/>
+        <xs:attribute name="maxDistance" type="xs:float" default="20"/>
+        <xs:attribute name="wet" type="xs:float" default="0.5"/>
+    </xs:complexType>
+
+    <xs:simpleType name="ReverbPresetEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="generic"/>
+            <xs:enumeration value="room"/>
+            <xs:enumeration value="hall"/>
+            <xs:enumeration value="cave"/>
+            <xs:enumeration value="forest"/>
+            <xs:enumeration value="city"/>
+            <xs:enumeration value="underwater"/>
+            <xs:enumeration value="custom"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+</xs:schema>

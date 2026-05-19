@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:light="https://chevp.github.io/synth-protocol/schema/synth/lighting/1.0"
+           xmlns:common="https://chevp.github.io/synth-protocol/schema/synth/common-types"
+           targetNamespace="https://chevp.github.io/synth-protocol/schema/synth/lighting/1.0"
+           elementFormDefault="qualified">
+
+    <xs:import namespace="https://chevp.github.io/synth-protocol/schema/synth/common-types"
+               schemaLocation="../../common-types.xsd"/>
+
+    <!-- =========================================================================
+         SYNTH LIGHTING SCHEMA
+         Directional/Spot/Area/IBL Lights, Probes, Shadow-Settings.
+         Erweitert scene.xsd, das nur PointLight kennt.
+         Root element: <synthLighting>
+         ========================================================================= -->
+
+    <xs:element name="synthLighting" type="light:SynthLightingType"/>
+
+    <xs:complexType name="SynthLightingType">
+        <xs:sequence>
+            <xs:element name="ambient" type="light:AmbientType" minOccurs="0"/>
+            <xs:element name="ibl" type="light:IBLType" minOccurs="0"/>
+            <xs:element name="lights" type="light:LightsType" minOccurs="0"/>
+            <xs:element name="probes" type="light:ProbesType" minOccurs="0"/>
+            <xs:element name="shadowSettings" type="light:ShadowSettingsType" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="version" type="xs:string" use="required"/>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="AmbientType">
+        <xs:attribute name="color" type="xs:string" default="#202020"/>
+        <xs:attribute name="intensity" type="xs:float" default="1.0"/>
+        <xs:attribute name="mode" type="light:AmbientModeEnum" default="flat"/>
+    </xs:complexType>
+
+    <xs:simpleType name="AmbientModeEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="flat"/>
+            <xs:enumeration value="trilight"/>
+            <xs:enumeration value="skybox"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- IBL: Image-Based Lighting (HDRI Environment + Reflections) -->
+    <xs:complexType name="IBLType">
+        <xs:attribute name="envMap" type="xs:string"/>
+        <xs:attribute name="irradiance" type="xs:string"/>
+        <xs:attribute name="prefilter" type="xs:string"/>
+        <xs:attribute name="brdfLut" type="xs:string"/>
+        <xs:attribute name="intensity" type="xs:float" default="1.0"/>
+        <xs:attribute name="rotationDeg" type="xs:float" default="0"/>
+    </xs:complexType>
+
+    <!-- Lights ===== -->
+    <xs:complexType name="LightsType">
+        <xs:sequence>
+            <xs:choice maxOccurs="unbounded">
+                <xs:element name="directional" type="light:DirectionalLightType"/>
+                <xs:element name="point" type="light:PointLightType"/>
+                <xs:element name="spot" type="light:SpotLightType"/>
+                <xs:element name="area" type="light:AreaLightType"/>
+            </xs:choice>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="BaseLightType">
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="entity" type="xs:string"/>
+        <xs:attribute name="color" type="xs:string" default="#FFFFFF"/>
+        <xs:attribute name="intensity" type="xs:float" default="1.0"/>
+        <xs:attribute name="enabled" type="xs:boolean" default="true"/>
+        <xs:attribute name="castShadows" type="xs:boolean" default="false"/>
+        <xs:attribute name="indirectMultiplier" type="xs:float" default="1.0"/>
+        <xs:attribute name="layerMask" type="xs:string" default="*"/>
+    </xs:complexType>
+
+    <xs:complexType name="DirectionalLightType">
+        <xs:complexContent>
+            <xs:extension base="light:BaseLightType">
+                <xs:sequence>
+                    <xs:element name="direction" type="common:Vec3Type"/>
+                </xs:sequence>
+                <xs:attribute name="cascadeCount" type="xs:int" default="4"/>
+                <xs:attribute name="cascadeSplits" type="xs:string" default="0.067 0.2 0.467 1.0"/>
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+
+    <xs:complexType name="PointLightType">
+        <xs:complexContent>
+            <xs:extension base="light:BaseLightType">
+                <xs:attribute name="range" type="xs:float" use="required"/>
+                <xs:attribute name="falloff" type="light:FalloffEnum" default="inverseSquare"/>
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+
+    <xs:complexType name="SpotLightType">
+        <xs:complexContent>
+            <xs:extension base="light:BaseLightType">
+                <xs:sequence>
+                    <xs:element name="direction" type="common:Vec3Type"/>
+                </xs:sequence>
+                <xs:attribute name="range" type="xs:float" use="required"/>
+                <xs:attribute name="innerConeDeg" type="xs:float" default="20"/>
+                <xs:attribute name="outerConeDeg" type="xs:float" default="30"/>
+                <xs:attribute name="falloff" type="light:FalloffEnum" default="inverseSquare"/>
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+
+    <xs:complexType name="AreaLightType">
+        <xs:complexContent>
+            <xs:extension base="light:BaseLightType">
+                <xs:attribute name="shape" type="light:AreaShapeEnum" default="rect"/>
+                <xs:attribute name="width" type="xs:float" use="required"/>
+                <xs:attribute name="height" type="xs:float" use="required"/>
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+
+    <xs:simpleType name="FalloffEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="linear"/>
+            <xs:enumeration value="inverseSquare"/>
+            <xs:enumeration value="custom"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="AreaShapeEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="rect"/>
+            <xs:enumeration value="disc"/>
+            <xs:enumeration value="tube"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ===== Light/Reflection-Probes ===== -->
+    <xs:complexType name="ProbesType">
+        <xs:sequence>
+            <xs:choice maxOccurs="unbounded">
+                <xs:element name="reflectionProbe" type="light:ReflectionProbeType"/>
+                <xs:element name="lightProbe" type="light:LightProbeType"/>
+            </xs:choice>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="ReflectionProbeType">
+        <xs:sequence>
+            <xs:element name="position" type="common:Vec3Type"/>
+            <xs:element name="size" type="common:Vec3Type" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="resolution" type="xs:int" default="256"/>
+        <xs:attribute name="boxProjection" type="xs:boolean" default="false"/>
+        <xs:attribute name="updateMode" type="light:ProbeUpdateEnum" default="baked"/>
+    </xs:complexType>
+
+    <xs:complexType name="LightProbeType">
+        <xs:sequence>
+            <xs:element name="position" type="common:Vec3Type"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <xs:simpleType name="ProbeUpdateEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="baked"/>
+            <xs:enumeration value="realtime"/>
+            <xs:enumeration value="onAwake"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ===== Shadow Settings ===== -->
+    <xs:complexType name="ShadowSettingsType">
+        <xs:attribute name="quality" type="light:ShadowQualityEnum" default="medium"/>
+        <xs:attribute name="resolution" type="xs:int" default="2048"/>
+        <xs:attribute name="distance" type="xs:float" default="100"/>
+        <xs:attribute name="bias" type="xs:float" default="0.005"/>
+        <xs:attribute name="normalBias" type="xs:float" default="0.4"/>
+        <xs:attribute name="softness" type="light:ShadowSoftnessEnum" default="pcf"/>
+    </xs:complexType>
+
+    <xs:simpleType name="ShadowQualityEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="off"/>
+            <xs:enumeration value="low"/>
+            <xs:enumeration value="medium"/>
+            <xs:enumeration value="high"/>
+            <xs:enumeration value="ultra"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="ShadowSoftnessEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="hard"/>
+            <xs:enumeration value="pcf"/>
+            <xs:enumeration value="pcss"/>
+            <xs:enumeration value="vsm"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+</xs:schema>

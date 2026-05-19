@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:net="https://chevp.github.io/synth-protocol/schema/synth/net/1.0"
+           targetNamespace="https://chevp.github.io/synth-protocol/schema/synth/net/1.0"
+           elementFormDefault="qualified">
+
+    <!-- =========================================================================
+         SYNTH NET / REPLICATION SCHEMA
+         Authority-Model, Property-Replication, Prediction, Interpolation, RPCs.
+         Abgegrenzt von synth-state-sync (das ist Editor-Sync).
+         Root element: <synthReplication>
+         ========================================================================= -->
+
+    <xs:element name="synthReplication" type="net:SynthReplicationType"/>
+
+    <xs:complexType name="SynthReplicationType">
+        <xs:sequence>
+            <xs:element name="settings" type="net:NetSettingsType" minOccurs="0"/>
+            <xs:element name="channels" type="net:ChannelsType" minOccurs="0"/>
+            <xs:element name="replicatedComponents" type="net:ReplicatedComponentsType" minOccurs="0"/>
+            <xs:element name="rpcs" type="net:RpcsType" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="version" type="xs:string" use="required"/>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <!-- ===== Global Settings ===== -->
+    <xs:complexType name="NetSettingsType">
+        <xs:attribute name="authorityModel" type="net:AuthorityModelEnum" default="serverAuthoritative"/>
+        <xs:attribute name="tickRateHz" type="xs:int" default="20"/>
+        <xs:attribute name="snapshotRateHz" type="xs:int" default="20"/>
+        <xs:attribute name="interpolationDelayMs" type="xs:int" default="100"/>
+        <xs:attribute name="enableClientPrediction" type="xs:boolean" default="true"/>
+        <xs:attribute name="enableServerReconciliation" type="xs:boolean" default="true"/>
+        <xs:attribute name="enableRollback" type="xs:boolean" default="false"/>
+        <xs:attribute name="rollbackWindowMs" type="xs:int" default="200"/>
+    </xs:complexType>
+
+    <xs:simpleType name="AuthorityModelEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="serverAuthoritative"/>
+            <xs:enumeration value="clientAuthoritative"/>
+            <xs:enumeration value="hostAuthoritative"/>
+            <xs:enumeration value="peerToPeer"/>
+            <xs:enumeration value="distributed"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ===== Channels ===== -->
+    <xs:complexType name="ChannelsType">
+        <xs:sequence>
+            <xs:element name="channel" type="net:ChannelType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="ChannelType">
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="reliability" type="net:ReliabilityEnum" default="unreliable"/>
+        <xs:attribute name="ordered" type="xs:boolean" default="true"/>
+        <xs:attribute name="priority" type="xs:int" default="0"/>
+        <xs:attribute name="maxBytesPerTick" type="xs:int"/>
+    </xs:complexType>
+
+    <xs:simpleType name="ReliabilityEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="reliable"/>
+            <xs:enumeration value="unreliable"/>
+            <xs:enumeration value="reliableSequenced"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ===== Replicated Components ===== -->
+    <xs:complexType name="ReplicatedComponentsType">
+        <xs:sequence>
+            <xs:element name="component" type="net:ReplicatedComponentType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="ReplicatedComponentType">
+        <xs:sequence>
+            <xs:element name="property" type="net:ReplicatedPropertyType" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="componentRef" type="xs:string" use="required"/>
+        <xs:attribute name="relevance" type="net:RelevanceEnum" default="all"/>
+        <xs:attribute name="relevanceRadius" type="xs:float"/>
+    </xs:complexType>
+
+    <xs:simpleType name="RelevanceEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="all"/>
+            <xs:enumeration value="owner"/>
+            <xs:enumeration value="proximity"/>
+            <xs:enumeration value="visible"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:complexType name="ReplicatedPropertyType">
+        <xs:attribute name="name" type="xs:string" use="required"/>
+        <xs:attribute name="condition" type="net:ReplicateConditionEnum" default="onChange"/>
+        <xs:attribute name="interpolation" type="net:InterpolationEnum" default="none"/>
+        <xs:attribute name="quantize" type="xs:int"/>
+        <xs:attribute name="channel" type="xs:string"/>
+    </xs:complexType>
+
+    <xs:simpleType name="ReplicateConditionEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="onChange"/>
+            <xs:enumeration value="onTick"/>
+            <xs:enumeration value="onlyInitial"/>
+            <xs:enumeration value="never"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="InterpolationEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="none"/>
+            <xs:enumeration value="linear"/>
+            <xs:enumeration value="hermite"/>
+            <xs:enumeration value="slerp"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ===== RPCs ===== -->
+    <xs:complexType name="RpcsType">
+        <xs:sequence>
+            <xs:element name="rpc" type="net:RpcType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="RpcType">
+        <xs:sequence>
+            <xs:element name="param" type="net:RpcParamType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="direction" type="net:RpcDirectionEnum" use="required"/>
+        <xs:attribute name="channel" type="xs:string"/>
+        <xs:attribute name="validation" type="xs:string"/>
+    </xs:complexType>
+
+    <xs:simpleType name="RpcDirectionEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="clientToServer"/>
+            <xs:enumeration value="serverToClient"/>
+            <xs:enumeration value="serverToOwner"/>
+            <xs:enumeration value="multicast"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:complexType name="RpcParamType">
+        <xs:attribute name="name" type="xs:string" use="required"/>
+        <xs:attribute name="type" type="xs:string" use="required"/>
+    </xs:complexType>
+
+</xs:schema>

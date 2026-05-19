@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:nav="https://chevp.github.io/synth-protocol/schema/synth/navigation/1.0"
+           xmlns:common="https://chevp.github.io/synth-protocol/schema/synth/common-types"
+           targetNamespace="https://chevp.github.io/synth-protocol/schema/synth/navigation/1.0"
+           elementFormDefault="qualified">
+
+    <xs:import namespace="https://chevp.github.io/synth-protocol/schema/synth/common-types"
+               schemaLocation="../../common-types.xsd"/>
+
+    <!-- =========================================================================
+         SYNTH NAVIGATION SCHEMA
+         NavMesh-Config + Areas + Off-Mesh-Links + Agent-Profile.
+         Direkt anschlussfähig an Nomos-Pathfinding.
+         Die eigentlichen NavMesh-Polygone liegen binär extern (data ref).
+         Root element: <synthNavigation>
+         ========================================================================= -->
+
+    <xs:element name="synthNavigation" type="nav:SynthNavigationType"/>
+
+    <xs:complexType name="SynthNavigationType">
+        <xs:sequence>
+            <xs:element name="bake" type="nav:BakeSettingsType" minOccurs="0"/>
+            <xs:element name="areas" type="nav:AreasType" minOccurs="0"/>
+            <xs:element name="agents" type="nav:AgentsType"/>
+            <xs:element name="navmeshes" type="nav:NavmeshesType" minOccurs="0"/>
+            <xs:element name="offMeshLinks" type="nav:OffMeshLinksType" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="version" type="xs:string" use="required"/>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <!-- Bake-Settings: wie NavMesh aus Scene generiert wird -->
+    <xs:complexType name="BakeSettingsType">
+        <xs:attribute name="cellSize" type="xs:float" default="0.3"/>
+        <xs:attribute name="cellHeight" type="xs:float" default="0.2"/>
+        <xs:attribute name="walkableSlope" type="xs:float" default="45.0"/>
+        <xs:attribute name="walkableHeight" type="xs:float" default="2.0"/>
+        <xs:attribute name="walkableClimb" type="xs:float" default="0.4"/>
+        <xs:attribute name="walkableRadius" type="xs:float" default="0.6"/>
+        <xs:attribute name="mergeRegionSize" type="xs:int" default="20"/>
+    </xs:complexType>
+
+    <!-- Areas: typisierte Bereiche (Wasser, Tür, Klettern, ...) mit Kosten -->
+    <xs:complexType name="AreasType">
+        <xs:sequence>
+            <xs:element name="area" type="nav:AreaType" maxOccurs="64"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="AreaType">
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="bit" type="xs:int" use="required"/>
+        <xs:attribute name="cost" type="xs:float" default="1.0"/>
+    </xs:complexType>
+
+    <!-- Agents: Profile (Größe, was sie betreten dürfen) -->
+    <xs:complexType name="AgentsType">
+        <xs:sequence>
+            <xs:element name="agent" type="nav:AgentType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="AgentType">
+        <xs:sequence>
+            <xs:element name="allowedArea" type="nav:AreaRefType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="radius" type="xs:float" use="required"/>
+        <xs:attribute name="height" type="xs:float" use="required"/>
+        <xs:attribute name="maxSlope" type="xs:float" default="45.0"/>
+        <xs:attribute name="maxStep" type="xs:float" default="0.4"/>
+        <xs:attribute name="maxSpeed" type="xs:float" default="3.5"/>
+        <xs:attribute name="acceleration" type="xs:float" default="8.0"/>
+        <xs:attribute name="turnRateDegPerSec" type="xs:float" default="180.0"/>
+    </xs:complexType>
+
+    <xs:complexType name="AreaRefType">
+        <xs:attribute name="ref" type="xs:string" use="required"/>
+        <xs:attribute name="costMultiplier" type="xs:float" default="1.0"/>
+    </xs:complexType>
+
+    <!-- Navmeshes: gebackene Daten (URI auf binäre Datei) -->
+    <xs:complexType name="NavmeshesType">
+        <xs:sequence>
+            <xs:element name="navmesh" type="nav:NavmeshType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="NavmeshType">
+        <xs:sequence>
+            <xs:element name="boundsMin" type="common:Vec3Type" minOccurs="0"/>
+            <xs:element name="boundsMax" type="common:Vec3Type" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="sceneRef" type="xs:string"/>
+        <xs:attribute name="dataUri" type="xs:anyURI" use="required"/>
+        <xs:attribute name="agent" type="xs:string" use="required"/>
+        <xs:attribute name="tileSize" type="xs:float" default="32.0"/>
+    </xs:complexType>
+
+    <!-- Off-Mesh-Links: Sprünge, Leitern, Teleporter -->
+    <xs:complexType name="OffMeshLinksType">
+        <xs:sequence>
+            <xs:element name="link" type="nav:OffMeshLinkType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="OffMeshLinkType">
+        <xs:sequence>
+            <xs:element name="from" type="common:Vec3Type"/>
+            <xs:element name="to" type="common:Vec3Type"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="type" type="nav:OffMeshLinkTypeEnum" use="required"/>
+        <xs:attribute name="bidirectional" type="xs:boolean" default="true"/>
+        <xs:attribute name="cost" type="xs:float" default="1.0"/>
+        <xs:attribute name="area" type="xs:string"/>
+    </xs:complexType>
+
+    <xs:simpleType name="OffMeshLinkTypeEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="jump"/>
+            <xs:enumeration value="climb"/>
+            <xs:enumeration value="ladder"/>
+            <xs:enumeration value="teleport"/>
+            <xs:enumeration value="door"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+</xs:schema>

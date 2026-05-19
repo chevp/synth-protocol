@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:anim="https://chevp.github.io/synth-protocol/schema/synth/animation/1.0"
+           xmlns:common="https://chevp.github.io/synth-protocol/schema/synth/common-types"
+           targetNamespace="https://chevp.github.io/synth-protocol/schema/synth/animation/1.0"
+           elementFormDefault="qualified">
+
+    <xs:import namespace="https://chevp.github.io/synth-protocol/schema/synth/common-types"
+               schemaLocation="../../common-types.xsd"/>
+
+    <!-- =========================================================================
+         SYNTH ANIMATION SCHEMA
+         Skeletal Animation: Clips, Blend-Trees, State-Machines, IK.
+         Animation-Daten (Keyframes/Joints) liegen binär in glTF/eigenen Files.
+         Dieses Schema beschreibt nur Komposition + Steuerung.
+         Root element: <synthAnimation>
+         ========================================================================= -->
+
+    <xs:element name="synthAnimation" type="anim:SynthAnimationType"/>
+
+    <xs:complexType name="SynthAnimationType">
+        <xs:sequence>
+            <xs:element name="skeleton" type="anim:SkeletonRefType" minOccurs="0"/>
+            <xs:element name="clips" type="anim:ClipsType"/>
+            <xs:element name="blendTrees" type="anim:BlendTreesType" minOccurs="0"/>
+            <xs:element name="stateMachine" type="anim:AnimStateMachineType" minOccurs="0"/>
+            <xs:element name="ik" type="anim:IKChainsType" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="version" type="xs:string" use="required"/>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="SkeletonRefType">
+        <xs:attribute name="ref" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <!-- ===== Clips ===== -->
+    <xs:complexType name="ClipsType">
+        <xs:sequence>
+            <xs:element name="clip" type="anim:ClipType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="ClipType">
+        <xs:sequence>
+            <xs:element name="event" type="anim:ClipEventType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="uri" type="xs:anyURI" use="required"/>
+        <xs:attribute name="loop" type="xs:boolean" default="false"/>
+        <xs:attribute name="duration" type="xs:float"/>
+        <xs:attribute name="speed" type="xs:float" default="1.0"/>
+        <xs:attribute name="rootMotion" type="xs:boolean" default="false"/>
+    </xs:complexType>
+
+    <!-- Animation-Events: Footstep, Hit-Frame, Cue -->
+    <xs:complexType name="ClipEventType">
+        <xs:attribute name="time" type="xs:float" use="required"/>
+        <xs:attribute name="name" type="xs:string" use="required"/>
+        <xs:attribute name="payload" type="xs:string"/>
+    </xs:complexType>
+
+    <!-- ===== Blend-Trees ===== -->
+    <xs:complexType name="BlendTreesType">
+        <xs:sequence>
+            <xs:element name="blendTree" type="anim:BlendTreeType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="BlendTreeType">
+        <xs:sequence>
+            <xs:element name="node" type="anim:BlendNodeType" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="type" type="anim:BlendTreeTypeEnum" use="required"/>
+        <xs:attribute name="paramX" type="xs:string" use="required"/>
+        <xs:attribute name="paramY" type="xs:string"/>
+    </xs:complexType>
+
+    <xs:simpleType name="BlendTreeTypeEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="1d"/>
+            <xs:enumeration value="2d-cartesian"/>
+            <xs:enumeration value="2d-directional"/>
+            <xs:enumeration value="additive"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:complexType name="BlendNodeType">
+        <xs:attribute name="clipRef" type="xs:string" use="required"/>
+        <xs:attribute name="thresholdX" type="xs:float" use="required"/>
+        <xs:attribute name="thresholdY" type="xs:float"/>
+        <xs:attribute name="speed" type="xs:float" default="1.0"/>
+    </xs:complexType>
+
+    <!-- ===== Animation State Machine ===== -->
+    <xs:complexType name="AnimStateMachineType">
+        <xs:sequence>
+            <xs:element name="parameter" type="anim:AnimParamType" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="layer" type="anim:AnimLayerType" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="AnimParamType">
+        <xs:attribute name="name" type="xs:string" use="required"/>
+        <xs:attribute name="type" type="anim:AnimParamTypeEnum" use="required"/>
+        <xs:attribute name="default" type="xs:string"/>
+    </xs:complexType>
+
+    <xs:simpleType name="AnimParamTypeEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="float"/>
+            <xs:enumeration value="int"/>
+            <xs:enumeration value="bool"/>
+            <xs:enumeration value="trigger"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:complexType name="AnimLayerType">
+        <xs:sequence>
+            <xs:element name="state" type="anim:AnimStateType" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="initial" type="xs:string" use="required"/>
+        <xs:attribute name="weight" type="xs:float" default="1.0"/>
+        <xs:attribute name="blendMode" type="anim:LayerBlendModeEnum" default="override"/>
+        <xs:attribute name="mask" type="xs:string"/>
+    </xs:complexType>
+
+    <xs:simpleType name="LayerBlendModeEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="override"/>
+            <xs:enumeration value="additive"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:complexType name="AnimStateType">
+        <xs:sequence>
+            <xs:element name="transition" type="anim:AnimTransitionType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <!-- Either clipRef OR blendTreeRef -->
+        <xs:attribute name="clipRef" type="xs:string"/>
+        <xs:attribute name="blendTreeRef" type="xs:string"/>
+        <xs:attribute name="speed" type="xs:float" default="1.0"/>
+    </xs:complexType>
+
+    <xs:complexType name="AnimTransitionType">
+        <xs:attribute name="target" type="xs:string" use="required"/>
+        <xs:attribute name="condition" type="xs:string"/>
+        <xs:attribute name="duration" type="xs:float" default="0.2"/>
+        <xs:attribute name="exitTime" type="xs:float"/>
+        <xs:attribute name="hasExitTime" type="xs:boolean" default="false"/>
+    </xs:complexType>
+
+    <!-- ===== IK-Chains ===== -->
+    <xs:complexType name="IKChainsType">
+        <xs:sequence>
+            <xs:element name="chain" type="anim:IKChainType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="IKChainType">
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="type" type="anim:IKChainTypeEnum" use="required"/>
+        <xs:attribute name="rootBone" type="xs:string" use="required"/>
+        <xs:attribute name="endBone" type="xs:string" use="required"/>
+        <xs:attribute name="targetBone" type="xs:string"/>
+        <xs:attribute name="poleBone" type="xs:string"/>
+        <xs:attribute name="weight" type="xs:float" default="1.0"/>
+    </xs:complexType>
+
+    <xs:simpleType name="IKChainTypeEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="twoBone"/>
+            <xs:enumeration value="ccd"/>
+            <xs:enumeration value="fabrik"/>
+            <xs:enumeration value="lookAt"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+</xs:schema>

@@ -62,6 +62,68 @@
     <uri name="https://chevp.github.io/synth-protocol/schema/synth/events/1.0"
          uri="synth/events/1.0/events.xsd"/>
 
+    <!-- ===== Roadmap-Schemas (Stufe 1: kritische Engine-Infrastruktur) ===== -->
+
+    <uri name="https://chevp.github.io/synth-protocol/schema/synth/input/1.0"
+         uri="synth/input/1.0/input.xsd"/>
+
+    <uri name="https://chevp.github.io/synth-protocol/schema/synth/physics/1.0"
+         uri="synth/physics/1.0/physics.xsd"/>
+
+    <uri name="https://chevp.github.io/synth-protocol/schema/synth/save/1.0"
+         uri="synth/save/1.0/save.xsd"/>
+
+    <uri name="https://chevp.github.io/synth-protocol/schema/synth/service/1.0"
+         uri="synth/service/1.0/service.xsd"/>
+
+    <uri name="https://chevp.github.io/synth-protocol/schema/synth/ai/1.0"
+         uri="synth/ai/1.0/behavior-tree.xsd"/>
+
+    <uri name="https://chevp.github.io/synth-protocol/schema/synth/navigation/1.0"
+         uri="synth/navigation/1.0/navmesh.xsd"/>
+
+    <!-- ===== Roadmap-Schemas (Stufe 2: wichtige Engine-Infrastruktur) ===== -->
+
+    <uri name="https://chevp.github.io/synth-protocol/schema/synth/animation/1.0"
+         uri="synth/animation/1.0/animation.xsd"/>
+
+    <uri name="https://chevp.github.io/synth-protocol/schema/synth/camera/1.0"
+         uri="synth/camera/1.0/camera.xsd"/>
+
+    <uri name="https://chevp.github.io/synth-protocol/schema/synth/net/1.0"
+         uri="synth/net/1.0/replication.xsd"/>
+
+    <!-- ===== Roadmap-Schemas (Stufe 3: Polish) ===== -->
+
+    <uri name="https://chevp.github.io/synth-protocol/schema/synth/lighting/1.0"
+         uri="synth/lighting/1.0/lighting.xsd"/>
+
+    <uri name="https://chevp.github.io/synth-protocol/schema/synth/material/1.0"
+         uri="synth/material/1.0/material.xsd"/>
+
+    <uri name="https://chevp.github.io/synth-protocol/schema/synth/audio/1.0"
+         uri="synth/audio/1.0/audio.xsd"/>
+
+    <uri name="https://chevp.github.io/synth-protocol/schema/synth/vfx/1.0"
+         uri="synth/vfx/1.0/particles.xsd"/>
+
+    <uri name="https://chevp.github.io/synth-protocol/schema/synth/postfx/1.0"
+         uri="synth/postfx/1.0/post-processing.xsd"/>
+
+    <uri name="https://chevp.github.io/synth-protocol/schema/synth/settings/1.0"
+         uri="synth/settings/1.0/user-settings.xsd"/>
+
+    <!-- ===== Roadmap-Schemas (Stufe 4: Größere Brocken) ===== -->
+
+    <uri name="https://chevp.github.io/synth-protocol/schema/synth/world/1.0"
+         uri="synth/world/1.0/streaming.xsd"/>
+
+    <uri name="https://chevp.github.io/synth-protocol/schema/synth/build/1.0"
+         uri="synth/build/1.0/platform-targets.xsd"/>
+
+    <uri name="https://chevp.github.io/synth-protocol/schema/synth/mods/1.0"
+         uri="synth/mods/1.0/mods.xsd"/>
+
     <!-- Elyrion Scene Schema -->
     <uri name="schemas/elyrion_schema.v1.xsd"
          uri="elyrion.xsd"/>

@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:mat="https://chevp.github.io/synth-protocol/schema/synth/material/1.0"
+           targetNamespace="https://chevp.github.io/synth-protocol/schema/synth/material/1.0"
+           elementFormDefault="qualified">
+
+    <!-- =========================================================================
+         SYNTH MATERIAL SCHEMA
+         PBR-Material-Definition: Maps, Render-Queue, Variants.
+         Erweitert runtime.xsd DefaultMaterialType (das nur Key-Value Properties hat).
+         Root element: <synthMaterial>
+         ========================================================================= -->
+
+    <xs:element name="synthMaterial" type="mat:SynthMaterialType"/>
+
+    <xs:complexType name="SynthMaterialType">
+        <xs:sequence>
+            <xs:element name="shader" type="mat:ShaderRefType"/>
+            <xs:element name="renderState" type="mat:RenderStateType" minOccurs="0"/>
+            <xs:element name="pbr" type="mat:PBRType" minOccurs="0"/>
+            <xs:element name="textures" type="mat:TexturesType" minOccurs="0"/>
+            <xs:element name="parameters" type="mat:ParametersType" minOccurs="0"/>
+            <xs:element name="variants" type="mat:VariantsType" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="version" type="xs:string" use="required"/>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <xs:complexType name="ShaderRefType">
+        <xs:attribute name="ref" type="xs:string" use="required"/>
+        <xs:attribute name="passes" type="xs:string"/>
+    </xs:complexType>
+
+    <!-- ===== Render-State ===== -->
+    <xs:complexType name="RenderStateType">
+        <xs:attribute name="renderQueue" type="xs:int" default="2000"/>
+        <xs:attribute name="blendMode" type="mat:BlendModeEnum" default="opaque"/>
+        <xs:attribute name="cullMode" type="mat:CullModeEnum" default="back"/>
+        <xs:attribute name="depthWrite" type="xs:boolean" default="true"/>
+        <xs:attribute name="depthTest" type="mat:DepthTestEnum" default="lessEqual"/>
+        <xs:attribute name="alphaToCoverage" type="xs:boolean" default="false"/>
+        <xs:attribute name="alphaCutoff" type="xs:float"/>
+        <xs:attribute name="doubleSided" type="xs:boolean" default="false"/>
+    </xs:complexType>
+
+    <xs:simpleType name="BlendModeEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="opaque"/>
+            <xs:enumeration value="alphaTest"/>
+            <xs:enumeration value="alphaBlend"/>
+            <xs:enumeration value="additive"/>
+            <xs:enumeration value="multiply"/>
+            <xs:enumeration value="premultiplied"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="CullModeEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="none"/>
+            <xs:enumeration value="front"/>
+            <xs:enumeration value="back"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="DepthTestEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="always"/>
+            <xs:enumeration value="never"/>
+            <xs:enumeration value="less"/>
+            <xs:enumeration value="lessEqual"/>
+            <xs:enumeration value="equal"/>
+            <xs:enumeration value="greater"/>
+            <xs:enumeration value="greaterEqual"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ===== PBR-Werte ===== -->
+    <xs:complexType name="PBRType">
+        <xs:attribute name="model" type="mat:PBRModelEnum" default="metallicRoughness"/>
+        <xs:attribute name="baseColor" type="xs:string" default="1 1 1 1"/>
+        <xs:attribute name="metallic" type="xs:float" default="0.0"/>
+        <xs:attribute name="roughness" type="xs:float" default="0.5"/>
+        <xs:attribute name="ior" type="xs:float" default="1.5"/>
+        <xs:attribute name="emissive" type="xs:string" default="0 0 0"/>
+        <xs:attribute name="emissiveIntensity" type="xs:float" default="0.0"/>
+        <xs:attribute name="normalScale" type="xs:float" default="1.0"/>
+        <xs:attribute name="occlusionStrength" type="xs:float" default="1.0"/>
+        <xs:attribute name="clearcoat" type="xs:float" default="0.0"/>
+        <xs:attribute name="clearcoatRoughness" type="xs:float" default="0.0"/>
+        <xs:attribute name="sheen" type="xs:float" default="0.0"/>
+        <xs:attribute name="transmission" type="xs:float" default="0.0"/>
+    </xs:complexType>
+
+    <xs:simpleType name="PBRModelEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="metallicRoughness"/>
+            <xs:enumeration value="specularGlossiness"/>
+            <xs:enumeration value="unlit"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ===== Textures ===== -->
+    <xs:complexType name="TexturesType">
+        <xs:sequence>
+            <xs:element name="texture" type="mat:TextureBindingType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="TextureBindingType">
+        <xs:attribute name="slot" type="mat:TextureSlotEnum" use="required"/>
+        <xs:attribute name="ref" type="xs:string" use="required"/>
+        <xs:attribute name="uvSet" type="xs:int" default="0"/>
+        <xs:attribute name="tilingX" type="xs:float" default="1.0"/>
+        <xs:attribute name="tilingY" type="xs:float" default="1.0"/>
+        <xs:attribute name="offsetX" type="xs:float" default="0.0"/>
+        <xs:attribute name="offsetY" type="xs:float" default="0.0"/>
+        <xs:attribute name="filter" type="mat:TextureFilterEnum" default="trilinear"/>
+        <xs:attribute name="wrapU" type="mat:TextureWrapEnum" default="repeat"/>
+        <xs:attribute name="wrapV" type="mat:TextureWrapEnum" default="repeat"/>
+        <xs:attribute name="sRGB" type="xs:boolean" default="true"/>
+    </xs:complexType>
+
+    <xs:simpleType name="TextureSlotEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="baseColor"/>
+            <xs:enumeration value="metallicRoughness"/>
+            <xs:enumeration value="normal"/>
+            <xs:enumeration value="occlusion"/>
+            <xs:enumeration value="emissive"/>
+            <xs:enumeration value="height"/>
+            <xs:enumeration value="clearcoat"/>
+            <xs:enumeration value="transmission"/>
+            <xs:enumeration value="custom"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="TextureFilterEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="nearest"/>
+            <xs:enumeration value="bilinear"/>
+            <xs:enumeration value="trilinear"/>
+            <xs:enumeration value="anisotropic"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="TextureWrapEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="repeat"/>
+            <xs:enumeration value="clamp"/>
+            <xs:enumeration value="mirror"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ===== Custom Shader Parameters ===== -->
+    <xs:complexType name="ParametersType">
+        <xs:sequence>
+            <xs:element name="param" type="mat:ShaderParamType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="ShaderParamType">
+        <xs:attribute name="name" type="xs:string" use="required"/>
+        <xs:attribute name="type" type="mat:ShaderParamTypeEnum" use="required"/>
+        <xs:attribute name="value" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <xs:simpleType name="ShaderParamTypeEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="float"/>
+            <xs:enumeration value="int"/>
+            <xs:enumeration value="bool"/>
+            <xs:enumeration value="vec2"/>
+            <xs:enumeration value="vec3"/>
+            <xs:enumeration value="vec4"/>
+            <xs:enumeration value="color"/>
+            <xs:enumeration value="mat4"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ===== Variants (Keyword-basiert, wie Unity Shader-Variants) ===== -->
+    <xs:complexType name="VariantsType">
+        <xs:sequence>
+            <xs:element name="variant" type="mat:VariantType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="VariantType">
+        <xs:sequence>
+            <xs:element name="keyword" type="xs:string" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="condition" type="xs:string"/>
+    </xs:complexType>
+
+</xs:schema>
