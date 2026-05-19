@@ -4,14 +4,14 @@
     Compresses all textures from media-store to KTX2 with Basis Universal.
 
     Usage:
-      nuna-runtime.exe build-textures.pipeline.nuna
+      nuna-runtime.exe build-textures.pipeline.nuna.xml
 
     Flow:
       media-store/textures/**/*.png
         > toktx compress (UASTC + Zstd + mipmaps)
         > media-store-runtime/textures/**/*.ktx2
 -->
-<synthAssetPipeline version="1.0"
+<synth-asset-pipeline version="1.0"
                     xmlns="https://chevp.github.io/synth-protocol/schema/synth/pipeline/1.0">
 
     <metadata id="build-textures">
@@ -20,8 +20,8 @@
     </metadata>
 
     <mounts>
-        <mount scheme="asset-src" path="C:/media-store" readOnly="true"/>
-        <mount scheme="asset" path="C:/media-store-runtime" readOnly="false"/>
+        <mount scheme="asset-src" path="C:/media-store" read-only="true"/>
+        <mount scheme="asset" path="C:/media-store-runtime" read-only="false"/>
     </mounts>
 
     <tools>
@@ -93,4 +93,4 @@
         <setting key="parallelSteps" value="3"/>
     </settings>
 
-</synthAssetPipeline>
+</synth-asset-pipeline>

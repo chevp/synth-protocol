@@ -5,7 +5,7 @@
     Equivalent to "Build All" in a CI/CD system.
 
     Usage:
-      nuna-runtime.exe full-build.pipeline.nuna
+      nuna-runtime.exe full-build.pipeline.nuna.xml
 
     Runs these stages:
       1. Export all .blend files to glTF (parallel per category)
@@ -13,7 +13,7 @@
       3. Compress textures to KTX2
       4. Assemble final runtime bundles
 -->
-<synthAssetPipeline version="1.0"
+<synth-asset-pipeline version="1.0"
                     xmlns="https://chevp.github.io/synth-protocol/schema/synth/pipeline/1.0">
 
     <metadata id="full-build">
@@ -23,9 +23,9 @@
     </metadata>
 
     <mounts>
-        <mount scheme="asset-src" path="C:/media-store" readOnly="true"/>
-        <mount scheme="asset" path="C:/media-store-runtime" readOnly="false"/>
-        <mount scheme="build" path="./build" readOnly="false"/>
+        <mount scheme="asset-src" path="C:/media-store" read-only="true"/>
+        <mount scheme="asset" path="C:/media-store-runtime" read-only="false"/>
+        <mount scheme="build" path="./build" read-only="false"/>
     </mounts>
 
     <tools>
@@ -101,7 +101,7 @@
         <!-- ============== OPTIMIZE PHASE ============== -->
 
         <step id="optimize-static" name="Optimize Static Meshes" tool="gltf-transform"
-              dependsOn="export-buildings,export-environment,export-props">
+              depends-on="export-buildings,export-environment,export-props">
             <input>
                 <param name="source" type="directory">build://gltf</param>
                 <param name="exclude" type="glob">characters/**</param>
@@ -117,7 +117,7 @@
         </step>
 
         <step id="optimize-characters" name="Optimize Characters" tool="gltf-transform"
-              dependsOn="export-characters">
+              depends-on="export-characters">
             <input>
                 <param name="source" type="directory">build://gltf/characters</param>
             </input>
@@ -133,7 +133,7 @@
         <!-- ============== TEXTURE PHASE (parallel with optimize) ============== -->
 
         <step id="compress-textures" name="Compress Textures" tool="toktx"
-              dependsOn="export-buildings,export-environment,export-characters,export-props">
+              depends-on="export-buildings,export-environment,export-characters,export-props">
             <input>
                 <param name="source" type="directory">build://gltf</param>
                 <param name="pattern" type="glob">**/*.png</param>
@@ -152,7 +152,7 @@
         <!-- ============== ASSEMBLE PHASE ============== -->
 
         <step id="assemble-runtime" name="Assemble Runtime Assets" tool="gltfpack"
-              dependsOn="optimize-static,optimize-characters,compress-textures">
+              depends-on="optimize-static,optimize-characters,compress-textures">
             <input>
                 <param name="static" type="directory" ref="optimize-static.output.target"/>
                 <param name="characters" type="directory" ref="optimize-characters.output.target"/>
@@ -180,4 +180,4 @@
         <setting key="notifyOnComplete" value="true"/>
     </settings>
 
-</synthAssetPipeline>
+</synth-asset-pipeline>

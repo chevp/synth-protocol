@@ -5,16 +5,16 @@
            elementFormDefault="qualified">
 
     <!-- =========================================================================
-         CRYO GAME PROJECT SCHEMA (.cryo files)
+         CRYO GAME PROJECT SCHEMA (.cryo.xml files)
 
          Purpose: Game project descriptor that launches both backend and renderer
 
-         Use Case: Developer double-clicks .cryo file to start entire project
+         Use Case: Developer double-clicks .cryo.xml file to start entire project
 
          CRITICAL DISTINCTION:
-         - .cryo   → Launches BOTH backend (.synth) AND renderer (.frost)
-         - .frost  → Launches ONLY renderer (for game players)
-         - .synth  → Launches ONLY backend (for servers)
+         - .cryo.xml   → Launches BOTH backend (.synth) AND renderer (.frost.xml)
+         - .frost.xml  → Launches ONLY renderer (for game players)
+         - .synth      → Launches ONLY backend (for servers)
 
          This file orchestrates the complete development environment.
          ========================================================================= -->
@@ -74,7 +74,7 @@
     <!-- Renderer Configuration -->
     <xs:complexType name="RendererType">
         <xs:sequence>
-            <!-- Path to .frost runtime file (relative to .synth-game file) -->
+            <!-- Path to .frost.xml runtime file (relative to .synth-game file) -->
             <xs:element name="runtime" type="xs:string"/>
 
             <!-- Auto-start renderer when project opens -->

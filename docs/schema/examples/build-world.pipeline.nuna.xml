@@ -4,7 +4,7 @@
     Converts raw Blender files from media-store to runtime-optimized assets.
 
     Usage:
-      nuna-runtime.exe build-world.pipeline.nuna
+      nuna-runtime.exe build-world.pipeline.nuna.xml
       (or double-click with nuna-runtime file association)
 
     Flow:
@@ -13,7 +13,7 @@
         > gltf-transform optimize > *.glb
         > media-store-runtime/models/buildings/*.glb
 -->
-<synthAssetPipeline version="1.0"
+<synth-asset-pipeline version="1.0"
                     xmlns="https://chevp.github.io/synth-protocol/schema/synth/pipeline/1.0">
 
     <metadata id="build-world">
@@ -24,9 +24,9 @@
 
     <!-- VFS mounts: where to read/write assets -->
     <mounts>
-        <mount scheme="asset-src" path="C:/media-store" readOnly="true"/>
-        <mount scheme="asset" path="C:/media-store-runtime" readOnly="false"/>
-        <mount scheme="build" path="./build" readOnly="false"/>
+        <mount scheme="asset-src" path="C:/media-store" read-only="true"/>
+        <mount scheme="asset" path="C:/media-store-runtime" read-only="false"/>
+        <mount scheme="build" path="./build" read-only="false"/>
     </mounts>
 
     <!-- CLI tools (resolved via PATH or absolute path) -->
@@ -80,7 +80,7 @@
 
         <!-- Step 3: Optimize meshes (runs after both exports) -->
         <step id="optimize-meshes" name="Optimize Meshes" tool="gltf-transform"
-              dependsOn="export-buildings,export-environment">
+              depends-on="export-buildings,export-environment">
             <input>
                 <param name="source" type="directory">build://gltf</param>
                 <param name="pattern" type="glob">**/*.gltf</param>
@@ -97,7 +97,7 @@
 
         <!-- Step 4: Compress textures to KTX2 (parallel with mesh optimize) -->
         <step id="compress-textures" name="Compress Textures" tool="toktx"
-              dependsOn="export-buildings,export-environment">
+              depends-on="export-buildings,export-environment">
             <input>
                 <param name="source" type="directory">build://gltf</param>
                 <param name="pattern" type="glob">**/*.png</param>
@@ -115,7 +115,7 @@
 
         <!-- Step 5: Assemble final runtime assets -->
         <step id="assemble" name="Assemble Runtime Assets" tool="gltf-transform"
-              dependsOn="optimize-meshes,compress-textures">
+              depends-on="optimize-meshes,compress-textures">
             <input>
                 <param name="meshes" type="directory" ref="optimize-meshes.output.target"/>
                 <param name="textures" type="directory" ref="compress-textures.output.target"/>
@@ -142,4 +142,4 @@
         <setting key="cleanBuildDir" value="false"/>
     </settings>
 
-</synthAssetPipeline>
+</synth-asset-pipeline>

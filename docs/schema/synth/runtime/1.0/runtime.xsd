@@ -271,7 +271,7 @@
     <!-- Initial Setup -->
     <!-- What to load at startup. Asset URIs only (no XML refs).
          - scene: shortcut for "load this scene, no behavior"
-         - cryo:  start a behavior (.cryo); the cryo decides which scene(s) to load
+         - cryo:  start a behavior (.cryo.xml); the cryo decides which scene(s) to load
          Both may be combined: cryo runs against the given scene. -->
     <xs:complexType name="InitialType">
         <xs:attribute name="scene" type="xs:anyURI"/>

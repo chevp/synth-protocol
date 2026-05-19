@@ -5,11 +5,11 @@
     Purpose: Developer entry point - starts backend AND renderer
 
     Workflow:
-      1. Double-click my-game.cryo
-      2. frost-studio.exe detects .cryo extension
+      1. Double-click my-game.cryo.xml
+      2. frost-studio.exe detects .cryo.xml extension
       3. Starts runtime-synth-game.synth (Backend)
       4. Waits for backend ready
-      5. Starts runtime-frost-studio.frost (Renderer with Editor)
+      5. Starts runtime-frost-studio.frost.xml (Renderer with Editor)
 -->
 <synth version="1.0"
        xmlns="https://chevp.github.io/synth-protocol/schema/synth/1.0">
@@ -25,29 +25,29 @@
 
     <!-- Backend Configuration (C++ nuna-runtime) -->
     <backend>
-        <!-- Path relative to .cryo file -->
+        <!-- Path relative to .cryo.xml file -->
         <runtime>runtime-synth-game.synth</runtime>
 
         <!-- Auto-start backend when project opens -->
-        <autoStart>true</autoStart>
+        <auto-start>true</auto-start>
 
         <!-- Wait for backend to be ready before starting renderer -->
-        <waitForReady>true</waitForReady>
+        <wait-for-ready>true</wait-for-ready>
 
         <!-- Timeout in seconds -->
-        <startupTimeout>30</startupTimeout>
+        <startup-timeout>30</startup-timeout>
     </backend>
 
     <!-- Renderer Configuration (C++ Vulkan Renderer) -->
     <renderer>
-        <!-- Path relative to .cryo file -->
-        <runtime>runtime-frost-studio.frost</runtime>
+        <!-- Path relative to .cryo.xml file -->
+        <runtime>runtime-frost-studio.frost.xml</runtime>
 
         <!-- Auto-start renderer after backend is ready -->
-        <autoStart>true</autoStart>
+        <auto-start>true</auto-start>
     </renderer>
 
-    <!-- Project Paths (all relative to .cryo file) -->
+    <!-- Project Paths (all relative to .cryo.xml file) -->
     <paths>
         <assets>assets/src</assets>
         <scenes>assets/src/scenes</scenes>
@@ -60,13 +60,13 @@
     <!-- Launcher Configuration -->
     <launcher>
         <!-- Startup order: sequential = backend first, then renderer -->
-        <startupOrder>sequential</startupOrder>
+        <startup-order>sequential</startup-order>
 
         <!-- Show console windows for debugging -->
-        <showConsole>true</showConsole>
+        <show-console>true</show-console>
 
-        <!-- Working directory (defaults to .cryo file directory) -->
-        <workingDirectory>.</workingDirectory>
+        <!-- Working directory (defaults to .cryo.xml file directory) -->
+        <working-directory>.</working-directory>
     </launcher>
 
 </game-project>

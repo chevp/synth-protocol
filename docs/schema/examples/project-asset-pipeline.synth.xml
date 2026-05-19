@@ -5,8 +5,8 @@
     Executed by nuna-runtime.exe via CLI subprocess calls.
     Triggered manually from synth-cluster-editor or via file-watch.
 
-    NOTE: For standalone pipelines, see *.pipeline.nuna files
-    (build-world.pipeline.nuna, build-characters.pipeline.nuna, etc.)
+    NOTE: For standalone pipelines, see *.pipeline.nuna.xml files
+    (build-world.pipeline.nuna.xml, build-characters.pipeline.nuna.xml, etc.)
     These can be double-clicked to run with nuna-runtime.
 -->
 <synth version="1.0" xmlns="https://chevp.github.io/synth-protocol/schema/synth/1.0">

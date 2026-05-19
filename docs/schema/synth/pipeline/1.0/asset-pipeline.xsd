@@ -10,29 +10,29 @@
                schemaLocation="../../common-types.xsd"/>
 
     <!-- =========================================================================
-         SYNTH ASSET PIPELINE SCHEMA (.pipeline.nuna files)
+         SYNTH ASSET PIPELINE SCHEMA (.pipeline.nuna.xml files)
 
          Standalone asset build pipelines executed by nuna-runtime.exe.
          Analogous to GitHub Actions workflows, but local.
 
          Usage:
-           nuna-runtime.exe --pipeline build-world.pipeline.nuna
-           (or double-click on .pipeline.nuna file with nuna-runtime association)
+           nuna-runtime.exe --pipeline build-world.pipeline.nuna.xml
+           (or double-click on .pipeline.nuna.xml file with nuna-runtime association)
 
          Design Principles:
-           - Each .pipeline.nuna file = one self-contained pipeline
+           - Each .pipeline.nuna.xml file = one self-contained pipeline
            - Steps invoke CLI tools as subprocesses (no C++ required)
            - VFS mounts resolve asset:// and asset-src:// URIs
-           - DAG execution: steps declare dependencies via dependsOn
+           - DAG execution: steps declare dependencies via depends-on
            - Triggers: manual, file-watch, schedule, hub-event
 
          File Convention:
            synth-game/
            ├── pipelines/
-           │   ├── build-world.pipeline.nuna
-           │   ├── build-characters.pipeline.nuna
-           │   ├── build-textures.pipeline.nuna
-           │   └── full-build.pipeline.nuna
+           │   ├── build-world.pipeline.nuna.xml
+           │   ├── build-characters.pipeline.nuna.xml
+           │   ├── build-textures.pipeline.nuna.xml
+           │   └── full-build.pipeline.nuna.xml
            └── scenes/
                └── ...
          ========================================================================= -->

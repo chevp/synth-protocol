@@ -828,7 +828,7 @@
     </xs:complexType>
 
     <!-- ================================================================= -->
-    <!-- RUNTIME-RENDERER (.frost files)                                   -->
+    <!-- RUNTIME-RENDERER (.frost.xml files)                               -->
     <!-- <synth><runtimeRenderer>...</runtimeRenderer></synth>             -->
     <!-- ================================================================= -->
 
@@ -1019,7 +1019,7 @@
     </xs:complexType>
 
     <!-- ================================================================= -->
-    <!-- GAME-PROJECT (.cryo files)                                        -->
+    <!-- GAME-PROJECT (.cryo.xml files)                                    -->
     <!-- <synth><gameProject>...</gameProject></synth>                     -->
     <!-- ================================================================= -->
 

@@ -2,7 +2,7 @@
 <!--
     SYNTH ALL-IN-ONE SCHEMA
     Imports the unified synth.xsd which provides a single <synth> root element.
-    Use this as the fileAssociation for *.synth, *.synth.xml, *.frost, and *.cryo files.
+    Use this as the fileAssociation for *.synth, *.synth.xml, *.frost.xml, *.cryo.xml, and *.nuna.xml files.
 -->
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
 

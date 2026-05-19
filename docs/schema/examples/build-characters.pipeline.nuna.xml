@@ -4,7 +4,7 @@
     Exports characters with animations and optimizes for runtime.
 
     Usage:
-      nuna-runtime.exe build-characters.pipeline.nuna
+      nuna-runtime.exe build-characters.pipeline.nuna.xml
 
     Flow:
       media-store/models/characters/*.blend
@@ -12,7 +12,7 @@
         > gltf-transform optimize
         > media-store-runtime/models/characters/*.glb
 -->
-<synthAssetPipeline version="1.0"
+<synth-asset-pipeline version="1.0"
                     xmlns="https://chevp.github.io/synth-protocol/schema/synth/pipeline/1.0">
 
     <metadata id="build-characters">
@@ -21,9 +21,9 @@
     </metadata>
 
     <mounts>
-        <mount scheme="asset-src" path="C:/media-store" readOnly="true"/>
-        <mount scheme="asset" path="C:/media-store-runtime" readOnly="false"/>
-        <mount scheme="build" path="./build" readOnly="false"/>
+        <mount scheme="asset-src" path="C:/media-store" read-only="true"/>
+        <mount scheme="asset" path="C:/media-store-runtime" read-only="false"/>
+        <mount scheme="build" path="./build" read-only="false"/>
     </mounts>
 
     <tools>
@@ -54,7 +54,7 @@
         </step>
 
         <!-- Optimize (careful with skinned meshes, no aggressive Draco) -->
-        <step id="optimize" name="Optimize Characters" tool="gltf-transform" dependsOn="export">
+        <step id="optimize" name="Optimize Characters" tool="gltf-transform" depends-on="export">
             <input>
                 <param name="source" type="directory">build://gltf/characters</param>
             </input>
@@ -72,4 +72,4 @@
         <trigger type="file-watch" pattern="asset-src://models/characters/**/*.blend"/>
     </triggers>
 
-</synthAssetPipeline>
+</synth-asset-pipeline>

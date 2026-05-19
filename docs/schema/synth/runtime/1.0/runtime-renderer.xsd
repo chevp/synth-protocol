@@ -38,7 +38,7 @@
             <!-- Renderer Configuration -->
             <xs:element name="renderer" type="runtime:RendererType"/>
 
-            <!-- Asset and shader paths (resolved relative to .frost file) -->
+            <!-- Asset and shader paths (resolved relative to .frost.xml file) -->
             <xs:element name="paths" type="runtime:PathsType" minOccurs="0"/>
 
             <!-- Camera defaults -->
@@ -75,7 +75,7 @@
         <xs:annotation>
             <xs:documentation>
                 Path to secrets file containing API keys, tokens, etc.
-                Supports file:// URIs for local files (relative to .frost file directory)
+                Supports file:// URIs for local files (relative to .frost.xml file directory)
                 Format: .env file with KEY=value pairs
                 Example: secrets.env, file://config/secrets.env
             </xs:documentation>
@@ -193,7 +193,7 @@
         <xs:attribute name="fragment" type="xs:string" use="required"/>
     </xs:complexType>
 
-    <!-- Paths Configuration (resolved relative to .frost file directory) -->
+    <!-- Paths Configuration (resolved relative to .frost.xml file directory) -->
     <!-- Consistent URI format: file://, asset://, http://, https:// -->
     <xs:complexType name="PathsType">
         <xs:sequence>
