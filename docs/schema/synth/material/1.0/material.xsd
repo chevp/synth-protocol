@@ -11,12 +11,12 @@
          Root element: <synthMaterial>
          ========================================================================= -->
 
-    <xs:element name="synthMaterial" type="mat:SynthMaterialType"/>
+    <xs:element name="synth-material" type="mat:SynthMaterialType"/>
 
     <xs:complexType name="SynthMaterialType">
         <xs:sequence>
             <xs:element name="shader" type="mat:ShaderRefType"/>
-            <xs:element name="renderState" type="mat:RenderStateType" minOccurs="0"/>
+            <xs:element name="render-state" type="mat:RenderStateType" minOccurs="0"/>
             <xs:element name="pbr" type="mat:PBRType" minOccurs="0"/>
             <xs:element name="textures" type="mat:TexturesType" minOccurs="0"/>
             <xs:element name="parameters" type="mat:ParametersType" minOccurs="0"/>
@@ -33,14 +33,14 @@
 
     <!-- ===== Render-State ===== -->
     <xs:complexType name="RenderStateType">
-        <xs:attribute name="renderQueue" type="xs:int" default="2000"/>
-        <xs:attribute name="blendMode" type="mat:BlendModeEnum" default="opaque"/>
-        <xs:attribute name="cullMode" type="mat:CullModeEnum" default="back"/>
-        <xs:attribute name="depthWrite" type="xs:boolean" default="true"/>
-        <xs:attribute name="depthTest" type="mat:DepthTestEnum" default="lessEqual"/>
-        <xs:attribute name="alphaToCoverage" type="xs:boolean" default="false"/>
-        <xs:attribute name="alphaCutoff" type="xs:float"/>
-        <xs:attribute name="doubleSided" type="xs:boolean" default="false"/>
+        <xs:attribute name="render-queue" type="xs:int" default="2000"/>
+        <xs:attribute name="blend-mode" type="mat:BlendModeEnum" default="opaque"/>
+        <xs:attribute name="cull-mode" type="mat:CullModeEnum" default="back"/>
+        <xs:attribute name="depth-write" type="xs:boolean" default="true"/>
+        <xs:attribute name="depth-test" type="mat:DepthTestEnum" default="lessEqual"/>
+        <xs:attribute name="alpha-to-coverage" type="xs:boolean" default="false"/>
+        <xs:attribute name="alpha-cutoff" type="xs:float"/>
+        <xs:attribute name="double-sided" type="xs:boolean" default="false"/>
     </xs:complexType>
 
     <xs:simpleType name="BlendModeEnum">
@@ -77,16 +77,16 @@
     <!-- ===== PBR-Werte ===== -->
     <xs:complexType name="PBRType">
         <xs:attribute name="model" type="mat:PBRModelEnum" default="metallicRoughness"/>
-        <xs:attribute name="baseColor" type="xs:string" default="1 1 1 1"/>
+        <xs:attribute name="base-color" type="xs:string" default="1 1 1 1"/>
         <xs:attribute name="metallic" type="xs:float" default="0.0"/>
         <xs:attribute name="roughness" type="xs:float" default="0.5"/>
         <xs:attribute name="ior" type="xs:float" default="1.5"/>
         <xs:attribute name="emissive" type="xs:string" default="0 0 0"/>
-        <xs:attribute name="emissiveIntensity" type="xs:float" default="0.0"/>
-        <xs:attribute name="normalScale" type="xs:float" default="1.0"/>
-        <xs:attribute name="occlusionStrength" type="xs:float" default="1.0"/>
+        <xs:attribute name="emissive-intensity" type="xs:float" default="0.0"/>
+        <xs:attribute name="normal-scale" type="xs:float" default="1.0"/>
+        <xs:attribute name="occlusion-strength" type="xs:float" default="1.0"/>
         <xs:attribute name="clearcoat" type="xs:float" default="0.0"/>
-        <xs:attribute name="clearcoatRoughness" type="xs:float" default="0.0"/>
+        <xs:attribute name="clearcoat-roughness" type="xs:float" default="0.0"/>
         <xs:attribute name="sheen" type="xs:float" default="0.0"/>
         <xs:attribute name="transmission" type="xs:float" default="0.0"/>
     </xs:complexType>
@@ -109,15 +109,15 @@
     <xs:complexType name="TextureBindingType">
         <xs:attribute name="slot" type="mat:TextureSlotEnum" use="required"/>
         <xs:attribute name="ref" type="xs:string" use="required"/>
-        <xs:attribute name="uvSet" type="xs:int" default="0"/>
-        <xs:attribute name="tilingX" type="xs:float" default="1.0"/>
-        <xs:attribute name="tilingY" type="xs:float" default="1.0"/>
-        <xs:attribute name="offsetX" type="xs:float" default="0.0"/>
-        <xs:attribute name="offsetY" type="xs:float" default="0.0"/>
+        <xs:attribute name="uv-set" type="xs:int" default="0"/>
+        <xs:attribute name="tiling-x" type="xs:float" default="1.0"/>
+        <xs:attribute name="tiling-y" type="xs:float" default="1.0"/>
+        <xs:attribute name="offset-x" type="xs:float" default="0.0"/>
+        <xs:attribute name="offset-y" type="xs:float" default="0.0"/>
         <xs:attribute name="filter" type="mat:TextureFilterEnum" default="trilinear"/>
-        <xs:attribute name="wrapU" type="mat:TextureWrapEnum" default="repeat"/>
-        <xs:attribute name="wrapV" type="mat:TextureWrapEnum" default="repeat"/>
-        <xs:attribute name="sRGB" type="xs:boolean" default="true"/>
+        <xs:attribute name="wrap-u" type="mat:TextureWrapEnum" default="repeat"/>
+        <xs:attribute name="wrap-v" type="mat:TextureWrapEnum" default="repeat"/>
+        <xs:attribute name="s-rgb" type="xs:boolean" default="true"/>
     </xs:complexType>
 
     <xs:simpleType name="TextureSlotEnum">

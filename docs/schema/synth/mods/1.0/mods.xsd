@@ -15,7 +15,7 @@
          Root element: <synthMods>
          ========================================================================= -->
 
-    <xs:element name="synthMods" type="mods:SynthModsType"/>
+    <xs:element name="synth-mods" type="mods:SynthModsType"/>
 
     <xs:complexType name="SynthModsType">
         <xs:choice>
@@ -61,22 +61,22 @@
     </xs:complexType>
 
     <xs:complexType name="CompatType">
-        <xs:attribute name="minHostVersion" type="xs:string" use="required"/>
-        <xs:attribute name="maxHostVersion" type="xs:string"/>
-        <xs:attribute name="apiLevel" type="xs:int" use="required"/>
+        <xs:attribute name="min-host-version" type="xs:string" use="required"/>
+        <xs:attribute name="max-host-version" type="xs:string"/>
+        <xs:attribute name="api-level" type="xs:int" use="required"/>
     </xs:complexType>
 
     <xs:complexType name="ModDependenciesType">
         <xs:sequence>
-            <xs:element name="dependsOn" type="mods:ModRefType" minOccurs="0" maxOccurs="unbounded"/>
-            <xs:element name="loadAfter" type="mods:ModRefType" minOccurs="0" maxOccurs="unbounded"/>
-            <xs:element name="loadBefore" type="mods:ModRefType" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="depends-on" type="mods:ModRefType" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="load-after" type="mods:ModRefType" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="load-before" type="mods:ModRefType" minOccurs="0" maxOccurs="unbounded"/>
         </xs:sequence>
     </xs:complexType>
 
     <xs:complexType name="ModRefType">
         <xs:attribute name="ref" type="xs:string" use="required"/>
-        <xs:attribute name="minVersion" type="xs:string"/>
+        <xs:attribute name="min-version" type="xs:string"/>
         <xs:attribute name="optional" type="xs:boolean" default="false"/>
     </xs:complexType>
 
@@ -103,13 +103,13 @@
     </xs:complexType>
 
     <xs:complexType name="OverrideHookType">
-        <xs:attribute name="targetUri" type="xs:anyURI" use="required"/>
-        <xs:attribute name="withUri" type="xs:anyURI" use="required"/>
+        <xs:attribute name="target-uri" type="xs:anyURI" use="required"/>
+        <xs:attribute name="with-uri" type="xs:anyURI" use="required"/>
     </xs:complexType>
 
     <xs:complexType name="PatchHookType">
-        <xs:attribute name="targetUri" type="xs:anyURI" use="required"/>
-        <xs:attribute name="patchUri" type="xs:anyURI" use="required"/>
+        <xs:attribute name="target-uri" type="xs:anyURI" use="required"/>
+        <xs:attribute name="patch-uri" type="xs:anyURI" use="required"/>
         <xs:attribute name="format" type="mods:PatchFormatEnum" default="json-patch"/>
     </xs:complexType>
 
@@ -123,8 +123,8 @@
     </xs:simpleType>
 
     <xs:complexType name="ExtendHookType">
-        <xs:attribute name="extensionPoint" type="xs:string" use="required"/>
-        <xs:attribute name="contributionUri" type="xs:anyURI" use="required"/>
+        <xs:attribute name="extension-point" type="xs:string" use="required"/>
+        <xs:attribute name="contribution-uri" type="xs:anyURI" use="required"/>
     </xs:complexType>
 
     <xs:complexType name="ScriptHookType">
@@ -186,12 +186,12 @@
     </xs:complexType>
 
     <xs:complexType name="RegistryEntryType">
-        <xs:attribute name="modId" type="xs:string" use="required"/>
+        <xs:attribute name="mod-id" type="xs:string" use="required"/>
         <xs:attribute name="version" type="xs:string"/>
         <xs:attribute name="enabled" type="xs:boolean" default="true"/>
         <xs:attribute name="order" type="xs:int"/>
         <xs:attribute name="source" type="mods:ModSourceEnum" default="local"/>
-        <xs:attribute name="sourceUri" type="xs:anyURI"/>
+        <xs:attribute name="source-uri" type="xs:anyURI"/>
     </xs:complexType>
 
     <xs:simpleType name="ModSourceEnum">

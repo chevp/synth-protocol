@@ -15,7 +15,7 @@
          Root element: <synthUserSettings>
          ========================================================================= -->
 
-    <xs:element name="synthUserSettings" type="us:SynthUserSettingsType"/>
+    <xs:element name="synth-user-settings" type="us:SynthUserSettingsType"/>
 
     <xs:complexType name="SynthUserSettingsType">
         <xs:sequence>
@@ -32,17 +32,17 @@
     <!-- ===== Graphics ===== -->
     <xs:complexType name="GraphicsType">
         <xs:attribute name="preset" type="us:QualityPresetEnum" default="medium"/>
-        <xs:attribute name="resolutionWidth" type="xs:int"/>
-        <xs:attribute name="resolutionHeight" type="xs:int"/>
-        <xs:attribute name="refreshRateHz" type="xs:int"/>
-        <xs:attribute name="windowMode" type="us:WindowModeEnum" default="fullscreen"/>
+        <xs:attribute name="resolution-width" type="xs:int"/>
+        <xs:attribute name="resolution-height" type="xs:int"/>
+        <xs:attribute name="refresh-rate-hz" type="xs:int"/>
+        <xs:attribute name="window-mode" type="us:WindowModeEnum" default="fullscreen"/>
         <xs:attribute name="vsync" type="xs:boolean" default="true"/>
-        <xs:attribute name="fpsLimit" type="xs:int" default="0"/>
-        <xs:attribute name="renderScale" type="xs:float" default="1.0"/>
-        <xs:attribute name="shadowQuality" type="us:QualityEnum" default="medium"/>
-        <xs:attribute name="textureQuality" type="us:QualityEnum" default="medium"/>
-        <xs:attribute name="effectQuality" type="us:QualityEnum" default="medium"/>
-        <xs:attribute name="postFXProfile" type="xs:string"/>
+        <xs:attribute name="fps-limit" type="xs:int" default="0"/>
+        <xs:attribute name="render-scale" type="xs:float" default="1.0"/>
+        <xs:attribute name="shadow-quality" type="us:QualityEnum" default="medium"/>
+        <xs:attribute name="texture-quality" type="us:QualityEnum" default="medium"/>
+        <xs:attribute name="effect-quality" type="us:QualityEnum" default="medium"/>
+        <xs:attribute name="post-fxprofile" type="xs:string"/>
         <xs:attribute name="antialiasing" type="us:AAEnum" default="taa"/>
         <xs:attribute name="anisotropy" type="xs:int" default="8"/>
         <xs:attribute name="hdr" type="xs:boolean" default="false"/>
@@ -92,12 +92,12 @@
     <!-- ===== Audio Preferences ===== -->
     <xs:complexType name="AudioPrefsType">
         <xs:sequence>
-            <xs:element name="busVolume" type="us:BusVolumeType" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="bus-volume" type="us:BusVolumeType" minOccurs="0" maxOccurs="unbounded"/>
         </xs:sequence>
-        <xs:attribute name="masterVolume" type="xs:float" default="1.0"/>
-        <xs:attribute name="muteOnFocusLoss" type="xs:boolean" default="false"/>
+        <xs:attribute name="master-volume" type="xs:float" default="1.0"/>
+        <xs:attribute name="mute-on-focus-loss" type="xs:boolean" default="false"/>
         <xs:attribute name="device" type="xs:string"/>
-        <xs:attribute name="outputMode" type="us:OutputModeEnum" default="stereo"/>
+        <xs:attribute name="output-mode" type="us:OutputModeEnum" default="stereo"/>
     </xs:complexType>
 
     <xs:complexType name="BusVolumeType">
@@ -120,15 +120,15 @@
         <xs:sequence>
             <xs:element name="rebind" type="us:RebindType" minOccurs="0" maxOccurs="unbounded"/>
         </xs:sequence>
-        <xs:attribute name="mouseSensitivity" type="xs:float" default="1.0"/>
-        <xs:attribute name="invertY" type="xs:boolean" default="false"/>
-        <xs:attribute name="gamepadSensitivity" type="xs:float" default="1.0"/>
-        <xs:attribute name="gamepadDeadzone" type="xs:float" default="0.15"/>
+        <xs:attribute name="mouse-sensitivity" type="xs:float" default="1.0"/>
+        <xs:attribute name="invert-y" type="xs:boolean" default="false"/>
+        <xs:attribute name="gamepad-sensitivity" type="xs:float" default="1.0"/>
+        <xs:attribute name="gamepad-deadzone" type="xs:float" default="0.15"/>
         <xs:attribute name="vibration" type="xs:boolean" default="true"/>
     </xs:complexType>
 
     <xs:complexType name="RebindType">
-        <xs:attribute name="actionRef" type="xs:string" use="required"/>
+        <xs:attribute name="action-ref" type="xs:string" use="required"/>
         <xs:attribute name="device" type="xs:string" use="required"/>
         <xs:attribute name="path" type="xs:string" use="required"/>
     </xs:complexType>
@@ -136,16 +136,16 @@
     <!-- ===== Accessibility ===== -->
     <xs:complexType name="AccessibilityType">
         <xs:attribute name="subtitles" type="xs:boolean" default="true"/>
-        <xs:attribute name="subtitleSize" type="us:SizeEnum" default="medium"/>
-        <xs:attribute name="subtitleBackground" type="xs:float" default="0.5"/>
-        <xs:attribute name="colorblindMode" type="us:ColorblindModeEnum" default="none"/>
-        <xs:attribute name="highContrast" type="xs:boolean" default="false"/>
-        <xs:attribute name="reduceMotion" type="xs:boolean" default="false"/>
-        <xs:attribute name="reduceFlashes" type="xs:boolean" default="false"/>
-        <xs:attribute name="screenShake" type="xs:boolean" default="true"/>
-        <xs:attribute name="cameraShake" type="xs:boolean" default="true"/>
-        <xs:attribute name="uiScale" type="xs:float" default="1.0"/>
-        <xs:attribute name="screenReader" type="xs:boolean" default="false"/>
+        <xs:attribute name="subtitle-size" type="us:SizeEnum" default="medium"/>
+        <xs:attribute name="subtitle-background" type="xs:float" default="0.5"/>
+        <xs:attribute name="colorblind-mode" type="us:ColorblindModeEnum" default="none"/>
+        <xs:attribute name="high-contrast" type="xs:boolean" default="false"/>
+        <xs:attribute name="reduce-motion" type="xs:boolean" default="false"/>
+        <xs:attribute name="reduce-flashes" type="xs:boolean" default="false"/>
+        <xs:attribute name="screen-shake" type="xs:boolean" default="true"/>
+        <xs:attribute name="camera-shake" type="xs:boolean" default="true"/>
+        <xs:attribute name="ui-scale" type="xs:float" default="1.0"/>
+        <xs:attribute name="screen-reader" type="xs:boolean" default="false"/>
     </xs:complexType>
 
     <xs:simpleType name="SizeEnum">

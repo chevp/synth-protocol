@@ -6,7 +6,7 @@
     These examples demonstrate events for component operations
     (transform, materials, scripts, etc.)
 -->
-<eventStream xmlns="https://chevp.github.io/synth-protocol/schema/synth/events/1.0"
+<event-stream xmlns="https://chevp.github.io/synth-protocol/schema/synth/events/1.0"
              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
              xsi:schemaLocation="https://chevp.github.io/synth-protocol/schema/synth/events/1.0 ../../schema/synth/events/1.0/events.xsd"
              name="Component Events"
@@ -16,7 +16,7 @@
     <!-- Transform Component Created -->
     <!-- URI: synth://component/created#comp_transform_tree?node=node_tree_01 -->
     <!-- =================================================================== -->
-    <event eventId="evt_101">
+    <event event-id="evt_101">
         <uri scheme="synth" path="component" action="created" subject="comp_transform_tree">
             <query>
                 <param key="node">node_tree_01</param>
@@ -25,17 +25,17 @@
             </query>
         </uri>
         <metadata timestamp="1733400100000"
-                  sourceId="mcp_playground"
-                  sourceType="mcp-server"
+                  source-id="mcp_playground"
+                  source-type="mcp-server"
                   version="1"
                   priority="normal"/>
         <payload>
-            <component componentId="comp_transform_tree"
-                       clusterNodeId="node_tree_01"
-                       componentType="transform"
+            <component component-id="comp_transform_tree"
+                       cluster-node-id="node_tree_01"
+                       component-type="transform"
                        state="enabled">
                 <!-- Base64 encoded: {"position":{"x":10,"y":0,"z":5},"rotation":{"x":0,"y":0,"z":0,"w":1},"scale":{"x":1,"y":1,"z":1}} -->
-                <newData>eyJwb3NpdGlvbiI6eyJ4IjoxMCwieSI6MCwieiI6NX0sInJvdGF0aW9uIjp7IngiOjAsInkiOjAsInoiOjAsInciOjF9LCJzY2FsZSI6eyJ4IjoxLCJ5IjoxLCJ6IjoxfX0=</newData>
+                <new-data>eyJwb3NpdGlvbiI6eyJ4IjoxMCwieSI6MCwieiI6NX0sInJvdGF0aW9uIjp7IngiOjAsInkiOjAsInoiOjAsInciOjF9LCJzY2FsZSI6eyJ4IjoxLCJ5IjoxLCJ6IjoxfX0=</new-data>
             </component>
         </payload>
     </event>
@@ -44,7 +44,7 @@
     <!-- Transform Position Updated -->
     <!-- URI: synth://component/updated#comp_transform_tree?field=position -->
     <!-- =================================================================== -->
-    <event eventId="evt_102">
+    <event event-id="evt_102">
         <uri scheme="synth" path="component" action="updated" subject="comp_transform_tree">
             <query>
                 <param key="node">node_tree_01</param>
@@ -53,19 +53,19 @@
             </query>
         </uri>
         <metadata timestamp="1733400101000"
-                  sourceId="tool_move"
-                  sourceType="mcp-tool"
-                  correlationId="drag_session_001"
+                  source-id="tool_move"
+                  source-type="mcp-tool"
+                  correlation-id="drag_session_001"
                   version="1"
                   priority="high"/>
         <payload>
-            <component componentId="comp_transform_tree"
-                       clusterNodeId="node_tree_01"
-                       componentType="transform"
+            <component component-id="comp_transform_tree"
+                       cluster-node-id="node_tree_01"
+                       component-type="transform"
                        state="enabled">
-                <changedFields>
+                <changed-fields>
                     <field>position</field>
-                </changedFields>
+                </changed-fields>
             </component>
         </payload>
     </event>
@@ -74,7 +74,7 @@
     <!-- Transform Rotation Updated (Batch during drag) -->
     <!-- URI: synth://component/updated#comp_transform_tree?field=rotation -->
     <!-- =================================================================== -->
-    <event eventId="evt_103">
+    <event event-id="evt_103">
         <uri scheme="synth" path="component" action="updated" subject="comp_transform_tree">
             <query>
                 <param key="node">node_tree_01</param>
@@ -84,19 +84,19 @@
             </query>
         </uri>
         <metadata timestamp="1733400101500"
-                  sourceId="tool_rotate"
-                  sourceType="mcp-tool"
-                  correlationId="rotate_session_001"
+                  source-id="tool_rotate"
+                  source-type="mcp-tool"
+                  correlation-id="rotate_session_001"
                   version="1"
                   priority="normal"/>
         <payload>
-            <component componentId="comp_transform_tree"
-                       clusterNodeId="node_tree_01"
-                       componentType="transform"
+            <component component-id="comp_transform_tree"
+                       cluster-node-id="node_tree_01"
+                       component-type="transform"
                        state="enabled">
-                <changedFields>
+                <changed-fields>
                     <field>rotation</field>
-                </changedFields>
+                </changed-fields>
             </component>
         </payload>
     </event>
@@ -105,7 +105,7 @@
     <!-- Material Component Added -->
     <!-- URI: synth://component/created#comp_material_tree?node=node_tree_01 -->
     <!-- =================================================================== -->
-    <event eventId="evt_104">
+    <event event-id="evt_104">
         <uri scheme="synth" path="component" action="created" subject="comp_material_tree">
             <query>
                 <param key="node">node_tree_01</param>
@@ -114,14 +114,14 @@
             </query>
         </uri>
         <metadata timestamp="1733400102000"
-                  sourceId="mcp_materials"
-                  sourceType="mcp-server"
+                  source-id="mcp_materials"
+                  source-type="mcp-server"
                   version="1"
                   priority="normal"/>
         <payload>
-            <component componentId="comp_material_tree"
-                       clusterNodeId="node_tree_01"
-                       componentType="material"
+            <component component-id="comp_material_tree"
+                       cluster-node-id="node_tree_01"
+                       component-type="material"
                        state="enabled"/>
         </payload>
     </event>
@@ -130,7 +130,7 @@
     <!-- Component Disabled -->
     <!-- URI: synth://component/disabled#comp_material_tree -->
     <!-- =================================================================== -->
-    <event eventId="evt_105">
+    <event event-id="evt_105">
         <uri scheme="synth" path="component" action="disabled" subject="comp_material_tree">
             <query>
                 <param key="node">node_tree_01</param>
@@ -138,18 +138,18 @@
             </query>
         </uri>
         <metadata timestamp="1733400103000"
-                  sourceId="ui_inspector"
-                  sourceType="user"
+                  source-id="ui_inspector"
+                  source-type="user"
                   version="1"
                   priority="low"/>
         <payload>
-            <component componentId="comp_material_tree"
-                       clusterNodeId="node_tree_01"
-                       componentType="material"
+            <component component-id="comp_material_tree"
+                       cluster-node-id="node_tree_01"
+                       component-type="material"
                        state="disabled">
-                <changedFields>
+                <changed-fields>
                     <field>state</field>
-                </changedFields>
+                </changed-fields>
             </component>
         </payload>
     </event>
@@ -158,25 +158,25 @@
     <!-- Component Enabled -->
     <!-- URI: synth://component/enabled#comp_material_tree -->
     <!-- =================================================================== -->
-    <event eventId="evt_106">
+    <event event-id="evt_106">
         <uri scheme="synth" path="component" action="enabled" subject="comp_material_tree">
             <query>
                 <param key="node">node_tree_01</param>
             </query>
         </uri>
         <metadata timestamp="1733400104000"
-                  sourceId="ui_inspector"
-                  sourceType="user"
+                  source-id="ui_inspector"
+                  source-type="user"
                   version="1"
                   priority="low"/>
         <payload>
-            <component componentId="comp_material_tree"
-                       clusterNodeId="node_tree_01"
-                       componentType="material"
+            <component component-id="comp_material_tree"
+                       cluster-node-id="node_tree_01"
+                       component-type="material"
                        state="enabled">
-                <changedFields>
+                <changed-fields>
                     <field>state</field>
-                </changedFields>
+                </changed-fields>
             </component>
         </payload>
     </event>
@@ -185,7 +185,7 @@
     <!-- Component Deleted -->
     <!-- URI: synth://component/deleted#comp_material_tree -->
     <!-- =================================================================== -->
-    <event eventId="evt_107">
+    <event event-id="evt_107">
         <uri scheme="synth" path="component" action="deleted" subject="comp_material_tree">
             <query>
                 <param key="node">node_tree_01</param>
@@ -193,14 +193,14 @@
             </query>
         </uri>
         <metadata timestamp="1733400105000"
-                  sourceId="tool_remove_component"
-                  sourceType="mcp-tool"
+                  source-id="tool_remove_component"
+                  source-type="mcp-tool"
                   version="1"
                   priority="normal"/>
         <payload>
-            <component componentId="comp_material_tree"
-                       clusterNodeId="node_tree_01"
-                       componentType="material"/>
+            <component component-id="comp_material_tree"
+                       cluster-node-id="node_tree_01"
+                       component-type="material"/>
         </payload>
     </event>
 
@@ -208,7 +208,7 @@
     <!-- Script Component Error -->
     <!-- URI: synth://component/error#comp_script_tree?error=compilation -->
     <!-- =================================================================== -->
-    <event eventId="evt_108">
+    <event event-id="evt_108">
         <uri scheme="synth" path="component" action="error" subject="comp_script_tree">
             <query>
                 <param key="node">node_tree_01</param>
@@ -218,14 +218,14 @@
             </query>
         </uri>
         <metadata timestamp="1733400106000"
-                  sourceId="mcp_scripting"
-                  sourceType="mcp-server"
+                  source-id="mcp_scripting"
+                  source-type="mcp-server"
                   version="1"
                   priority="high"/>
         <payload>
-            <component componentId="comp_script_tree"
-                       clusterNodeId="node_tree_01"
-                       componentType="script"
+            <component component-id="comp_script_tree"
+                       cluster-node-id="node_tree_01"
+                       component-type="script"
                        state="disabled"/>
         </payload>
     </event>
@@ -234,7 +234,7 @@
     <!-- Mesh Component Updated (LOD changed) -->
     <!-- URI: synth://component/updated#comp_mesh_tree?field=lod -->
     <!-- =================================================================== -->
-    <event eventId="evt_109">
+    <event event-id="evt_109">
         <uri scheme="synth" path="component" action="updated" subject="comp_mesh_tree">
             <query>
                 <param key="node">node_tree_01</param>
@@ -245,18 +245,18 @@
             </query>
         </uri>
         <metadata timestamp="1733400107000"
-                  sourceId="lod_system"
-                  sourceType="system"
+                  source-id="lod_system"
+                  source-type="system"
                   version="1"
                   priority="low"/>
         <payload>
-            <component componentId="comp_mesh_tree"
-                       clusterNodeId="node_tree_01"
-                       componentType="mesh"
+            <component component-id="comp_mesh_tree"
+                       cluster-node-id="node_tree_01"
+                       component-type="mesh"
                        state="enabled">
-                <changedFields>
+                <changed-fields>
                     <field>active_lod</field>
-                </changedFields>
+                </changed-fields>
             </component>
         </payload>
     </event>
@@ -265,7 +265,7 @@
     <!-- Animation Component Progress -->
     <!-- URI: synth://component/progress#comp_animation_tree -->
     <!-- =================================================================== -->
-    <event eventId="evt_110">
+    <event event-id="evt_110">
         <uri scheme="synth" path="component" action="progress" subject="comp_animation_tree">
             <query>
                 <param key="node">node_tree_01</param>
@@ -276,16 +276,16 @@
             </query>
         </uri>
         <metadata timestamp="1733400108000"
-                  sourceId="animation_system"
-                  sourceType="system"
+                  source-id="animation_system"
+                  source-type="system"
                   version="1"
                   priority="low"/>
         <payload>
-            <component componentId="comp_animation_tree"
-                       clusterNodeId="node_tree_01"
-                       componentType="animation"
+            <component component-id="comp_animation_tree"
+                       cluster-node-id="node_tree_01"
+                       component-type="animation"
                        state="enabled"/>
         </payload>
     </event>
 
-</eventStream>
+</event-stream>

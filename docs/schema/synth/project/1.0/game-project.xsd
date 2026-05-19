@@ -20,7 +20,7 @@
          ========================================================================= -->
 
     <!-- Root Element -->
-    <xs:element name="synthGameProject" type="game:SynthGameProjectType"/>
+    <xs:element name="synth-game-project" type="game:SynthGameProjectType"/>
 
     <!-- Game Project Configuration -->
     <xs:complexType name="SynthGameProjectType">
@@ -61,13 +61,13 @@
             <xs:element name="runtime" type="xs:string"/>
 
             <!-- Auto-start backend when project opens -->
-            <xs:element name="autoStart" type="xs:boolean" default="true" minOccurs="0"/>
+            <xs:element name="auto-start" type="xs:boolean" default="true" minOccurs="0"/>
 
             <!-- Wait for backend to be ready before starting renderer -->
-            <xs:element name="waitForReady" type="xs:boolean" default="true" minOccurs="0"/>
+            <xs:element name="wait-for-ready" type="xs:boolean" default="true" minOccurs="0"/>
 
             <!-- Startup timeout in seconds -->
-            <xs:element name="startupTimeout" type="xs:int" default="30" minOccurs="0"/>
+            <xs:element name="startup-timeout" type="xs:int" default="30" minOccurs="0"/>
         </xs:sequence>
     </xs:complexType>
 
@@ -78,7 +78,7 @@
             <xs:element name="runtime" type="xs:string"/>
 
             <!-- Auto-start renderer when project opens -->
-            <xs:element name="autoStart" type="xs:boolean" default="true" minOccurs="0"/>
+            <xs:element name="auto-start" type="xs:boolean" default="true" minOccurs="0"/>
         </xs:sequence>
     </xs:complexType>
 
@@ -105,20 +105,20 @@
     <xs:complexType name="MountType">
         <xs:attribute name="scheme" type="xs:string" use="required"/>
         <xs:attribute name="path" type="xs:string" use="required"/>
-        <xs:attribute name="readOnly" type="xs:boolean" default="true"/>
+        <xs:attribute name="read-only" type="xs:boolean" default="true"/>
     </xs:complexType>
 
     <!-- Launcher Configuration -->
     <xs:complexType name="LauncherType">
         <xs:sequence>
             <!-- Startup order: sequential or parallel -->
-            <xs:element name="startupOrder" type="game:StartupOrderEnum" default="sequential" minOccurs="0"/>
+            <xs:element name="startup-order" type="game:StartupOrderEnum" default="sequential" minOccurs="0"/>
 
             <!-- Show console windows (for debugging) -->
-            <xs:element name="showConsole" type="xs:boolean" default="true" minOccurs="0"/>
+            <xs:element name="show-console" type="xs:boolean" default="true" minOccurs="0"/>
 
             <!-- Working directory (relative to .synth-game file) -->
-            <xs:element name="workingDirectory" type="xs:string" minOccurs="0"/>
+            <xs:element name="working-directory" type="xs:string" minOccurs="0"/>
         </xs:sequence>
     </xs:complexType>
 

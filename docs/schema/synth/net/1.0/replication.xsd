@@ -11,13 +11,13 @@
          Root element: <synthReplication>
          ========================================================================= -->
 
-    <xs:element name="synthReplication" type="net:SynthReplicationType"/>
+    <xs:element name="synth-replication" type="net:SynthReplicationType"/>
 
     <xs:complexType name="SynthReplicationType">
         <xs:sequence>
             <xs:element name="settings" type="net:NetSettingsType" minOccurs="0"/>
             <xs:element name="channels" type="net:ChannelsType" minOccurs="0"/>
-            <xs:element name="replicatedComponents" type="net:ReplicatedComponentsType" minOccurs="0"/>
+            <xs:element name="replicated-components" type="net:ReplicatedComponentsType" minOccurs="0"/>
             <xs:element name="rpcs" type="net:RpcsType" minOccurs="0"/>
         </xs:sequence>
         <xs:attribute name="version" type="xs:string" use="required"/>
@@ -26,14 +26,14 @@
 
     <!-- ===== Global Settings ===== -->
     <xs:complexType name="NetSettingsType">
-        <xs:attribute name="authorityModel" type="net:AuthorityModelEnum" default="serverAuthoritative"/>
-        <xs:attribute name="tickRateHz" type="xs:int" default="20"/>
-        <xs:attribute name="snapshotRateHz" type="xs:int" default="20"/>
-        <xs:attribute name="interpolationDelayMs" type="xs:int" default="100"/>
-        <xs:attribute name="enableClientPrediction" type="xs:boolean" default="true"/>
-        <xs:attribute name="enableServerReconciliation" type="xs:boolean" default="true"/>
-        <xs:attribute name="enableRollback" type="xs:boolean" default="false"/>
-        <xs:attribute name="rollbackWindowMs" type="xs:int" default="200"/>
+        <xs:attribute name="authority-model" type="net:AuthorityModelEnum" default="serverAuthoritative"/>
+        <xs:attribute name="tick-rate-hz" type="xs:int" default="20"/>
+        <xs:attribute name="snapshot-rate-hz" type="xs:int" default="20"/>
+        <xs:attribute name="interpolation-delay-ms" type="xs:int" default="100"/>
+        <xs:attribute name="enable-client-prediction" type="xs:boolean" default="true"/>
+        <xs:attribute name="enable-server-reconciliation" type="xs:boolean" default="true"/>
+        <xs:attribute name="enable-rollback" type="xs:boolean" default="false"/>
+        <xs:attribute name="rollback-window-ms" type="xs:int" default="200"/>
     </xs:complexType>
 
     <xs:simpleType name="AuthorityModelEnum">
@@ -58,7 +58,7 @@
         <xs:attribute name="reliability" type="net:ReliabilityEnum" default="unreliable"/>
         <xs:attribute name="ordered" type="xs:boolean" default="true"/>
         <xs:attribute name="priority" type="xs:int" default="0"/>
-        <xs:attribute name="maxBytesPerTick" type="xs:int"/>
+        <xs:attribute name="max-bytes-per-tick" type="xs:int"/>
     </xs:complexType>
 
     <xs:simpleType name="ReliabilityEnum">
@@ -80,9 +80,9 @@
         <xs:sequence>
             <xs:element name="property" type="net:ReplicatedPropertyType" maxOccurs="unbounded"/>
         </xs:sequence>
-        <xs:attribute name="componentRef" type="xs:string" use="required"/>
+        <xs:attribute name="component-ref" type="xs:string" use="required"/>
         <xs:attribute name="relevance" type="net:RelevanceEnum" default="all"/>
-        <xs:attribute name="relevanceRadius" type="xs:float"/>
+        <xs:attribute name="relevance-radius" type="xs:float"/>
     </xs:complexType>
 
     <xs:simpleType name="RelevanceEnum">

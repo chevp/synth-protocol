@@ -27,7 +27,7 @@
          ========================================================================= -->
 
     <!-- Root Element -->
-    <xs:element name="synthRuntimeRenderer" type="runtime:SynthRuntimeRendererType"/>
+    <xs:element name="synth-runtime-renderer" type="runtime:SynthRuntimeRendererType"/>
 
     <!-- Runtime Renderer Configuration -->
     <xs:complexType name="SynthRuntimeRendererType">
@@ -215,7 +215,7 @@
     <xs:complexType name="MountType">
         <xs:attribute name="scheme" type="xs:string" use="required"/>
         <xs:attribute name="path" type="xs:string" use="required"/>
-        <xs:attribute name="readOnly" type="xs:boolean" default="true"/>
+        <xs:attribute name="read-only" type="xs:boolean" default="true"/>
     </xs:complexType>
 
     <!-- Path URI Type (consistent with scene URI format) -->

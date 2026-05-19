@@ -21,13 +21,13 @@
     <xs:element name="event" type="events:EventType"/>
 
     <!-- Event Batch -->
-    <xs:element name="eventBatch" type="events:EventBatchType"/>
+    <xs:element name="event-batch" type="events:EventBatchType"/>
 
     <!-- Subscription -->
     <xs:element name="subscription" type="events:SubscriptionType"/>
 
     <!-- Event Stream (for examples/documentation) -->
-    <xs:element name="eventStream" type="events:EventStreamType"/>
+    <xs:element name="event-stream" type="events:EventStreamType"/>
 
     <!-- =========================================================================
          EVENT URI
@@ -87,7 +87,7 @@
             <!-- Event payload (choice of typed payloads) -->
             <xs:element name="payload" type="events:EventPayloadType" minOccurs="0"/>
         </xs:sequence>
-        <xs:attribute name="eventId" type="xs:string" use="required"/>
+        <xs:attribute name="event-id" type="xs:string" use="required"/>
     </xs:complexType>
 
     <xs:complexType name="EventMetadataType">
@@ -98,20 +98,20 @@
         <!-- When the event occurred (Unix timestamp ms) -->
         <xs:attribute name="timestamp" type="xs:long" use="required"/>
         <!-- Event source identifier -->
-        <xs:attribute name="sourceId" type="xs:string"/>
+        <xs:attribute name="source-id" type="xs:string"/>
         <!-- Source type: mcp-server, plugin, system, user -->
-        <xs:attribute name="sourceType" type="events:SourceTypeEnum"/>
+        <xs:attribute name="source-type" type="events:SourceTypeEnum"/>
         <!-- Correlation ID for tracing -->
-        <xs:attribute name="correlationId" type="xs:string"/>
+        <xs:attribute name="correlation-id" type="xs:string"/>
         <!-- Causation ID -->
-        <xs:attribute name="causationId" type="xs:string"/>
+        <xs:attribute name="causation-id" type="xs:string"/>
         <!-- Event version -->
         <xs:attribute name="version" type="xs:int" default="1"/>
         <!-- Priority -->
         <xs:attribute name="priority" type="events:EventPriorityEnum" default="normal"/>
         <!-- User/session -->
-        <xs:attribute name="userId" type="xs:string"/>
-        <xs:attribute name="sessionId" type="xs:string"/>
+        <xs:attribute name="user-id" type="xs:string"/>
+        <xs:attribute name="session-id" type="xs:string"/>
     </xs:complexType>
 
     <xs:simpleType name="SourceTypeEnum">
@@ -145,10 +145,10 @@
             <!-- Generic payload as base64 -->
             <xs:element name="data" type="xs:base64Binary"/>
             <!-- Typed payloads -->
-            <xs:element name="clusterNode" type="events:ClusterNodeEventType"/>
+            <xs:element name="cluster-node" type="events:ClusterNodeEventType"/>
             <xs:element name="component" type="events:ComponentEventType"/>
-            <xs:element name="mcpServer" type="events:McpServerEventType"/>
-            <xs:element name="mcpTool" type="events:McpToolEventType"/>
+            <xs:element name="mcp-server" type="events:McpServerEventType"/>
+            <xs:element name="mcp-tool" type="events:McpToolEventType"/>
             <xs:element name="agent" type="events:AgentEventType"/>
             <xs:element name="task" type="events:TaskEventType"/>
         </xs:choice>
@@ -161,20 +161,20 @@
     <!-- Cluster Node Events -->
     <xs:complexType name="ClusterNodeEventType">
         <xs:sequence>
-            <xs:element name="changedFields" type="events:ChangedFieldsType" minOccurs="0"/>
-            <xs:element name="nodeData" type="xs:base64Binary" minOccurs="0"/>
+            <xs:element name="changed-fields" type="events:ChangedFieldsType" minOccurs="0"/>
+            <xs:element name="node-data" type="xs:base64Binary" minOccurs="0"/>
         </xs:sequence>
-        <xs:attribute name="nodeId" type="xs:string" use="required"/>
-        <xs:attribute name="nodeType" type="events:ClusterNodeTypeEnum"/>
+        <xs:attribute name="node-id" type="xs:string" use="required"/>
+        <xs:attribute name="node-type" type="events:ClusterNodeTypeEnum"/>
         <xs:attribute name="name" type="xs:string"/>
         <xs:attribute name="state" type="events:ClusterNodeStateEnum"/>
         <!-- For moved events -->
-        <xs:attribute name="oldParentId" type="xs:string"/>
-        <xs:attribute name="newParentId" type="xs:string"/>
-        <xs:attribute name="oldSiblingOrder" type="xs:int"/>
-        <xs:attribute name="newSiblingOrder" type="xs:int"/>
+        <xs:attribute name="old-parent-id" type="xs:string"/>
+        <xs:attribute name="new-parent-id" type="xs:string"/>
+        <xs:attribute name="old-sibling-order" type="xs:int"/>
+        <xs:attribute name="new-sibling-order" type="xs:int"/>
         <!-- For renamed events -->
-        <xs:attribute name="oldName" type="xs:string"/>
+        <xs:attribute name="old-name" type="xs:string"/>
     </xs:complexType>
 
     <xs:simpleType name="ClusterNodeTypeEnum">
@@ -201,13 +201,13 @@
     <!-- Component Events -->
     <xs:complexType name="ComponentEventType">
         <xs:sequence>
-            <xs:element name="changedFields" type="events:ChangedFieldsType" minOccurs="0"/>
-            <xs:element name="oldData" type="xs:base64Binary" minOccurs="0"/>
-            <xs:element name="newData" type="xs:base64Binary" minOccurs="0"/>
+            <xs:element name="changed-fields" type="events:ChangedFieldsType" minOccurs="0"/>
+            <xs:element name="old-data" type="xs:base64Binary" minOccurs="0"/>
+            <xs:element name="new-data" type="xs:base64Binary" minOccurs="0"/>
         </xs:sequence>
-        <xs:attribute name="componentId" type="xs:string" use="required"/>
-        <xs:attribute name="clusterNodeId" type="xs:string"/>
-        <xs:attribute name="componentType" type="xs:string"/>
+        <xs:attribute name="component-id" type="xs:string" use="required"/>
+        <xs:attribute name="cluster-node-id" type="xs:string"/>
+        <xs:attribute name="component-type" type="xs:string"/>
         <xs:attribute name="state" type="events:ComponentStateEnum"/>
     </xs:complexType>
 
@@ -221,17 +221,17 @@
     <!-- MCP Server Events -->
     <xs:complexType name="McpServerEventType">
         <xs:sequence>
-            <xs:element name="toolNames" type="events:ToolNamesType" minOccurs="0"/>
+            <xs:element name="tool-names" type="events:ToolNamesType" minOccurs="0"/>
         </xs:sequence>
-        <xs:attribute name="serverId" type="xs:string" use="required"/>
-        <xs:attribute name="serverName" type="xs:string"/>
+        <xs:attribute name="server-id" type="xs:string" use="required"/>
+        <xs:attribute name="server-name" type="xs:string"/>
         <xs:attribute name="state" type="events:McpServerStateEnum"/>
-        <xs:attribute name="transportType" type="xs:string"/>
+        <xs:attribute name="transport-type" type="xs:string"/>
         <xs:attribute name="endpoint" type="xs:string"/>
-        <xs:attribute name="errorCode" type="xs:string"/>
-        <xs:attribute name="errorMessage" type="xs:string"/>
+        <xs:attribute name="error-code" type="xs:string"/>
+        <xs:attribute name="error-message" type="xs:string"/>
         <xs:attribute name="healthy" type="xs:boolean"/>
-        <xs:attribute name="latencyMs" type="xs:long"/>
+        <xs:attribute name="latency-ms" type="xs:long"/>
     </xs:complexType>
 
     <xs:complexType name="ToolNamesType">
@@ -254,18 +254,18 @@
     <!-- MCP Tool Events -->
     <xs:complexType name="McpToolEventType">
         <xs:sequence>
-            <xs:element name="inputParams" type="xs:base64Binary" minOccurs="0"/>
-            <xs:element name="outputResult" type="xs:base64Binary" minOccurs="0"/>
+            <xs:element name="input-params" type="xs:base64Binary" minOccurs="0"/>
+            <xs:element name="output-result" type="xs:base64Binary" minOccurs="0"/>
         </xs:sequence>
-        <xs:attribute name="toolName" type="xs:string" use="required"/>
-        <xs:attribute name="serverId" type="xs:string"/>
-        <xs:attribute name="invocationId" type="xs:string"/>
-        <xs:attribute name="startedAt" type="xs:long"/>
-        <xs:attribute name="completedAt" type="xs:long"/>
-        <xs:attribute name="durationMs" type="xs:long"/>
-        <xs:attribute name="errorCode" type="xs:string"/>
-        <xs:attribute name="errorMessage" type="xs:string"/>
-        <xs:attribute name="userId" type="xs:string"/>
+        <xs:attribute name="tool-name" type="xs:string" use="required"/>
+        <xs:attribute name="server-id" type="xs:string"/>
+        <xs:attribute name="invocation-id" type="xs:string"/>
+        <xs:attribute name="started-at" type="xs:long"/>
+        <xs:attribute name="completed-at" type="xs:long"/>
+        <xs:attribute name="duration-ms" type="xs:long"/>
+        <xs:attribute name="error-code" type="xs:string"/>
+        <xs:attribute name="error-message" type="xs:string"/>
+        <xs:attribute name="user-id" type="xs:string"/>
         <xs:attribute name="undoable" type="xs:boolean"/>
     </xs:complexType>
 
@@ -274,14 +274,14 @@
         <xs:sequence>
             <xs:element name="capabilities" type="events:CapabilitiesType" minOccurs="0"/>
         </xs:sequence>
-        <xs:attribute name="agentId" type="xs:string" use="required"/>
-        <xs:attribute name="agentType" type="xs:string"/>
+        <xs:attribute name="agent-id" type="xs:string" use="required"/>
+        <xs:attribute name="agent-type" type="xs:string"/>
         <xs:attribute name="name" type="xs:string"/>
         <xs:attribute name="state" type="events:AgentStateEnum"/>
-        <xs:attribute name="errorCode" type="xs:string"/>
-        <xs:attribute name="errorMessage" type="xs:string"/>
-        <xs:attribute name="activeTasks" type="xs:int"/>
-        <xs:attribute name="queuedTasks" type="xs:int"/>
+        <xs:attribute name="error-code" type="xs:string"/>
+        <xs:attribute name="error-message" type="xs:string"/>
+        <xs:attribute name="active-tasks" type="xs:int"/>
+        <xs:attribute name="queued-tasks" type="xs:int"/>
     </xs:complexType>
 
     <xs:complexType name="CapabilitiesType">
@@ -302,20 +302,20 @@
     <!-- Task Events -->
     <xs:complexType name="TaskEventType">
         <xs:sequence>
-            <xs:element name="resultData" type="xs:base64Binary" minOccurs="0"/>
+            <xs:element name="result-data" type="xs:base64Binary" minOccurs="0"/>
         </xs:sequence>
-        <xs:attribute name="taskId" type="xs:string" use="required"/>
-        <xs:attribute name="agentId" type="xs:string"/>
-        <xs:attribute name="taskType" type="xs:string"/>
+        <xs:attribute name="task-id" type="xs:string" use="required"/>
+        <xs:attribute name="agent-id" type="xs:string"/>
+        <xs:attribute name="task-type" type="xs:string"/>
         <xs:attribute name="status" type="events:TaskStatusEnum"/>
         <xs:attribute name="priority" type="events:TaskPriorityEnum"/>
-        <xs:attribute name="createdAt" type="xs:long"/>
-        <xs:attribute name="startedAt" type="xs:long"/>
-        <xs:attribute name="completedAt" type="xs:long"/>
-        <xs:attribute name="progressPercent" type="xs:int"/>
-        <xs:attribute name="progressMessage" type="xs:string"/>
-        <xs:attribute name="errorCode" type="xs:string"/>
-        <xs:attribute name="errorMessage" type="xs:string"/>
+        <xs:attribute name="created-at" type="xs:long"/>
+        <xs:attribute name="started-at" type="xs:long"/>
+        <xs:attribute name="completed-at" type="xs:long"/>
+        <xs:attribute name="progress-percent" type="xs:int"/>
+        <xs:attribute name="progress-message" type="xs:string"/>
+        <xs:attribute name="error-code" type="xs:string"/>
+        <xs:attribute name="error-message" type="xs:string"/>
     </xs:complexType>
 
     <xs:simpleType name="TaskStatusEnum">
@@ -352,7 +352,7 @@
         <xs:sequence>
             <xs:element name="event" type="events:EventType" maxOccurs="unbounded"/>
         </xs:sequence>
-        <xs:attribute name="batchId" type="xs:string" use="required"/>
+        <xs:attribute name="batch-id" type="xs:string" use="required"/>
         <xs:attribute name="timestamp" type="xs:long"/>
     </xs:complexType>
 
@@ -363,12 +363,12 @@
     <xs:complexType name="SubscriptionType">
         <xs:sequence>
             <xs:element name="pattern" type="events:SubscriptionPatternType"/>
-            <xs:element name="queryFilter" type="events:QueryParamsType" minOccurs="0"/>
+            <xs:element name="query-filter" type="events:QueryParamsType" minOccurs="0"/>
             <xs:element name="delivery" type="events:DeliveryOptionsType" minOccurs="0"/>
         </xs:sequence>
-        <xs:attribute name="subscriptionId" type="xs:string" use="required"/>
-        <xs:attribute name="subscriberId" type="xs:string"/>
-        <xs:attribute name="subscriberType" type="xs:string"/>
+        <xs:attribute name="subscription-id" type="xs:string" use="required"/>
+        <xs:attribute name="subscriber-id" type="xs:string"/>
+        <xs:attribute name="subscriber-type" type="xs:string"/>
     </xs:complexType>
 
     <xs:complexType name="SubscriptionPatternType">
@@ -384,11 +384,11 @@
 
     <xs:complexType name="DeliveryOptionsType">
         <xs:attribute name="mode" type="events:DeliveryModeEnum" default="immediate"/>
-        <xs:attribute name="batchSize" type="xs:int"/>
-        <xs:attribute name="batchTimeoutMs" type="xs:int"/>
-        <xs:attribute name="maxRetries" type="xs:int"/>
-        <xs:attribute name="retryDelayMs" type="xs:int"/>
-        <xs:attribute name="minPriority" type="events:EventPriorityEnum"/>
+        <xs:attribute name="batch-size" type="xs:int"/>
+        <xs:attribute name="batch-timeout-ms" type="xs:int"/>
+        <xs:attribute name="max-retries" type="xs:int"/>
+        <xs:attribute name="retry-delay-ms" type="xs:int"/>
+        <xs:attribute name="min-priority" type="events:EventPriorityEnum"/>
     </xs:complexType>
 
     <xs:simpleType name="DeliveryModeEnum">

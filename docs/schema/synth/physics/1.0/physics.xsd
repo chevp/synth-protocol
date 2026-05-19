@@ -14,7 +14,7 @@
          Root element: <synthPhysics>
          ========================================================================= -->
 
-    <xs:element name="synthPhysics" type="physics:SynthPhysicsType"/>
+    <xs:element name="synth-physics" type="physics:SynthPhysicsType"/>
 
     <xs:complexType name="SynthPhysicsType">
         <xs:sequence>
@@ -33,9 +33,9 @@
         <xs:sequence>
             <xs:element name="gravity" type="common:Vec3Type" minOccurs="0"/>
         </xs:sequence>
-        <xs:attribute name="fixedTimestepHz" type="xs:int" default="60"/>
-        <xs:attribute name="maxSubSteps" type="xs:int" default="8"/>
-        <xs:attribute name="solverIterations" type="xs:int" default="10"/>
+        <xs:attribute name="fixed-timestep-hz" type="xs:int" default="60"/>
+        <xs:attribute name="max-sub-steps" type="xs:int" default="8"/>
+        <xs:attribute name="solver-iterations" type="xs:int" default="10"/>
     </xs:complexType>
 
     <!-- ===== Layer-Matrix ===== -->
@@ -87,14 +87,14 @@
         <xs:attribute name="entity" type="xs:string"/>
         <xs:attribute name="type" type="physics:BodyTypeEnum" use="required"/>
         <xs:attribute name="mass" type="xs:float" default="1.0"/>
-        <xs:attribute name="linearDamping" type="xs:float" default="0.0"/>
-        <xs:attribute name="angularDamping" type="xs:float" default="0.0"/>
-        <xs:attribute name="gravityScale" type="xs:float" default="1.0"/>
+        <xs:attribute name="linear-damping" type="xs:float" default="0.0"/>
+        <xs:attribute name="angular-damping" type="xs:float" default="0.0"/>
+        <xs:attribute name="gravity-scale" type="xs:float" default="1.0"/>
         <xs:attribute name="ccd" type="xs:boolean" default="false"/>
         <xs:attribute name="layer" type="xs:string"/>
-        <xs:attribute name="lockRotationX" type="xs:boolean" default="false"/>
-        <xs:attribute name="lockRotationY" type="xs:boolean" default="false"/>
-        <xs:attribute name="lockRotationZ" type="xs:boolean" default="false"/>
+        <xs:attribute name="lock-rotation-x" type="xs:boolean" default="false"/>
+        <xs:attribute name="lock-rotation-y" type="xs:boolean" default="false"/>
+        <xs:attribute name="lock-rotation-z" type="xs:boolean" default="false"/>
     </xs:complexType>
 
     <xs:simpleType name="BodyTypeEnum">
@@ -124,9 +124,9 @@
     </xs:complexType>
 
     <xs:complexType name="BoxShapeType">
-        <xs:attribute name="halfX" type="xs:float" use="required"/>
-        <xs:attribute name="halfY" type="xs:float" use="required"/>
-        <xs:attribute name="halfZ" type="xs:float" use="required"/>
+        <xs:attribute name="half-x" type="xs:float" use="required"/>
+        <xs:attribute name="half-y" type="xs:float" use="required"/>
+        <xs:attribute name="half-z" type="xs:float" use="required"/>
     </xs:complexType>
 
     <xs:complexType name="SphereShapeType">
@@ -154,9 +154,9 @@
         <xs:attribute name="ref" type="xs:string" use="required"/>
         <xs:attribute name="rows" type="xs:int" use="required"/>
         <xs:attribute name="cols" type="xs:int" use="required"/>
-        <xs:attribute name="scaleX" type="xs:float" default="1.0"/>
-        <xs:attribute name="scaleY" type="xs:float" default="1.0"/>
-        <xs:attribute name="scaleZ" type="xs:float" default="1.0"/>
+        <xs:attribute name="scale-x" type="xs:float" default="1.0"/>
+        <xs:attribute name="scale-y" type="xs:float" default="1.0"/>
+        <xs:attribute name="scale-z" type="xs:float" default="1.0"/>
     </xs:complexType>
 
     <xs:simpleType name="AxisEnum">
@@ -176,17 +176,17 @@
 
     <xs:complexType name="JointType">
         <xs:sequence>
-            <xs:element name="anchorA" type="common:Vec3Type" minOccurs="0"/>
-            <xs:element name="anchorB" type="common:Vec3Type" minOccurs="0"/>
+            <xs:element name="anchor-a" type="common:Vec3Type" minOccurs="0"/>
+            <xs:element name="anchor-b" type="common:Vec3Type" minOccurs="0"/>
             <xs:element name="axis" type="common:Vec3Type" minOccurs="0"/>
             <xs:element name="limits" type="physics:JointLimitsType" minOccurs="0"/>
         </xs:sequence>
         <xs:attribute name="id" type="xs:string" use="required"/>
         <xs:attribute name="type" type="physics:JointTypeEnum" use="required"/>
-        <xs:attribute name="bodyA" type="xs:string" use="required"/>
-        <xs:attribute name="bodyB" type="xs:string" use="required"/>
-        <xs:attribute name="collideConnected" type="xs:boolean" default="false"/>
-        <xs:attribute name="breakForce" type="xs:float"/>
+        <xs:attribute name="body-a" type="xs:string" use="required"/>
+        <xs:attribute name="body-b" type="xs:string" use="required"/>
+        <xs:attribute name="collide-connected" type="xs:boolean" default="false"/>
+        <xs:attribute name="break-force" type="xs:float"/>
     </xs:complexType>
 
     <xs:simpleType name="JointTypeEnum">

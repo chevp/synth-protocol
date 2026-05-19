@@ -11,7 +11,7 @@
          Root element: <synthPostFX>
          ========================================================================= -->
 
-    <xs:element name="synthPostFX" type="postfx:SynthPostFXType"/>
+    <xs:element name="synth-post-fx" type="postfx:SynthPostFXType"/>
 
     <xs:complexType name="SynthPostFXType">
         <xs:sequence>
@@ -26,16 +26,16 @@
     <xs:complexType name="ProfileType">
         <xs:sequence>
             <xs:element name="tonemap" type="postfx:TonemapType" minOccurs="0"/>
-            <xs:element name="colorGrading" type="postfx:ColorGradingType" minOccurs="0"/>
+            <xs:element name="color-grading" type="postfx:ColorGradingType" minOccurs="0"/>
             <xs:element name="bloom" type="postfx:BloomType" minOccurs="0"/>
             <xs:element name="ssao" type="postfx:SSAOType" minOccurs="0"/>
             <xs:element name="ssr" type="postfx:SSRType" minOccurs="0"/>
             <xs:element name="dof" type="postfx:DOFType" minOccurs="0"/>
-            <xs:element name="motionBlur" type="postfx:MotionBlurType" minOccurs="0"/>
+            <xs:element name="motion-blur" type="postfx:MotionBlurType" minOccurs="0"/>
             <xs:element name="vignette" type="postfx:VignetteType" minOccurs="0"/>
-            <xs:element name="chromaticAberration" type="postfx:ChromaticAberrationType" minOccurs="0"/>
-            <xs:element name="filmGrain" type="postfx:FilmGrainType" minOccurs="0"/>
-            <xs:element name="lensDistortion" type="postfx:LensDistortionType" minOccurs="0"/>
+            <xs:element name="chromatic-aberration" type="postfx:ChromaticAberrationType" minOccurs="0"/>
+            <xs:element name="film-grain" type="postfx:FilmGrainType" minOccurs="0"/>
+            <xs:element name="lens-distortion" type="postfx:LensDistortionType" minOccurs="0"/>
             <xs:element name="antialiasing" type="postfx:AntialiasingType" minOccurs="0"/>
         </xs:sequence>
         <xs:attribute name="id" type="xs:string" use="required"/>
@@ -44,11 +44,11 @@
     <!-- ===== Volume (räumlicher Blender zwischen Profilen) ===== -->
     <xs:complexType name="VolumeType">
         <xs:attribute name="id" type="xs:string" use="required"/>
-        <xs:attribute name="profileRef" type="xs:string" use="required"/>
+        <xs:attribute name="profile-ref" type="xs:string" use="required"/>
         <xs:attribute name="global" type="xs:boolean" default="false"/>
         <xs:attribute name="priority" type="xs:int" default="0"/>
         <xs:attribute name="weight" type="xs:float" default="1.0"/>
-        <xs:attribute name="blendDistance" type="xs:float" default="0.0"/>
+        <xs:attribute name="blend-distance" type="xs:float" default="0.0"/>
         <xs:attribute name="entity" type="xs:string"/>
     </xs:complexType>
 
@@ -80,7 +80,7 @@
         <xs:attribute name="brightness" type="xs:float" default="0.0"/>
         <xs:attribute name="gamma" type="xs:float" default="1.0"/>
         <xs:attribute name="lut" type="xs:string"/>
-        <xs:attribute name="lutIntensity" type="xs:float" default="1.0"/>
+        <xs:attribute name="lut-intensity" type="xs:float" default="1.0"/>
     </xs:complexType>
 
     <!-- ===== Bloom ===== -->
@@ -89,8 +89,8 @@
         <xs:attribute name="threshold" type="xs:float" default="1.0"/>
         <xs:attribute name="intensity" type="xs:float" default="0.5"/>
         <xs:attribute name="scatter" type="xs:float" default="0.7"/>
-        <xs:attribute name="dirtTexture" type="xs:string"/>
-        <xs:attribute name="dirtIntensity" type="xs:float" default="0.0"/>
+        <xs:attribute name="dirt-texture" type="xs:string"/>
+        <xs:attribute name="dirt-intensity" type="xs:float" default="0.0"/>
     </xs:complexType>
 
     <!-- ===== SSAO / SSR ===== -->
@@ -104,8 +104,8 @@
 
     <xs:complexType name="SSRType">
         <xs:attribute name="enabled" type="xs:boolean" default="true"/>
-        <xs:attribute name="maxRoughness" type="xs:float" default="0.5"/>
-        <xs:attribute name="stepCount" type="xs:int" default="32"/>
+        <xs:attribute name="max-roughness" type="xs:float" default="0.5"/>
+        <xs:attribute name="step-count" type="xs:int" default="32"/>
         <xs:attribute name="thickness" type="xs:float" default="0.1"/>
         <xs:attribute name="quality" type="postfx:QualityEnum" default="medium"/>
     </xs:complexType>
@@ -123,10 +123,10 @@
     <xs:complexType name="DOFType">
         <xs:attribute name="enabled" type="xs:boolean" default="true"/>
         <xs:attribute name="mode" type="postfx:DOFModeEnum" default="bokeh"/>
-        <xs:attribute name="focusDistance" type="xs:float" default="5.0"/>
+        <xs:attribute name="focus-distance" type="xs:float" default="5.0"/>
         <xs:attribute name="aperture" type="xs:float" default="2.8"/>
-        <xs:attribute name="focalLengthMm" type="xs:float" default="50.0"/>
-        <xs:attribute name="bokehShape" type="postfx:BokehShapeEnum" default="hexagon"/>
+        <xs:attribute name="focal-length-mm" type="xs:float" default="50.0"/>
+        <xs:attribute name="bokeh-shape" type="postfx:BokehShapeEnum" default="hexagon"/>
     </xs:complexType>
 
     <xs:simpleType name="DOFModeEnum">
@@ -146,8 +146,8 @@
 
     <xs:complexType name="MotionBlurType">
         <xs:attribute name="enabled" type="xs:boolean" default="true"/>
-        <xs:attribute name="shutterAngle" type="xs:float" default="180.0"/>
-        <xs:attribute name="sampleCount" type="xs:int" default="8"/>
+        <xs:attribute name="shutter-angle" type="xs:float" default="180.0"/>
+        <xs:attribute name="sample-count" type="xs:int" default="8"/>
     </xs:complexType>
 
     <!-- ===== Vignette / CA / Grain / Distortion ===== -->
@@ -173,8 +173,8 @@
     <xs:complexType name="LensDistortionType">
         <xs:attribute name="enabled" type="xs:boolean" default="true"/>
         <xs:attribute name="intensity" type="xs:float" default="0.0"/>
-        <xs:attribute name="xMultiplier" type="xs:float" default="1.0"/>
-        <xs:attribute name="yMultiplier" type="xs:float" default="1.0"/>
+        <xs:attribute name="x-multiplier" type="xs:float" default="1.0"/>
+        <xs:attribute name="y-multiplier" type="xs:float" default="1.0"/>
     </xs:complexType>
 
     <!-- ===== Antialiasing ===== -->

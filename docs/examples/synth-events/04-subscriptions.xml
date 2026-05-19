@@ -20,14 +20,14 @@
     <!-- Subscribe to All Events in a Specific Scene -->
     <!-- Pattern: synth://**/*?scene=scene_outdoor -->
     <!-- =================================================================== -->
-    <subscription subscriptionId="sub_scene_outdoor"
-                  subscriberId="ui_scene_view"
-                  subscriberType="ui-component">
+    <subscription subscription-id="sub_scene_outdoor"
+                  subscriber-id="ui_scene_view"
+                  subscriber-type="ui-component">
         <pattern scheme="synth" path="**" action="*"/>
-        <queryFilter>
+        <query-filter>
             <param key="scene">scene_outdoor</param>
-        </queryFilter>
-        <delivery mode="immediate" minPriority="low"/>
+        </query-filter>
+        <delivery mode="immediate" min-priority="low"/>
     </subscription>
     <!--
         Matches:
@@ -44,9 +44,9 @@
     <!-- Subscribe to All Cluster Node Events -->
     <!-- Pattern: synth://cluster/node/* -->
     <!-- =================================================================== -->
-    <subscription subscriptionId="sub_cluster_nodes"
-                  subscriberId="tree_view_panel"
-                  subscriberType="ui-component">
+    <subscription subscription-id="sub_cluster_nodes"
+                  subscriber-id="tree_view_panel"
+                  subscriber-type="ui-component">
         <pattern scheme="synth" path="cluster/node" action="*"/>
         <delivery mode="immediate"/>
     </subscription>
@@ -61,27 +61,27 @@
     <!-- Subscribe to MCP Server Health Events (Batched) -->
     <!-- Pattern: nuna://mcp/server/health -->
     <!-- =================================================================== -->
-    <subscription subscriptionId="sub_mcp_health"
-                  subscriberId="server_monitor"
-                  subscriberType="service">
+    <subscription subscription-id="sub_mcp_health"
+                  subscriber-id="server_monitor"
+                  subscriber-type="service">
         <pattern scheme="nuna" path="mcp/server" action="health"/>
         <delivery mode="batched"
-                  batchSize="10"
-                  batchTimeoutMs="5000"
-                  minPriority="low"/>
+                  batch-size="10"
+                  batch-timeout-ms="5000"
+                  min-priority="low"/>
     </subscription>
 
     <!-- =================================================================== -->
     <!-- Subscribe to All Error Events -->
     <!-- Pattern: *://**/error -->
     <!-- =================================================================== -->
-    <subscription subscriptionId="sub_all_errors"
-                  subscriberId="error_logger"
-                  subscriberType="service">
+    <subscription subscription-id="sub_all_errors"
+                  subscriber-id="error_logger"
+                  subscriber-type="service">
         <pattern scheme="*" path="**" action="error"/>
         <delivery mode="immediate"
-                  maxRetries="3"
-                  retryDelayMs="1000"/>
+                  max-retries="3"
+                  retry-delay-ms="1000"/>
     </subscription>
     <!--
         Matches:
@@ -94,20 +94,20 @@
     <!-- Subscribe to High-Priority Events Only -->
     <!-- Pattern: *://**/* (all events, filtered by priority) -->
     <!-- =================================================================== -->
-    <subscription subscriptionId="sub_critical"
-                  subscriberId="alert_system"
-                  subscriberType="service">
+    <subscription subscription-id="sub_critical"
+                  subscriber-id="alert_system"
+                  subscriber-type="service">
         <pattern scheme="*" path="**" action="*"/>
-        <delivery mode="immediate" minPriority="high"/>
+        <delivery mode="immediate" min-priority="high"/>
     </subscription>
 
     <!-- =================================================================== -->
     <!-- Subscribe to Specific Node's Events -->
     <!-- Pattern: synth://**/*#node_tree_01 -->
     <!-- =================================================================== -->
-    <subscription subscriptionId="sub_node_inspector"
-                  subscriberId="inspector_panel"
-                  subscriberType="ui-component">
+    <subscription subscription-id="sub_node_inspector"
+                  subscriber-id="inspector_panel"
+                  subscriber-type="ui-component">
         <pattern scheme="synth" path="**" action="*" subject="node_tree_01"/>
         <delivery mode="immediate"/>
     </subscription>
@@ -124,13 +124,13 @@
     <!-- Subscribe to Components of a Specific Node -->
     <!-- Pattern: synth://component/*?node=node_tree_01 -->
     <!-- =================================================================== -->
-    <subscription subscriptionId="sub_node_components"
-                  subscriberId="component_panel"
-                  subscriberType="ui-component">
+    <subscription subscription-id="sub_node_components"
+                  subscriber-id="component_panel"
+                  subscriber-type="ui-component">
         <pattern scheme="synth" path="component" action="*"/>
-        <queryFilter>
+        <query-filter>
             <param key="node">node_tree_01</param>
-        </queryFilter>
+        </query-filter>
         <delivery mode="immediate"/>
     </subscription>
 
@@ -138,22 +138,22 @@
     <!-- Subscribe to MCP Tool Invocations (Audit Logging) -->
     <!-- Pattern: nuna://mcp/tool/* -->
     <!-- =================================================================== -->
-    <subscription subscriptionId="sub_audit_tools"
-                  subscriberId="audit_logger"
-                  subscriberType="service">
+    <subscription subscription-id="sub_audit_tools"
+                  subscriber-id="audit_logger"
+                  subscriber-type="service">
         <pattern scheme="nuna" path="mcp/tool" action="*"/>
         <delivery mode="batched"
-                  batchSize="50"
-                  batchTimeoutMs="10000"/>
+                  batch-size="50"
+                  batch-timeout-ms="10000"/>
     </subscription>
 
     <!-- =================================================================== -->
     <!-- Poll-Based Subscription for Background Worker -->
     <!-- Pattern: synth://agent/task/completed -->
     <!-- =================================================================== -->
-    <subscription subscriptionId="sub_worker_tasks"
-                  subscriberId="background_worker"
-                  subscriberType="worker">
+    <subscription subscription-id="sub_worker_tasks"
+                  subscriber-id="background_worker"
+                  subscriber-type="worker">
         <pattern scheme="synth" path="agent/task" action="completed"/>
         <delivery mode="poll"/>
     </subscription>
@@ -162,13 +162,13 @@
     <!-- Subscribe to Transform Changes (for Undo/Redo) -->
     <!-- Pattern: synth://component/*?type=transform -->
     <!-- =================================================================== -->
-    <subscription subscriptionId="sub_transform_history"
-                  subscriberId="undo_manager"
-                  subscriberType="system">
+    <subscription subscription-id="sub_transform_history"
+                  subscriber-id="undo_manager"
+                  subscriber-type="system">
         <pattern scheme="synth" path="component" action="*"/>
-        <queryFilter>
+        <query-filter>
             <param key="type">transform</param>
-        </queryFilter>
+        </query-filter>
         <delivery mode="immediate"/>
     </subscription>
 
@@ -176,16 +176,16 @@
     <!-- Subscribe to Selection Changes -->
     <!-- Pattern: synth://cluster/node/selected|deselected -->
     <!-- =================================================================== -->
-    <subscription subscriptionId="sub_selection"
-                  subscriberId="property_panel"
-                  subscriberType="ui-component">
+    <subscription subscription-id="sub_selection"
+                  subscriber-id="property_panel"
+                  subscriber-type="ui-component">
         <pattern scheme="synth" path="cluster/node" action="selected"/>
         <delivery mode="immediate"/>
     </subscription>
 
-    <subscription subscriptionId="sub_deselection"
-                  subscriberId="property_panel"
-                  subscriberType="ui-component">
+    <subscription subscription-id="sub_deselection"
+                  subscriber-id="property_panel"
+                  subscriber-type="ui-component">
         <pattern scheme="synth" path="cluster/node" action="deselected"/>
         <delivery mode="immediate"/>
     </subscription>

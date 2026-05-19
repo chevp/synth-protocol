@@ -20,7 +20,7 @@
          ========================================================================= -->
 
     <!-- Root Element -->
-    <xs:element name="synthProject" type="project:SynthProjectType"/>
+    <xs:element name="synth-project" type="project:SynthProjectType"/>
 
     <!-- Project Type Definition -->
     <xs:complexType name="SynthProjectType">
@@ -38,7 +38,7 @@
             <xs:element ref="security:security" minOccurs="0"/>
 
             <!-- Tool Registry (CLI tools used by pipelines) -->
-            <xs:element name="toolRegistry" type="project:ToolRegistryType" minOccurs="0"/>
+            <xs:element name="tool-registry" type="project:ToolRegistryType" minOccurs="0"/>
 
             <!-- Pipeline Definitions -->
             <xs:element name="pipelines" type="project:PipelinesType" minOccurs="0"/>
@@ -53,7 +53,7 @@
             <xs:element name="settings" type="project:ProjectSettingsType" minOccurs="0"/>
         </xs:sequence>
         <xs:attribute name="version" type="xs:string" default="1.0"/>
-        <xs:attribute name="schemaVersion" type="xs:string" default="1.0"/>
+        <xs:attribute name="schema-version" type="xs:string" default="1.0"/>
     </xs:complexType>
 
     <!-- Project Metadata -->
@@ -134,9 +134,9 @@
         </xs:sequence>
         <xs:attribute name="id" type="xs:string" use="required"/>
         <xs:attribute name="tool" type="xs:string" use="required"/>
-        <xs:attribute name="dependsOn" type="xs:string"/>
+        <xs:attribute name="depends-on" type="xs:string"/>
         <xs:attribute name="timeout" type="xs:int"/>
-        <xs:attribute name="continueOnError" type="xs:boolean" default="false"/>
+        <xs:attribute name="continue-on-error" type="xs:boolean" default="false"/>
     </xs:complexType>
 
     <xs:complexType name="IOType">
@@ -223,7 +223,7 @@
     <xs:complexType name="MountType">
         <xs:attribute name="scheme" type="xs:string" use="required"/>
         <xs:attribute name="path" type="xs:string" use="required"/>
-        <xs:attribute name="readOnly" type="xs:boolean" default="true"/>
+        <xs:attribute name="read-only" type="xs:boolean" default="true"/>
     </xs:complexType>
 
     <!-- Resources Configuration -->

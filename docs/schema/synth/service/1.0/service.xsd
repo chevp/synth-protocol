@@ -20,7 +20,7 @@
          Root element: <synthServices>
          ========================================================================= -->
 
-    <xs:element name="synthServices" type="svc:SynthServicesType"/>
+    <xs:element name="synth-services" type="svc:SynthServicesType"/>
 
     <xs:complexType name="SynthServicesType">
         <xs:sequence>
@@ -72,17 +72,17 @@
     </xs:complexType>
 
     <xs:complexType name="DependencyType">
-        <xs:attribute name="serviceRef" type="xs:string" use="required"/>
+        <xs:attribute name="service-ref" type="xs:string" use="required"/>
         <xs:attribute name="optional" type="xs:boolean" default="false"/>
-        <xs:attribute name="paramName" type="xs:string"/>
+        <xs:attribute name="param-name" type="xs:string"/>
     </xs:complexType>
 
     <!-- Lifecycle-Hooks (init, ready, shutdown) -->
     <xs:complexType name="LifecycleHooksType">
-        <xs:attribute name="onInit" type="xs:string"/>
-        <xs:attribute name="onReady" type="xs:string"/>
-        <xs:attribute name="onShutdown" type="xs:string"/>
-        <xs:attribute name="initTimeoutMs" type="xs:int" default="5000"/>
+        <xs:attribute name="on-init" type="xs:string"/>
+        <xs:attribute name="on-ready" type="xs:string"/>
+        <xs:attribute name="on-shutdown" type="xs:string"/>
+        <xs:attribute name="init-timeout-ms" type="xs:int" default="5000"/>
     </xs:complexType>
 
 </xs:schema>

@@ -10,7 +10,7 @@
     These can be double-clicked to run with nuna-runtime.
 -->
 <synth version="1.0" xmlns="https://chevp.github.io/synth-protocol/schema/synth/1.0">
-<project schemaVersion="1.0">
+<project schema-version="1.0">
 
     <metadata id="asset-pipeline">
         <name>Synth Game Asset Pipeline</name>
@@ -26,7 +26,7 @@
 
     <configuration>
         <runtime mode="production">
-            <workDir>./assets/build</workDir>
+            <work-dir>./assets/build</work-dir>
         </runtime>
     </configuration>
 
@@ -35,7 +35,7 @@
          CLI tools available for pipeline steps.
          synth-core resolves paths via PATH or explicit executable.
          ===================================================================== -->
-    <toolRegistry>
+    <tool-registry>
         <tool id="blender" executable="blender" version="4.2">
             <config>
                 <entry key="args">--background --python-exit-code 1</entry>
@@ -52,7 +52,7 @@
             </config>
         </tool>
         <tool id="gltfpack" executable="gltfpack" version="0.21"/>
-    </toolRegistry>
+    </tool-registry>
 
     <!-- =====================================================================
          PIPELINES
@@ -83,7 +83,7 @@
                 </step>
 
                 <!-- Step 2: Optimize meshes (Draco compression, dedup) -->
-                <step id="mesh-optimize" tool="gltf-transform" dependsOn="blender-export">
+                <step id="mesh-optimize" tool="gltf-transform" depends-on="blender-export">
                     <input>
                         <param name="source" type="directory">assets/build/gltf</param>
                         <param name="pattern">**/*.glb</param>
@@ -99,7 +99,7 @@
                 </step>
 
                 <!-- Step 3: Compress textures to KTX2 -->
-                <step id="texture-compress" tool="toktx" dependsOn="blender-export">
+                <step id="texture-compress" tool="toktx" depends-on="blender-export">
                     <input>
                         <param name="source" type="directory">assets/build/gltf</param>
                         <param name="pattern">**/*.png</param>
@@ -117,7 +117,7 @@
                 </step>
 
                 <!-- Step 4: Pack final bundles (depends on BOTH mesh + texture) -->
-                <step id="bundle-pack" tool="gltfpack" dependsOn="mesh-optimize,texture-compress">
+                <step id="bundle-pack" tool="gltfpack" depends-on="mesh-optimize,texture-compress">
                     <input>
                         <param name="meshes" type="directory" ref="mesh-optimize.output.target"/>
                         <param name="textures" type="directory" ref="texture-compress.output.target"/>
@@ -153,7 +153,7 @@
                     </output>
                 </step>
 
-                <step id="export-changed" tool="blender" dependsOn="detect-changes">
+                <step id="export-changed" tool="blender" depends-on="detect-changes">
                     <input>
                         <param name="filelist" type="file" ref="detect-changes.output.changed"/>
                         <param name="script">scripts/blender_gltf_export.py</param>
@@ -163,7 +163,7 @@
                     </output>
                 </step>
 
-                <step id="optimize-changed" tool="gltf-transform" dependsOn="export-changed">
+                <step id="optimize-changed" tool="gltf-transform" depends-on="export-changed">
                     <input>
                         <param name="source" type="directory">assets/build/gltf</param>
                     </input>
@@ -213,8 +213,8 @@
          VFS scheme > physical directory for asset resolution.
          ===================================================================== -->
     <mounts>
-        <mount scheme="asset-src" path="C:/media-store" readOnly="true"/>
-        <mount scheme="asset" path="C:/media-store-runtime" readOnly="false"/>
+        <mount scheme="asset-src" path="C:/media-store" read-only="true"/>
+        <mount scheme="asset" path="C:/media-store-runtime" read-only="false"/>
     </mounts>
 
     <!-- =====================================================================

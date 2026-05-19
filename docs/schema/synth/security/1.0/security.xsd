@@ -164,14 +164,14 @@
     <!-- Encryption Configuration -->
     <xs:complexType name="EncryptionType">
         <xs:sequence>
-            <xs:element name="atRest" type="security:EncryptionConfigType" minOccurs="0"/>
-            <xs:element name="inTransit" type="security:TransitEncryptionType" minOccurs="0"/>
+            <xs:element name="at-rest" type="security:EncryptionConfigType" minOccurs="0"/>
+            <xs:element name="in-transit" type="security:TransitEncryptionType" minOccurs="0"/>
         </xs:sequence>
     </xs:complexType>
 
     <xs:complexType name="EncryptionConfigType">
         <xs:sequence>
-            <xs:element name="keyProvider" type="xs:string" minOccurs="0"/>
+            <xs:element name="key-provider" type="xs:string" minOccurs="0"/>
             <xs:element name="config" type="security:ConfigMapType" minOccurs="0"/>
         </xs:sequence>
         <xs:attribute name="enabled" type="xs:boolean" default="true"/>
@@ -181,11 +181,11 @@
     <xs:complexType name="TransitEncryptionType">
         <xs:sequence>
             <xs:element name="certificate" type="xs:string" minOccurs="0"/>
-            <xs:element name="privateKey" type="xs:string" minOccurs="0"/>
+            <xs:element name="private-key" type="xs:string" minOccurs="0"/>
             <xs:element name="ca" type="xs:string" minOccurs="0"/>
         </xs:sequence>
         <xs:attribute name="enabled" type="xs:boolean" default="true"/>
-        <xs:attribute name="minVersion" type="xs:string" default="TLS1.2"/>
+        <xs:attribute name="min-version" type="xs:string" default="TLS1.2"/>
     </xs:complexType>
 
     <!-- Audit Configuration -->
@@ -201,7 +201,7 @@
         <xs:sequence>
             <xs:element name="event" type="xs:string" maxOccurs="unbounded"/>
         </xs:sequence>
-        <xs:attribute name="logAll" type="xs:boolean" default="false"/>
+        <xs:attribute name="log-all" type="xs:boolean" default="false"/>
     </xs:complexType>
 
     <xs:complexType name="AuditDestinationType">

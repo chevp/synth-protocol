@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <synth version="1.0" xmlns="https://chevp.github.io/synth-protocol/schema/synth/1.0">
-<project schemaVersion="1.0">
+<project schema-version="1.0">
 
     <metadata id="synth-game">
         <name>Synth Game</name>
@@ -29,20 +29,20 @@
     <security>
         <authentication type="none"/>
         <cors enabled="true">
-            <allowOrigins>
+            <allow-origins>
                 <origin>http://localhost:3000</origin>
                 <origin>http://localhost:5173</origin>
-            </allowOrigins>
+            </allow-origins>
         </cors>
     </security>
 
     <!-- Asset Mounts: VFS scheme → physical directory -->
     <mounts>
         <!-- Runtime-optimized assets (glTF→glb, PNG→KTX2) -->
-        <mount scheme="asset" path="C:/media-store-runtime" readOnly="true"/>
+        <mount scheme="asset" path="C:/media-store-runtime" read-only="true"/>
 
         <!-- Raw source assets (Blender, high-res textures) -->
-        <mount scheme="asset-src" path="C:/media-store" readOnly="true"/>
+        <mount scheme="asset-src" path="C:/media-store" read-only="true"/>
     </mounts>
 
     <resources>

@@ -38,7 +38,7 @@
          ========================================================================= -->
 
     <!-- Root Element -->
-    <xs:element name="synthAssetPipeline" type="pipeline:SynthAssetPipelineType"/>
+    <xs:element name="synth-asset-pipeline" type="pipeline:SynthAssetPipelineType"/>
 
     <!-- =========================================================================
          PIPELINE ROOT
@@ -97,7 +97,7 @@
     <xs:complexType name="MountType">
         <xs:attribute name="scheme" type="xs:string" use="required"/>
         <xs:attribute name="path" type="xs:string" use="required"/>
-        <xs:attribute name="readOnly" type="xs:boolean" default="true"/>
+        <xs:attribute name="read-only" type="xs:boolean" default="true"/>
     </xs:complexType>
 
     <!-- =========================================================================
@@ -165,9 +165,9 @@
         <xs:attribute name="id" type="xs:string" use="required"/>
         <xs:attribute name="name" type="xs:string"/>
         <xs:attribute name="tool" type="xs:string" use="required"/>
-        <xs:attribute name="dependsOn" type="xs:string"/>
+        <xs:attribute name="depends-on" type="xs:string"/>
         <xs:attribute name="timeout" type="xs:int"/>
-        <xs:attribute name="continueOnError" type="xs:boolean" default="false"/>
+        <xs:attribute name="continue-on-error" type="xs:boolean" default="false"/>
     </xs:complexType>
 
     <!-- =========================================================================

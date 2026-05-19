@@ -5,7 +5,7 @@
 
     These examples demonstrate events for scene and cluster node operations.
 -->
-<eventStream xmlns="https://chevp.github.io/synth-protocol/schema/synth/events/1.0"
+<event-stream xmlns="https://chevp.github.io/synth-protocol/schema/synth/events/1.0"
              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
              xsi:schemaLocation="https://chevp.github.io/synth-protocol/schema/synth/events/1.0 ../../schema/synth/events/1.0/events.xsd"
              name="Scene Events"
@@ -15,23 +15,23 @@
     <!-- Scene Created -->
     <!-- URI: synth://scene/created#scene_outdoor?project=proj_01HXYZ123 -->
     <!-- =================================================================== -->
-    <event eventId="evt_001">
+    <event event-id="evt_001">
         <uri scheme="synth" path="scene" action="created" subject="scene_outdoor">
             <query>
                 <param key="project">proj_01HXYZ123</param>
             </query>
         </uri>
         <metadata timestamp="1733400000000"
-                  sourceId="mcp_playground"
-                  sourceType="mcp-server"
-                  correlationId="corr_abc123"
+                  source-id="mcp_playground"
+                  source-type="mcp-server"
+                  correlation-id="corr_abc123"
                   version="1"
                   priority="normal"
-                  userId="user_developer"
-                  sessionId="session_xyz"/>
+                  user-id="user_developer"
+                  session-id="session_xyz"/>
         <payload>
-            <clusterNode nodeId="scene_outdoor"
-                         nodeType="scene"
+            <cluster-node node-id="scene_outdoor"
+                         node-type="scene"
                          name="Outdoor Scene"
                          state="active"/>
         </payload>
@@ -41,7 +41,7 @@
     <!-- Node Added to Scene -->
     <!-- URI: synth://cluster/node/created#node_tree_01?parent=scene_outdoor -->
     <!-- =================================================================== -->
-    <event eventId="evt_002">
+    <event event-id="evt_002">
         <uri scheme="synth" path="cluster/node" action="created" subject="node_tree_01">
             <query>
                 <param key="parent">scene_outdoor</param>
@@ -50,19 +50,19 @@
             </query>
         </uri>
         <metadata timestamp="1733400001000"
-                  sourceId="mcp_playground"
-                  sourceType="mcp-server"
-                  correlationId="corr_abc123"
-                  causationId="evt_001"
+                  source-id="mcp_playground"
+                  source-type="mcp-server"
+                  correlation-id="corr_abc123"
+                  causation-id="evt_001"
                   version="1"
                   priority="normal"/>
         <payload>
-            <clusterNode nodeId="node_tree_01"
-                         nodeType="asset"
+            <cluster-node node-id="node_tree_01"
+                         node-type="asset"
                          name="Oak Tree"
                          state="active"
-                         newParentId="scene_outdoor"
-                         newSiblingOrder="0"/>
+                         new-parent-id="scene_outdoor"
+                         new-sibling-order="0"/>
         </payload>
     </event>
 
@@ -70,7 +70,7 @@
     <!-- Node Moved (Reordering within same parent) -->
     <!-- URI: synth://cluster/node/moved#node_tree_01?parent=scene_outdoor -->
     <!-- =================================================================== -->
-    <event eventId="evt_003">
+    <event event-id="evt_003">
         <uri scheme="synth" path="cluster/node" action="moved" subject="node_tree_01">
             <query>
                 <param key="parent">scene_outdoor</param>
@@ -80,22 +80,22 @@
             </query>
         </uri>
         <metadata timestamp="1733400002000"
-                  sourceId="mcp_playground"
-                  sourceType="user"
+                  source-id="mcp_playground"
+                  source-type="user"
                   version="1"
                   priority="normal"/>
         <payload>
-            <clusterNode nodeId="node_tree_01"
-                         nodeType="asset"
+            <cluster-node node-id="node_tree_01"
+                         node-type="asset"
                          name="Oak Tree"
-                         oldParentId="scene_outdoor"
-                         newParentId="scene_outdoor"
-                         oldSiblingOrder="0"
-                         newSiblingOrder="2">
-                <changedFields>
+                         old-parent-id="scene_outdoor"
+                         new-parent-id="scene_outdoor"
+                         old-sibling-order="0"
+                         new-sibling-order="2">
+                <changed-fields>
                     <field>sibling_order</field>
-                </changedFields>
-            </clusterNode>
+                </changed-fields>
+            </cluster-node>
         </payload>
     </event>
 
@@ -103,7 +103,7 @@
     <!-- Node Moved to Different Parent -->
     <!-- URI: synth://cluster/node/moved#node_tree_01?old_parent=scene_outdoor&new_parent=folder_vegetation -->
     <!-- =================================================================== -->
-    <event eventId="evt_004">
+    <event event-id="evt_004">
         <uri scheme="synth" path="cluster/node" action="moved" subject="node_tree_01">
             <query>
                 <param key="old_parent">scene_outdoor</param>
@@ -112,23 +112,23 @@
             </query>
         </uri>
         <metadata timestamp="1733400003000"
-                  sourceId="mcp_playground"
-                  sourceType="mcp-server"
+                  source-id="mcp_playground"
+                  source-type="mcp-server"
                   version="1"
                   priority="normal"/>
         <payload>
-            <clusterNode nodeId="node_tree_01"
-                         nodeType="asset"
+            <cluster-node node-id="node_tree_01"
+                         node-type="asset"
                          name="Oak Tree"
-                         oldParentId="scene_outdoor"
-                         newParentId="folder_vegetation"
-                         oldSiblingOrder="2"
-                         newSiblingOrder="0">
-                <changedFields>
+                         old-parent-id="scene_outdoor"
+                         new-parent-id="folder_vegetation"
+                         old-sibling-order="2"
+                         new-sibling-order="0">
+                <changed-fields>
                     <field>parent_id</field>
                     <field>sibling_order</field>
-                </changedFields>
-            </clusterNode>
+                </changed-fields>
+            </cluster-node>
         </payload>
     </event>
 
@@ -136,7 +136,7 @@
     <!-- Node Renamed -->
     <!-- URI: synth://cluster/node/renamed#node_tree_01 -->
     <!-- =================================================================== -->
-    <event eventId="evt_005">
+    <event event-id="evt_005">
         <uri scheme="synth" path="cluster/node" action="renamed" subject="node_tree_01">
             <query>
                 <param key="old_name">Oak Tree</param>
@@ -144,19 +144,19 @@
             </query>
         </uri>
         <metadata timestamp="1733400004000"
-                  sourceId="tool_rename"
-                  sourceType="mcp-tool"
+                  source-id="tool_rename"
+                  source-type="mcp-tool"
                   version="1"
                   priority="normal"/>
         <payload>
-            <clusterNode nodeId="node_tree_01"
-                         nodeType="asset"
+            <cluster-node node-id="node_tree_01"
+                         node-type="asset"
                          name="Ancient Oak"
-                         oldName="Oak Tree">
-                <changedFields>
+                         old-name="Oak Tree">
+                <changed-fields>
                     <field>name</field>
-                </changedFields>
-            </clusterNode>
+                </changed-fields>
+            </cluster-node>
         </payload>
     </event>
 
@@ -164,7 +164,7 @@
     <!-- Node State Changed (Hidden) -->
     <!-- URI: synth://cluster/node/updated#node_tree_01?state=hidden -->
     <!-- =================================================================== -->
-    <event eventId="evt_006">
+    <event event-id="evt_006">
         <uri scheme="synth" path="cluster/node" action="updated" subject="node_tree_01">
             <query>
                 <param key="state">hidden</param>
@@ -172,19 +172,19 @@
             </query>
         </uri>
         <metadata timestamp="1733400005000"
-                  sourceId="ui_tree_view"
-                  sourceType="user"
+                  source-id="ui_tree_view"
+                  source-type="user"
                   version="1"
                   priority="low"/>
         <payload>
-            <clusterNode nodeId="node_tree_01"
-                         nodeType="asset"
+            <cluster-node node-id="node_tree_01"
+                         node-type="asset"
                          name="Ancient Oak"
                          state="hidden">
-                <changedFields>
+                <changed-fields>
                     <field>state</field>
-                </changedFields>
-            </clusterNode>
+                </changed-fields>
+            </cluster-node>
         </payload>
     </event>
 
@@ -192,7 +192,7 @@
     <!-- Node Deleted (Soft Delete) -->
     <!-- URI: synth://cluster/node/deleted#node_tree_01?soft=true -->
     <!-- =================================================================== -->
-    <event eventId="evt_007">
+    <event event-id="evt_007">
         <uri scheme="synth" path="cluster/node" action="deleted" subject="node_tree_01">
             <query>
                 <param key="soft">true</param>
@@ -200,19 +200,19 @@
             </query>
         </uri>
         <metadata timestamp="1733400006000"
-                  sourceId="tool_delete"
-                  sourceType="mcp-tool"
+                  source-id="tool_delete"
+                  source-type="mcp-tool"
                   version="1"
                   priority="normal"/>
         <payload>
-            <clusterNode nodeId="node_tree_01"
-                         nodeType="asset"
+            <cluster-node node-id="node_tree_01"
+                         node-type="asset"
                          name="Ancient Oak"
                          state="deleted">
-                <changedFields>
+                <changed-fields>
                     <field>state</field>
-                </changedFields>
-            </clusterNode>
+                </changed-fields>
+            </cluster-node>
         </payload>
     </event>
 
@@ -220,7 +220,7 @@
     <!-- Scene Settings Updated -->
     <!-- URI: synth://scene/updated#scene_outdoor?setting=gravity -->
     <!-- =================================================================== -->
-    <event eventId="evt_008">
+    <event event-id="evt_008">
         <uri scheme="synth" path="scene" action="updated" subject="scene_outdoor">
             <query>
                 <param key="setting">gravity</param>
@@ -228,17 +228,17 @@
             </query>
         </uri>
         <metadata timestamp="1733400007000"
-                  sourceId="mcp_physics"
-                  sourceType="mcp-server"
+                  source-id="mcp_physics"
+                  source-type="mcp-server"
                   version="1"
                   priority="normal"/>
         <payload>
-            <component componentId="comp_scene_settings_outdoor"
-                       clusterNodeId="scene_outdoor"
-                       componentType="scene_settings">
-                <changedFields>
+            <component component-id="comp_scene_settings_outdoor"
+                       cluster-node-id="scene_outdoor"
+                       component-type="scene_settings">
+                <changed-fields>
                     <field>gravity</field>
-                </changedFields>
+                </changed-fields>
             </component>
         </payload>
     </event>
@@ -247,7 +247,7 @@
     <!-- Multiple Nodes Selected -->
     <!-- URI: synth://cluster/node/selected#selection_001 -->
     <!-- =================================================================== -->
-    <event eventId="evt_009">
+    <event event-id="evt_009">
         <uri scheme="synth" path="cluster/node" action="selected" subject="selection_001">
             <query>
                 <param key="count">3</param>
@@ -256,8 +256,8 @@
             </query>
         </uri>
         <metadata timestamp="1733400008000"
-                  sourceId="ui_viewport"
-                  sourceType="user"
+                  source-id="ui_viewport"
+                  source-type="user"
                   version="1"
                   priority="low"/>
     </event>
@@ -266,7 +266,7 @@
     <!-- Folder Created with Children -->
     <!-- URI: synth://cluster/node/created#folder_vegetation -->
     <!-- =================================================================== -->
-    <event eventId="evt_010">
+    <event event-id="evt_010">
         <uri scheme="synth" path="cluster/node" action="created" subject="folder_vegetation">
             <query>
                 <param key="parent">scene_outdoor</param>
@@ -275,19 +275,19 @@
             </query>
         </uri>
         <metadata timestamp="1733400009000"
-                  sourceId="tool_create_folder"
-                  sourceType="mcp-tool"
+                  source-id="tool_create_folder"
+                  source-type="mcp-tool"
                   version="1"
                   priority="normal"
-                  userId="user_developer"/>
+                  user-id="user_developer"/>
         <payload>
-            <clusterNode nodeId="folder_vegetation"
-                         nodeType="folder"
+            <cluster-node node-id="folder_vegetation"
+                         node-type="folder"
                          name="Vegetation"
                          state="active"
-                         newParentId="scene_outdoor"
-                         newSiblingOrder="1"/>
+                         new-parent-id="scene_outdoor"
+                         new-sibling-order="1"/>
         </payload>
     </event>
 
-</eventStream>
+</event-stream>

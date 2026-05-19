@@ -19,28 +19,28 @@
     <!-- ═══════════════════════════════════════════════════════════════════════ -->
     <header>
         <magic>SYNTH</magic>
-        <formatVersion>2</formatVersion>
-        <schemaVersion>2.0.0</schemaVersion>
-        <createdAt>1738800000000</createdAt>
-        <modifiedAt>1738800000000</modifiedAt>
+        <format-version>2</format-version>
+        <schema-version>2.0.0</schema-version>
+        <created-at>1738800000000</created-at>
+        <modified-at>1738800000000</modified-at>
     </header>
 
     <!-- ═══════════════════════════════════════════════════════════════════════ -->
     <!-- PROJECT METADATA -->
     <!-- ═══════════════════════════════════════════════════════════════════════ -->
     <metadata>
-        <entityId>
+        <entity-id>
             <uuid>proj_game_rpg_demo</uuid>
             <version>1</version>
-        </entityId>
+        </entity-id>
         <name>RPG Demo Scene</name>
         <description>Example game scene demonstrating processors, jobs and worker threads</description>
         <settings>
-            <defaultSceneId>scene_village</defaultSceneId>
-            <targetFps>60</targetFps>
-            <studioMode>false</studioMode>
-            <autoSaveEnabled>true</autoSaveEnabled>
-            <autoSaveIntervalSeconds>300</autoSaveIntervalSeconds>
+            <default-scene-id>scene_village</default-scene-id>
+            <target-fps>60</target-fps>
+            <studio-mode>false</studio-mode>
+            <auto-save-enabled>true</auto-save-enabled>
+            <auto-save-interval-seconds>300</auto-save-interval-seconds>
         </settings>
     </metadata>
 
@@ -48,17 +48,17 @@
     <!-- RUNTIME CONFIGURATION (NEW in 2.0) -->
     <!-- Thread pools, job queues, processor pipeline -->
     <!-- ═══════════════════════════════════════════════════════════════════════ -->
-    <runtimeConfiguration>
+    <runtime-configuration>
 
         <!-- Worker Thread Pools -->
-        <threadPools>
+        <thread-pools>
             <!-- I/O Pool: File loading, SQLite, Network -->
             <pool id="io_pool" type="IO">
                 <threads platform="desktop_16core">4</threads>
                 <threads platform="desktop_8core">2</threads>
                 <threads platform="android_highend">2</threads>
                 <threads platform="android_midrange">1</threads>
-                <queueSize>256</queueSize>
+                <queue-size>256</queue-size>
             </pool>
 
             <!-- Compute Pool: Mesh optimization, texture compression, physics -->
@@ -67,7 +67,7 @@
                 <threads platform="desktop_8core">4</threads>
                 <threads platform="android_highend">4</threads>
                 <threads platform="android_midrange">2</threads>
-                <queueSize>128</queueSize>
+                <queue-size>128</queue-size>
             </pool>
 
             <!-- Dedicated Threads: Audio, Network realtime -->
@@ -75,88 +75,88 @@
                 <thread id="audio_thread" affinity="high_priority"/>
                 <thread id="network_thread" affinity="normal"/>
             </pool>
-        </threadPools>
+        </thread-pools>
 
         <!-- Job Definitions -->
         <jobs>
             <!-- Asset Loading Jobs (I/O Pool) -->
             <job id="GltfLoadJob" pool="io_pool" priority="HIGH">
                 <description>Load and parse GLTF/GLB files</description>
-                <submitProcessor>SceneLoadOrchestratorProcessor</submitProcessor>
-                <resultProcessor>AssetLoadResultProcessor</resultProcessor>
-                <estimatedDurationMs>10-500</estimatedDurationMs>
+                <submit-processor>SceneLoadOrchestratorProcessor</submit-processor>
+                <result-processor>AssetLoadResultProcessor</result-processor>
+                <estimated-duration-ms>10-500</estimated-duration-ms>
             </job>
 
             <job id="TextureDecodeJob" pool="io_pool" priority="HIGH">
                 <description>Decode PNG/JPG to raw pixels</description>
-                <submitProcessor>SceneLoadOrchestratorProcessor</submitProcessor>
-                <resultProcessor>AssetLoadResultProcessor</resultProcessor>
-                <estimatedDurationMs>5-50</estimatedDurationMs>
+                <submit-processor>SceneLoadOrchestratorProcessor</submit-processor>
+                <result-processor>AssetLoadResultProcessor</result-processor>
+                <estimated-duration-ms>5-50</estimated-duration-ms>
             </job>
 
             <job id="AudioDecodeJob" pool="io_pool" priority="NORMAL">
                 <description>Decode OGG/WAV to PCM</description>
-                <submitProcessor>SceneLoadOrchestratorProcessor</submitProcessor>
-                <resultProcessor>AssetLoadResultProcessor</resultProcessor>
-                <estimatedDurationMs>10-100</estimatedDurationMs>
+                <submit-processor>SceneLoadOrchestratorProcessor</submit-processor>
+                <result-processor>AssetLoadResultProcessor</result-processor>
+                <estimated-duration-ms>10-100</estimated-duration-ms>
             </job>
 
             <!-- Editor Persistence Jobs (I/O Pool, Low Priority) -->
             <job id="AutoSaveJob" pool="io_pool" priority="LOW">
                 <description>Serialize scene to temp file</description>
-                <submitProcessor>AutoSaveProcessor</submitProcessor>
-                <resultProcessor>StatusBarProcessor</resultProcessor>
-                <estimatedDurationMs>10-200</estimatedDurationMs>
+                <submit-processor>AutoSaveProcessor</submit-processor>
+                <result-processor>StatusBarProcessor</result-processor>
+                <estimated-duration-ms>10-200</estimated-duration-ms>
             </job>
 
             <job id="SceneSaveJob" pool="io_pool" priority="NORMAL">
                 <description>Save scene to .synth file</description>
-                <submitProcessor>SceneSaveProcessor</submitProcessor>
-                <resultProcessor>StatusBarProcessor</resultProcessor>
-                <estimatedDurationMs>10-200</estimatedDurationMs>
+                <submit-processor>SceneSaveProcessor</submit-processor>
+                <result-processor>StatusBarProcessor</result-processor>
+                <estimated-duration-ms>10-200</estimated-duration-ms>
             </job>
 
             <!-- Database Jobs (I/O Pool) -->
             <job id="AssetCacheWriteJob" pool="io_pool" priority="LOW">
                 <description>Write asset to SQLite cache</description>
-                <submitProcessor>GpuUploadProcessor</submitProcessor>
-                <fireAndForget>true</fireAndForget>
+                <submit-processor>GpuUploadProcessor</submit-processor>
+                <fire-and-forget>true</fire-and-forget>
             </job>
 
             <!-- Compute Jobs (Compute Pool) -->
             <job id="MeshOptimizeJob" pool="compute_pool" priority="NORMAL">
                 <description>Optimize mesh with meshoptimizer</description>
-                <submitProcessor>SceneLoadOrchestratorProcessor</submitProcessor>
-                <resultProcessor>AssetLoadResultProcessor</resultProcessor>
-                <estimatedDurationMs>50-500</estimatedDurationMs>
+                <submit-processor>SceneLoadOrchestratorProcessor</submit-processor>
+                <result-processor>AssetLoadResultProcessor</result-processor>
+                <estimated-duration-ms>50-500</estimated-duration-ms>
             </job>
 
             <job id="NavMeshBuildJob" pool="compute_pool" priority="BACKGROUND">
                 <description>Generate navigation mesh</description>
-                <submitProcessor>EditorMenuBarProcessor</submitProcessor>
-                <resultProcessor>StatusBarProcessor</resultProcessor>
-                <estimatedDurationMs>500-5000</estimatedDurationMs>
+                <submit-processor>EditorMenuBarProcessor</submit-processor>
+                <result-processor>StatusBarProcessor</result-processor>
+                <estimated-duration-ms>500-5000</estimated-duration-ms>
             </job>
 
             <job id="PhysicsColliderBakeJob" pool="compute_pool" priority="NORMAL">
                 <description>Bake mesh to collision shape</description>
-                <submitProcessor>SceneLoadOrchestratorProcessor</submitProcessor>
-                <resultProcessor>AssetLoadResultProcessor</resultProcessor>
-                <estimatedDurationMs>50-500</estimatedDurationMs>
+                <submit-processor>SceneLoadOrchestratorProcessor</submit-processor>
+                <result-processor>AssetLoadResultProcessor</result-processor>
+                <estimated-duration-ms>50-500</estimated-duration-ms>
             </job>
         </jobs>
 
         <!-- Processor Pipeline Configuration -->
         <processors>
             <!-- Runtime Processors (Order 0-999) - Always active -->
-            <stage name="Input" orderRange="0-49">
+            <stage name="Input" order-range="0-49">
                 <processor order="10" name="PlatformEventProcessor" enabled="true"/>
                 <processor order="20" name="InputMappingProcessor" enabled="true"/>
                 <processor order="30" name="GestureRecognitionProcessor" enabled="true"/>
                 <processor order="40" name="InputBufferProcessor" enabled="true"/>
             </stage>
 
-            <stage name="Data" orderRange="50-99">
+            <stage name="Data" order-range="50-99">
                 <processor order="50" name="DatabaseConnectProcessor" enabled="true"/>
                 <processor order="60" name="PendingWriteProcessor" enabled="true"/>
                 <processor order="70" name="AssetCacheCheckProcessor" enabled="true"/>
@@ -167,7 +167,7 @@
                 <processor order="97" name="SceneLoadOrchestratorProcessor" enabled="true"/>
             </stage>
 
-            <stage name="Network" orderRange="100-199">
+            <stage name="Network" order-range="100-199">
                 <processor order="100" name="NetworkReceiveProcessor" enabled="true"/>
                 <processor order="110" name="ProtocolDecodeProcessor" enabled="true"/>
                 <processor order="120" name="StateReconcileProcessor" enabled="true"/>
@@ -175,7 +175,7 @@
                 <processor order="190" name="LatencyTrackProcessor" enabled="true"/>
             </stage>
 
-            <stage name="GameLogic" orderRange="200-299">
+            <stage name="GameLogic" order-range="200-299">
                 <processor order="200" name="StateMachineProcessor" enabled="true"/>
                 <processor order="210" name="CommandExecuteProcessor" enabled="true"/>
                 <processor order="220" name="MovementProcessor" enabled="true"/>
@@ -187,7 +187,7 @@
                 <processor order="280" name="TriggerProcessor" enabled="true"/>
             </stage>
 
-            <stage name="Physics" orderRange="300-399">
+            <stage name="Physics" order-range="300-399">
                 <processor order="300" name="PhysicsStepProcessor" enabled="true">
                     <config>
                         <entry key="fixedTimestep">0.016666</entry>
@@ -201,7 +201,7 @@
                 <processor order="380" name="PhysicsSyncProcessor" enabled="true"/>
             </stage>
 
-            <stage name="Animation" orderRange="400-499">
+            <stage name="Animation" order-range="400-499">
                 <processor order="400" name="AnimationUpdateProcessor" enabled="true"/>
                 <processor order="410" name="AnimationBlendProcessor" enabled="true"/>
                 <processor order="420" name="IKProcessor" enabled="true"/>
@@ -209,7 +209,7 @@
                 <processor order="460" name="MorphTargetProcessor" enabled="true"/>
             </stage>
 
-            <stage name="Scene" orderRange="500-599">
+            <stage name="Scene" order-range="500-599">
                 <processor order="500" name="SceneGraphUpdateProcessor" enabled="true"/>
                 <processor order="510" name="TransformProcessor" enabled="true"/>
                 <processor order="520" name="BoundingVolumeProcessor" enabled="true"/>
@@ -219,7 +219,7 @@
                 <processor order="598" name="GpuUploadProcessor" enabled="true"/>
             </stage>
 
-            <stage name="Render" orderRange="600-799">
+            <stage name="Render" order-range="600-799">
                 <processor order="600" name="FrameBeginProcessor" enabled="true"/>
                 <processor order="610" name="CommandBufferBeginProcessor" enabled="true"/>
                 <processor order="620" name="ShadowMapProcessor" enabled="true">
@@ -257,36 +257,36 @@
                 <processor order="795" name="PresentProcessor" enabled="true"/>
             </stage>
 
-            <stage name="Audio" orderRange="800-899">
+            <stage name="Audio" order-range="800-899">
                 <processor order="800" name="AudioUpdateProcessor" enabled="true"/>
                 <processor order="810" name="Audio3DProcessor" enabled="true"/>
                 <processor order="820" name="AudioMixProcessor" enabled="true"/>
                 <processor order="880" name="AudioSubmitProcessor" enabled="true"/>
             </stage>
 
-            <stage name="Cleanup" orderRange="900-999">
+            <stage name="Cleanup" order-range="900-999">
                 <processor order="900" name="FrameStatsProcessor" enabled="true"/>
                 <processor order="910" name="MemoryResetProcessor" enabled="true"/>
                 <processor order="920" name="ResourceGCProcessor" enabled="true"/>
                 <processor order="990" name="FrameEndProcessor" enabled="true"/>
             </stage>
 
-            <!-- Editor Processors (Order 1000-1999) - Only when studioMode=true -->
-            <stage name="EditorInput" orderRange="1000-1049" requiresStudioMode="true">
+            <!-- Editor Processors (Order 1000-1999) - Only when studio-mode=true -->
+            <stage name="EditorInput" order-range="1000-1049" requires-studio-mode="true">
                 <processor order="1000" name="EditorCameraProcessor" enabled="true"/>
                 <processor order="1010" name="EditorHotkeyProcessor" enabled="true"/>
                 <processor order="1020" name="EditorMousePickProcessor" enabled="true"/>
                 <processor order="1030" name="EditorDragDropProcessor" enabled="true"/>
             </stage>
 
-            <stage name="EditorLogic" orderRange="1050-1099" requiresStudioMode="true">
+            <stage name="EditorLogic" order-range="1050-1099" requires-studio-mode="true">
                 <processor order="1050" name="SelectionProcessor" enabled="true"/>
                 <processor order="1060" name="UndoRedoProcessor" enabled="true"/>
                 <processor order="1070" name="CopyPasteProcessor" enabled="true"/>
                 <processor order="1080" name="TransformEditProcessor" enabled="true"/>
             </stage>
 
-            <stage name="EditorScene" orderRange="1100-1149" requiresStudioMode="true">
+            <stage name="EditorScene" order-range="1100-1149" requires-studio-mode="true">
                 <processor order="1100" name="GridProcessor" enabled="true"/>
                 <processor order="1110" name="GizmoProcessor" enabled="true"/>
                 <processor order="1120" name="BoundsVisualizerProcessor" enabled="true"/>
@@ -294,7 +294,7 @@
                 <processor order="1140" name="CameraPreviewProcessor" enabled="true"/>
             </stage>
 
-            <stage name="EditorUI" orderRange="1200-1299" requiresStudioMode="true">
+            <stage name="EditorUI" order-range="1200-1299" requires-studio-mode="true">
                 <processor order="1200" name="EditorMenuBarProcessor" enabled="true"/>
                 <processor order="1210" name="SceneHierarchyProcessor" enabled="true"/>
                 <processor order="1220" name="InspectorProcessor" enabled="true"/>
@@ -304,7 +304,7 @@
                 <processor order="1260" name="StatusBarProcessor" enabled="true"/>
             </stage>
 
-            <stage name="EditorPersistence" orderRange="1300-1349" requiresStudioMode="true">
+            <stage name="EditorPersistence" order-range="1300-1349" requires-studio-mode="true">
                 <processor order="1300" name="SceneSaveProcessor" enabled="true"/>
                 <processor order="1310" name="SceneLoadProcessor" enabled="true"/>
                 <processor order="1320" name="AutoSaveProcessor" enabled="true">
@@ -316,119 +316,119 @@
                 <processor order="1330" name="ProjectSettingsProcessor" enabled="true"/>
             </stage>
 
-            <stage name="EditorPlayMode" orderRange="1400-1449" requiresStudioMode="true">
+            <stage name="EditorPlayMode" order-range="1400-1449" requires-studio-mode="true">
                 <processor order="1400" name="PlayModeProcessor" enabled="true"/>
                 <processor order="1410" name="PlayModeStateProcessor" enabled="true"/>
                 <processor order="1420" name="PlayModePauseProcessor" enabled="true"/>
             </stage>
         </processors>
 
-    </runtimeConfiguration>
+    </runtime-configuration>
 
     <!-- ═══════════════════════════════════════════════════════════════════════ -->
     <!-- SCENE HIERARCHY -->
     <!-- ═══════════════════════════════════════════════════════════════════════ -->
-    <clusterNodes>
+    <cluster-nodes>
         <!-- Scene Root -->
         <node>
-            <entityId>
+            <entity-id>
                 <uuid>scene_village</uuid>
                 <version>1</version>
-            </entityId>
+            </entity-id>
             <name>Village Scene</name>
-            <nodeType>CLUSTER_NODE_TYPE_SCENE</nodeType>
-            <childIds>
+            <node-type>CLUSTER_NODE_TYPE_SCENE</node-type>
+            <child-ids>
                 <id>entity_environment</id>
                 <id>entity_player</id>
                 <id>entity_npc_merchant</id>
                 <id>entity_lights</id>
                 <id>entity_audio</id>
-            </childIds>
+            </child-ids>
         </node>
 
         <!-- Environment Group -->
         <node>
-            <entityId>
+            <entity-id>
                 <uuid>entity_environment</uuid>
                 <version>1</version>
-            </entityId>
+            </entity-id>
             <name>Environment</name>
-            <nodeType>CLUSTER_NODE_TYPE_FOLDER</nodeType>
-            <parentId>scene_village</parentId>
-            <childIds>
+            <node-type>CLUSTER_NODE_TYPE_FOLDER</node-type>
+            <parent-id>scene_village</parent-id>
+            <child-ids>
                 <id>entity_terrain</id>
                 <id>entity_building_tavern</id>
                 <id>entity_building_shop</id>
                 <id>entity_trees</id>
-            </childIds>
+            </child-ids>
         </node>
 
         <!-- Terrain -->
         <node>
-            <entityId>
+            <entity-id>
                 <uuid>entity_terrain</uuid>
                 <version>1</version>
-            </entityId>
+            </entity-id>
             <name>Terrain</name>
-            <nodeType>CLUSTER_NODE_TYPE_ENTITY</nodeType>
-            <parentId>entity_environment</parentId>
+            <node-type>CLUSTER_NODE_TYPE_ENTITY</node-type>
+            <parent-id>entity_environment</parent-id>
         </node>
 
         <!-- Player Entity -->
         <node>
-            <entityId>
+            <entity-id>
                 <uuid>entity_player</uuid>
                 <version>1</version>
-            </entityId>
+            </entity-id>
             <name>Player</name>
-            <nodeType>CLUSTER_NODE_TYPE_ENTITY</nodeType>
-            <parentId>scene_village</parentId>
-            <tagIds>
+            <node-type>CLUSTER_NODE_TYPE_ENTITY</node-type>
+            <parent-id>scene_village</parent-id>
+            <tag-ids>
                 <id>tag_controllable</id>
                 <id>tag_persistent</id>
-            </tagIds>
+            </tag-ids>
         </node>
 
         <!-- NPC -->
         <node>
-            <entityId>
+            <entity-id>
                 <uuid>entity_npc_merchant</uuid>
                 <version>1</version>
-            </entityId>
+            </entity-id>
             <name>Merchant NPC</name>
-            <nodeType>CLUSTER_NODE_TYPE_ENTITY</nodeType>
-            <parentId>scene_village</parentId>
-            <tagIds>
+            <node-type>CLUSTER_NODE_TYPE_ENTITY</node-type>
+            <parent-id>scene_village</parent-id>
+            <tag-ids>
                 <id>tag_npc</id>
                 <id>tag_interactable</id>
-            </tagIds>
+            </tag-ids>
         </node>
 
         <!-- Lights -->
         <node>
-            <entityId>
+            <entity-id>
                 <uuid>entity_lights</uuid>
                 <version>1</version>
-            </entityId>
+            </entity-id>
             <name>Lights</name>
-            <nodeType>CLUSTER_NODE_TYPE_FOLDER</nodeType>
-            <parentId>scene_village</parentId>
-            <childIds>
+            <node-type>CLUSTER_NODE_TYPE_FOLDER</node-type>
+            <parent-id>scene_village</parent-id>
+            <child-ids>
                 <id>entity_sun</id>
                 <id>entity_torch_1</id>
-            </childIds>
+            </child-ids>
         </node>
 
         <node>
-            <entityId>
+            <entity-id>
                 <uuid>entity_sun</uuid>
                 <version>1</version>
-            </entityId>
+            </entity-id>
             <name>Sun Light</name>
-            <nodeType>CLUSTER_NODE_TYPE_ENTITY</nodeType>
-            <parentId>entity_lights</parentId>
+            <node-type>CLUSTER_NODE_TYPE_ENTITY</node-type>
+            <parent-id>entity_lights</parent-id>
         </node>
-    </clusterNodes>
+    </cluster-nodes>
 
     <!-- ═══════════════════════════════════════════════════════════════════════ -->
     <!-- COMPONENTS (ECS Data) -->
@@ -436,12 +436,12 @@
     <components>
         <!-- Player Transform -->
         <component>
-            <entityId>
+            <entity-id>
                 <uuid>comp_player_transform</uuid>
                 <version>1</version>
-            </entityId>
-            <clusterNodeId>entity_player</clusterNodeId>
-            <componentType>transform</componentType>
+            </entity-id>
+            <cluster-node-id>entity_player</cluster-node-id>
+            <component-type>transform</component-type>
             <data encoding="json">{
                 "position": {"x": 0, "y": 0, "z": 0},
                 "rotation": {"x": 0, "y": 0, "z": 0, "w": 1},
@@ -451,12 +451,12 @@
 
         <!-- Player Mesh Renderer (references GLTF asset) -->
         <component>
-            <entityId>
+            <entity-id>
                 <uuid>comp_player_mesh</uuid>
                 <version>1</version>
-            </entityId>
-            <clusterNodeId>entity_player</clusterNodeId>
-            <componentType>mesh_renderer</componentType>
+            </entity-id>
+            <cluster-node-id>entity_player</cluster-node-id>
+            <component-type>mesh_renderer</component-type>
             <data encoding="json">{
                 "meshAssetId": "asset_player_model",
                 "castShadows": true,
@@ -466,12 +466,12 @@
 
         <!-- Player Animation -->
         <component>
-            <entityId>
+            <entity-id>
                 <uuid>comp_player_animation</uuid>
                 <version>1</version>
-            </entityId>
-            <clusterNodeId>entity_player</clusterNodeId>
-            <componentType>animator</componentType>
+            </entity-id>
+            <cluster-node-id>entity_player</cluster-node-id>
+            <component-type>animator</component-type>
             <data encoding="json">{
                 "animationAssetId": "asset_player_model",
                 "currentAnimation": "idle",
@@ -481,12 +481,12 @@
 
         <!-- Player Character Controller -->
         <component>
-            <entityId>
+            <entity-id>
                 <uuid>comp_player_controller</uuid>
                 <version>1</version>
-            </entityId>
-            <clusterNodeId>entity_player</clusterNodeId>
-            <componentType>character_controller</componentType>
+            </entity-id>
+            <cluster-node-id>entity_player</cluster-node-id>
+            <component-type>character_controller</component-type>
             <data encoding="json">{
                 "height": 1.8,
                 "radius": 0.3,
@@ -497,12 +497,12 @@
 
         <!-- Sun Light Component -->
         <component>
-            <entityId>
+            <entity-id>
                 <uuid>comp_sun_light</uuid>
                 <version>1</version>
-            </entityId>
-            <clusterNodeId>entity_sun</clusterNodeId>
-            <componentType>directional_light</componentType>
+            </entity-id>
+            <cluster-node-id>entity_sun</cluster-node-id>
+            <component-type>directional_light</component-type>
             <data encoding="json">{
                 "color": {"r": 1.0, "g": 0.95, "b": 0.9},
                 "intensity": 1.5,
@@ -515,12 +515,12 @@
 
         <!-- NPC AI Component -->
         <component>
-            <entityId>
+            <entity-id>
                 <uuid>comp_npc_ai</uuid>
                 <version>1</version>
-            </entityId>
-            <clusterNodeId>entity_npc_merchant</clusterNodeId>
-            <componentType>npc_behavior</componentType>
+            </entity-id>
+            <cluster-node-id>entity_npc_merchant</cluster-node-id>
+            <component-type>npc_behavior</component-type>
             <data encoding="json">{
                 "behaviorTree": "bt_merchant",
                 "dialogueId": "dialogue_merchant_greeting",
@@ -535,13 +535,13 @@
     <!-- ═══════════════════════════════════════════════════════════════════════ -->
     <assets>
         <asset>
-            <entityId>
+            <entity-id>
                 <uuid>asset_player_model</uuid>
                 <version>1</version>
-            </entityId>
+            </entity-id>
             <name>Player Character</name>
             <type>ASSET_TYPE_MODEL</type>
-            <sourcePath>./assets/models/player.glb</sourcePath>
+            <source-path>./assets/models/player.glb</source-path>
             <uri>asset://project/models/player.glb</uri>
             <metadata>
                 <entry key="format">GLTF_BINARY</entry>
@@ -551,41 +551,41 @@
                 <entry key="triangleCount">8200</entry>
             </metadata>
             <!-- Job that will load this asset -->
-            <loadJob>GltfLoadJob</loadJob>
+            <load-job>GltfLoadJob</load-job>
         </asset>
 
         <asset>
-            <entityId>
+            <entity-id>
                 <uuid>asset_terrain</uuid>
                 <version>1</version>
-            </entityId>
+            </entity-id>
             <name>Village Terrain</name>
             <type>ASSET_TYPE_MODEL</type>
-            <sourcePath>./assets/models/terrain_village.glb</sourcePath>
+            <source-path>./assets/models/terrain_village.glb</source-path>
             <uri>asset://project/models/terrain_village.glb</uri>
             <metadata>
                 <entry key="hasCollider">true</entry>
                 <entry key="colliderType">mesh</entry>
             </metadata>
-            <loadJob>GltfLoadJob</loadJob>
-            <postLoadJob>PhysicsColliderBakeJob</postLoadJob>
+            <load-job>GltfLoadJob</load-job>
+            <post-load-job>PhysicsColliderBakeJob</post-load-job>
         </asset>
 
         <asset>
-            <entityId>
+            <entity-id>
                 <uuid>asset_ambient_music</uuid>
                 <version>1</version>
-            </entityId>
+            </entity-id>
             <name>Village Ambient</name>
             <type>ASSET_TYPE_AUDIO</type>
-            <sourcePath>./assets/audio/ambient_village.ogg</sourcePath>
+            <source-path>./assets/audio/ambient_village.ogg</source-path>
             <uri>asset://project/audio/ambient_village.ogg</uri>
             <metadata>
                 <entry key="format">OGG_VORBIS</entry>
                 <entry key="loop">true</entry>
                 <entry key="channels">2</entry>
             </metadata>
-            <loadJob>AudioDecodeJob</loadJob>
+            <load-job>AudioDecodeJob</load-job>
         </asset>
     </assets>
 
@@ -594,25 +594,25 @@
     <!-- ═══════════════════════════════════════════════════════════════════════ -->
     <tags>
         <tag>
-            <entityId><uuid>tag_controllable</uuid></entityId>
+            <entity-id><uuid>tag_controllable</uuid></entity-id>
             <name>Controllable</name>
             <color>#2196F3</color>
             <category>gameplay</category>
         </tag>
         <tag>
-            <entityId><uuid>tag_persistent</uuid></entityId>
+            <entity-id><uuid>tag_persistent</uuid></entity-id>
             <name>Persistent</name>
             <color>#4CAF50</color>
             <category>system</category>
         </tag>
         <tag>
-            <entityId><uuid>tag_npc</uuid></entityId>
+            <entity-id><uuid>tag_npc</uuid></entity-id>
             <name>NPC</name>
             <color>#FF9800</color>
             <category>gameplay</category>
         </tag>
         <tag>
-            <entityId><uuid>tag_interactable</uuid></entityId>
+            <entity-id><uuid>tag_interactable</uuid></entity-id>
             <name>Interactable</name>
             <color>#9C27B0</color>
             <category>gameplay</category>

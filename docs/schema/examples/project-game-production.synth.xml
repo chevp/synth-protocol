@@ -6,7 +6,7 @@
     Combines: project config + tool registry + pipelines + resources
 -->
 <synth version="1.0" xmlns="https://chevp.github.io/synth-protocol/schema/synth/1.0">
-<project schemaVersion="1.0">
+<project schema-version="1.0">
 
     <metadata id="synth-game-production">
         <name>Synth Game</name>
@@ -23,7 +23,7 @@
 
     <configuration>
         <runtime mode="development">
-            <workDir>./assets/build</workDir>
+            <work-dir>./assets/build</work-dir>
         </runtime>
         <logging level="INFO"/>
     </configuration>
@@ -38,17 +38,17 @@
     <security>
         <authentication type="none"/>
         <cors enabled="true">
-            <allowOrigins>
+            <allow-origins>
                 <origin>http://localhost:3000</origin>
                 <origin>http://localhost:5173</origin>
-            </allowOrigins>
+            </allow-origins>
         </cors>
     </security>
 
     <!-- =====================================================================
          TOOL REGISTRY
          ===================================================================== -->
-    <toolRegistry>
+    <tool-registry>
         <tool id="blender" executable="blender" version="4.2">
             <config>
                 <entry key="args">--background --python-exit-code 1</entry>
@@ -57,7 +57,7 @@
         <tool id="gltf-transform" executable="gltf-transform" version="4.0"/>
         <tool id="toktx" executable="toktx" version="4.3"/>
         <tool id="gltfpack" executable="gltfpack" version="0.21"/>
-    </toolRegistry>
+    </tool-registry>
 
     <!-- =====================================================================
          PIPELINES
@@ -93,7 +93,7 @@
                     </output>
                 </step>
 
-                <step id="optimize-world" tool="gltf-transform" dependsOn="export-buildings,export-environment">
+                <step id="optimize-world" tool="gltf-transform" depends-on="export-buildings,export-environment">
                     <input>
                         <param name="source" type="directory">assets/build/gltf</param>
                     </input>
@@ -131,7 +131,7 @@
                     </config>
                 </step>
 
-                <step id="optimize-characters" tool="gltf-transform" dependsOn="export-characters">
+                <step id="optimize-characters" tool="gltf-transform" depends-on="export-characters">
                     <input>
                         <param name="source" type="directory">assets/build/gltf/characters</param>
                     </input>
@@ -187,7 +187,7 @@
                     </config>
                 </step>
 
-                <step id="build-all-world" tool="blender" dependsOn="clean" timeout="1200">
+                <step id="build-all-world" tool="blender" depends-on="clean" timeout="1200">
                     <input>
                         <param name="source" type="directory">assets/raw</param>
                         <param name="pattern">**/*.blend</param>
@@ -198,7 +198,7 @@
                     </output>
                 </step>
 
-                <step id="optimize-all" tool="gltf-transform" dependsOn="build-all-world">
+                <step id="optimize-all" tool="gltf-transform" depends-on="build-all-world">
                     <input>
                         <param name="source" type="directory">assets/build/gltf</param>
                     </input>
@@ -210,7 +210,7 @@
                     </config>
                 </step>
 
-                <step id="compress-all-textures" tool="toktx" dependsOn="build-all-world">
+                <step id="compress-all-textures" tool="toktx" depends-on="build-all-world">
                     <input>
                         <param name="source" type="directory">assets/build/gltf</param>
                         <param name="pattern">**/*.png</param>
@@ -224,7 +224,7 @@
                     </config>
                 </step>
 
-                <step id="final-bundle" tool="gltfpack" dependsOn="optimize-all,compress-all-textures">
+                <step id="final-bundle" tool="gltfpack" depends-on="optimize-all,compress-all-textures">
                     <input>
                         <param name="meshes" type="directory" ref="optimize-all.output.target"/>
                         <param name="textures" type="directory" ref="compress-all-textures.output.target"/>
@@ -249,8 +249,8 @@
          asset-src://  = raw source assets (media-store, read-only)
          ===================================================================== -->
     <mounts>
-        <mount scheme="asset" path="C:/media-store-runtime" readOnly="true"/>
-        <mount scheme="asset-src" path="C:/media-store" readOnly="true"/>
+        <mount scheme="asset" path="C:/media-store-runtime" read-only="true"/>
+        <mount scheme="asset-src" path="C:/media-store" read-only="true"/>
     </mounts>
 
     <!-- =====================================================================

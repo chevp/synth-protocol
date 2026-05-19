@@ -18,7 +18,7 @@
          - Snapshot (konkreter Speicherstand zu einem Zeitpunkt)
          ========================================================================= -->
 
-    <xs:element name="synthSave" type="save:SynthSaveType"/>
+    <xs:element name="synth-save" type="save:SynthSaveType"/>
 
     <xs:complexType name="SynthSaveType">
         <xs:choice>
@@ -69,9 +69,9 @@
 
     <xs:complexType name="AutosaveType">
         <xs:attribute name="enabled" type="xs:boolean" default="true"/>
-        <xs:attribute name="intervalSec" type="xs:int" default="300"/>
-        <xs:attribute name="onSceneChange" type="xs:boolean" default="true"/>
-        <xs:attribute name="onQuit" type="xs:boolean" default="true"/>
+        <xs:attribute name="interval-sec" type="xs:int" default="300"/>
+        <xs:attribute name="on-scene-change" type="xs:boolean" default="true"/>
+        <xs:attribute name="on-quit" type="xs:boolean" default="true"/>
     </xs:complexType>
 
     <!-- Sections: was wird gespeichert (Player, World, Quests, ...) -->
@@ -83,7 +83,7 @@
 
     <xs:complexType name="SectionType">
         <xs:attribute name="id" type="xs:string" use="required"/>
-        <xs:attribute name="serviceRef" type="xs:string" use="required"/>
+        <xs:attribute name="service-ref" type="xs:string" use="required"/>
         <xs:attribute name="required" type="xs:boolean" default="true"/>
         <xs:attribute name="format" type="save:SectionFormatEnum" default="json"/>
     </xs:complexType>
@@ -116,11 +116,11 @@
     <xs:complexType name="SnapshotType">
         <xs:sequence>
             <xs:element name="meta" type="save:SnapshotMetaType"/>
-            <xs:element name="sceneRef" type="save:SceneRefType" minOccurs="0"/>
+            <xs:element name="scene-ref" type="save:SceneRefType" minOccurs="0"/>
             <xs:element name="data" type="save:SnapshotDataType" maxOccurs="unbounded"/>
         </xs:sequence>
         <xs:attribute name="slot" type="xs:string" use="required"/>
-        <xs:attribute name="dataVersion" type="xs:string" use="required"/>
+        <xs:attribute name="data-version" type="xs:string" use="required"/>
     </xs:complexType>
 
     <xs:complexType name="SnapshotMetaType">
@@ -128,14 +128,14 @@
             <xs:element name="name" type="xs:string"/>
             <xs:element name="created" type="xs:dateTime"/>
             <xs:element name="thumbnail" type="xs:string" minOccurs="0"/>
-            <xs:element name="appVersion" type="xs:string"/>
+            <xs:element name="app-version" type="xs:string"/>
             <xs:element name="properties" type="common:PropertiesType" minOccurs="0"/>
         </xs:sequence>
     </xs:complexType>
 
     <xs:complexType name="SceneRefType">
         <xs:attribute name="uri" type="xs:anyURI" use="required"/>
-        <xs:attribute name="spawnPoint" type="xs:string"/>
+        <xs:attribute name="spawn-point" type="xs:string"/>
     </xs:complexType>
 
     <xs:complexType name="SnapshotDataType">

@@ -21,7 +21,7 @@
          ========================================================================= -->
 
     <!-- Root Element -->
-    <xs:element name="synthRuntimeLogic" type="runtime:SynthRuntimeLogicType"/>
+    <xs:element name="synth-runtime-logic" type="runtime:SynthRuntimeLogicType"/>
 
     <!-- Runtime Logic Configuration -->
     <xs:complexType name="SynthRuntimeLogicType">
@@ -96,7 +96,7 @@
         <xs:attribute name="port" type="xs:int"/>
         <xs:attribute name="database" type="xs:string"/>
         <xs:attribute name="username" type="xs:string"/>
-        <xs:attribute name="poolSize" type="xs:int" default="10"/>
+        <xs:attribute name="pool-size" type="xs:int" default="10"/>
     </xs:complexType>
 
     <!-- Server Configuration -->
@@ -124,9 +124,9 @@
     <!-- Game Logic Configuration -->
     <xs:complexType name="GameType">
         <xs:sequence>
-            <xs:element name="tickRate" type="xs:int" default="60"/>
-            <xs:element name="maxPlayers" type="xs:int" default="100"/>
-            <xs:element name="saveInterval" type="xs:int" default="300"/>
+            <xs:element name="tick-rate" type="xs:int" default="60"/>
+            <xs:element name="max-players" type="xs:int" default="100"/>
+            <xs:element name="save-interval" type="xs:int" default="300"/>
             <xs:element name="plugins" type="runtime:PluginsType" minOccurs="0"/>
         </xs:sequence>
     </xs:complexType>

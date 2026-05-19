@@ -20,7 +20,7 @@
          Root element: <synthBehaviorTree>
          ========================================================================= -->
 
-    <xs:element name="synthBehaviorTree" type="ai:SynthBehaviorTreeType"/>
+    <xs:element name="synth-behavior-tree" type="ai:SynthBehaviorTreeType"/>
 
     <xs:complexType name="SynthBehaviorTreeType">
         <xs:sequence>
@@ -29,7 +29,7 @@
         </xs:sequence>
         <xs:attribute name="id" type="xs:string" use="required"/>
         <xs:attribute name="version" type="xs:string" use="required"/>
-        <xs:attribute name="tickRateHz" type="xs:int" default="10"/>
+        <xs:attribute name="tick-rate-hz" type="xs:int" default="10"/>
     </xs:complexType>
 
     <!-- Blackboard: geteilter Speicher zwischen BT-Knoten -->
@@ -75,8 +75,8 @@
             <xs:element name="child" type="ai:BTNodeType" maxOccurs="unbounded"/>
         </xs:sequence>
         <xs:attribute name="id" type="xs:string"/>
-        <xs:attribute name="successThreshold" type="xs:int" default="1"/>
-        <xs:attribute name="failureThreshold" type="xs:int" default="1"/>
+        <xs:attribute name="success-threshold" type="xs:int" default="1"/>
+        <xs:attribute name="failure-threshold" type="xs:int" default="1"/>
     </xs:complexType>
 
     <!-- Decorator: ein Kind, Verhalten modifiziert -->
@@ -93,7 +93,7 @@
         </xs:sequence>
         <xs:attribute name="id" type="xs:string"/>
         <xs:attribute name="count" type="xs:int"/>
-        <xs:attribute name="untilFail" type="xs:boolean" default="false"/>
+        <xs:attribute name="until-fail" type="xs:boolean" default="false"/>
     </xs:complexType>
 
     <xs:complexType name="CooldownNodeType">
@@ -116,7 +116,7 @@
             <xs:element name="param" type="ai:ParamType" minOccurs="0" maxOccurs="unbounded"/>
         </xs:sequence>
         <xs:attribute name="id" type="xs:string"/>
-        <xs:attribute name="serviceRef" type="xs:string" use="required"/>
+        <xs:attribute name="service-ref" type="xs:string" use="required"/>
         <xs:attribute name="method" type="xs:string" use="required"/>
     </xs:complexType>
 

@@ -22,7 +22,7 @@
          ========================================================================= -->
 
     <!-- Root Element -->
-    <xs:element name="synthRuntime" type="runtime:SynthRuntimeType"/>
+    <xs:element name="synth-runtime" type="runtime:SynthRuntimeType"/>
 
     <!-- Runtime Configuration -->
     <xs:complexType name="SynthRuntimeType">
@@ -109,7 +109,7 @@
     <xs:complexType name="AssetsType">
         <xs:sequence>
             <xs:element name="mount" type="runtime:MountType" minOccurs="0" maxOccurs="unbounded"/>
-            <xs:element name="searchPath" type="runtime:SearchPathType" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="search-path" type="runtime:SearchPathType" minOccurs="0" maxOccurs="unbounded"/>
         </xs:sequence>
     </xs:complexType>
 
@@ -117,7 +117,7 @@
     <xs:complexType name="MountType">
         <xs:attribute name="scheme" type="xs:string" use="required"/>
         <xs:attribute name="path" type="xs:string" use="required"/>
-        <xs:attribute name="readOnly" type="xs:boolean" default="true"/>
+        <xs:attribute name="read-only" type="xs:boolean" default="true"/>
     </xs:complexType>
 
     <xs:complexType name="SearchPathType">

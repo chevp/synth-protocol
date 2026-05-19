@@ -16,11 +16,11 @@
          Root element: <synthCameras>
          ========================================================================= -->
 
-    <xs:element name="synthCameras" type="cam:SynthCamerasType"/>
+    <xs:element name="synth-cameras" type="cam:SynthCamerasType"/>
 
     <xs:complexType name="SynthCamerasType">
         <xs:sequence>
-            <xs:element name="virtualCamera" type="cam:VirtualCameraType" maxOccurs="unbounded"/>
+            <xs:element name="virtual-camera" type="cam:VirtualCameraType" maxOccurs="unbounded"/>
             <xs:element name="brain" type="cam:BrainType" minOccurs="0"/>
             <xs:element name="splines" type="cam:SplinesType" minOccurs="0"/>
             <xs:element name="viewports" type="cam:ViewportsType" minOccurs="0"/>
@@ -36,7 +36,7 @@
             <xs:element name="position" type="common:Vec3Type" minOccurs="0"/>
             <xs:element name="rotation" type="common:Vec3Type" minOccurs="0"/>
             <xs:element name="follow" type="cam:FollowType" minOccurs="0"/>
-            <xs:element name="lookAt" type="cam:LookAtType" minOccurs="0"/>
+            <xs:element name="look-at" type="cam:LookAtType" minOccurs="0"/>
             <xs:element name="path" type="cam:PathRefType" minOccurs="0"/>
             <xs:element name="noise" type="cam:NoiseType" minOccurs="0"/>
             <xs:element name="composer" type="cam:ComposerType" minOccurs="0"/>
@@ -49,7 +49,7 @@
     <xs:complexType name="LensType">
         <xs:attribute name="mode" type="cam:LensModeEnum" default="perspective"/>
         <xs:attribute name="fov" type="xs:float" default="60"/>
-        <xs:attribute name="orthoSize" type="xs:float"/>
+        <xs:attribute name="ortho-size" type="xs:float"/>
         <xs:attribute name="near" type="xs:float" default="0.1"/>
         <xs:attribute name="far" type="xs:float" default="1000"/>
         <xs:attribute name="dutch" type="xs:float" default="0"/>
@@ -88,7 +88,7 @@
     </xs:complexType>
 
     <xs:complexType name="PathRefType">
-        <xs:attribute name="splineRef" type="xs:string" use="required"/>
+        <xs:attribute name="spline-ref" type="xs:string" use="required"/>
         <xs:attribute name="speed" type="xs:float" default="1.0"/>
         <xs:attribute name="loop" type="xs:boolean" default="false"/>
     </xs:complexType>
@@ -110,19 +110,19 @@
     </xs:simpleType>
 
     <xs:complexType name="ComposerType">
-        <xs:attribute name="screenX" type="xs:float" default="0.5"/>
-        <xs:attribute name="screenY" type="xs:float" default="0.5"/>
-        <xs:attribute name="deadZoneWidth" type="xs:float" default="0.1"/>
-        <xs:attribute name="deadZoneHeight" type="xs:float" default="0.1"/>
-        <xs:attribute name="softZoneWidth" type="xs:float" default="0.3"/>
-        <xs:attribute name="softZoneHeight" type="xs:float" default="0.3"/>
+        <xs:attribute name="screen-x" type="xs:float" default="0.5"/>
+        <xs:attribute name="screen-y" type="xs:float" default="0.5"/>
+        <xs:attribute name="dead-zone-width" type="xs:float" default="0.1"/>
+        <xs:attribute name="dead-zone-height" type="xs:float" default="0.1"/>
+        <xs:attribute name="soft-zone-width" type="xs:float" default="0.3"/>
+        <xs:attribute name="soft-zone-height" type="xs:float" default="0.3"/>
     </xs:complexType>
 
     <!-- Brain: wählt aktive Kamera, mischt Übergänge -->
     <xs:complexType name="BrainType">
-        <xs:attribute name="defaultBlend" type="cam:BlendStyleEnum" default="easeInOut"/>
-        <xs:attribute name="defaultBlendTime" type="xs:float" default="2.0"/>
-        <xs:attribute name="updateMode" type="cam:UpdateModeEnum" default="lateUpdate"/>
+        <xs:attribute name="default-blend" type="cam:BlendStyleEnum" default="easeInOut"/>
+        <xs:attribute name="default-blend-time" type="xs:float" default="2.0"/>
+        <xs:attribute name="update-mode" type="cam:UpdateModeEnum" default="lateUpdate"/>
     </xs:complexType>
 
     <xs:simpleType name="BlendStyleEnum">
@@ -170,8 +170,8 @@
     <xs:complexType name="SplinePointType">
         <xs:sequence>
             <xs:element name="position" type="common:Vec3Type"/>
-            <xs:element name="tangentIn" type="common:Vec3Type" minOccurs="0"/>
-            <xs:element name="tangentOut" type="common:Vec3Type" minOccurs="0"/>
+            <xs:element name="tangent-in" type="common:Vec3Type" minOccurs="0"/>
+            <xs:element name="tangent-out" type="common:Vec3Type" minOccurs="0"/>
         </xs:sequence>
         <xs:attribute name="t" type="xs:float"/>
     </xs:complexType>
@@ -185,12 +185,12 @@
 
     <xs:complexType name="ViewportType">
         <xs:attribute name="id" type="xs:string" use="required"/>
-        <xs:attribute name="cameraRef" type="xs:string" use="required"/>
+        <xs:attribute name="camera-ref" type="xs:string" use="required"/>
         <xs:attribute name="x" type="xs:float" default="0"/>
         <xs:attribute name="y" type="xs:float" default="0"/>
         <xs:attribute name="width" type="xs:float" default="1"/>
         <xs:attribute name="height" type="xs:float" default="1"/>
-        <xs:attribute name="renderOrder" type="xs:int" default="0"/>
+        <xs:attribute name="render-order" type="xs:int" default="0"/>
     </xs:complexType>
 
 </xs:schema>

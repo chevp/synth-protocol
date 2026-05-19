@@ -16,14 +16,14 @@
          Root element: <synthAnimation>
          ========================================================================= -->
 
-    <xs:element name="synthAnimation" type="anim:SynthAnimationType"/>
+    <xs:element name="synth-animation" type="anim:SynthAnimationType"/>
 
     <xs:complexType name="SynthAnimationType">
         <xs:sequence>
             <xs:element name="skeleton" type="anim:SkeletonRefType" minOccurs="0"/>
             <xs:element name="clips" type="anim:ClipsType"/>
-            <xs:element name="blendTrees" type="anim:BlendTreesType" minOccurs="0"/>
-            <xs:element name="stateMachine" type="anim:AnimStateMachineType" minOccurs="0"/>
+            <xs:element name="blend-trees" type="anim:BlendTreesType" minOccurs="0"/>
+            <xs:element name="state-machine" type="anim:AnimStateMachineType" minOccurs="0"/>
             <xs:element name="ik" type="anim:IKChainsType" minOccurs="0"/>
         </xs:sequence>
         <xs:attribute name="version" type="xs:string" use="required"/>
@@ -50,7 +50,7 @@
         <xs:attribute name="loop" type="xs:boolean" default="false"/>
         <xs:attribute name="duration" type="xs:float"/>
         <xs:attribute name="speed" type="xs:float" default="1.0"/>
-        <xs:attribute name="rootMotion" type="xs:boolean" default="false"/>
+        <xs:attribute name="root-motion" type="xs:boolean" default="false"/>
     </xs:complexType>
 
     <!-- Animation-Events: Footstep, Hit-Frame, Cue -->
@@ -63,7 +63,7 @@
     <!-- ===== Blend-Trees ===== -->
     <xs:complexType name="BlendTreesType">
         <xs:sequence>
-            <xs:element name="blendTree" type="anim:BlendTreeType" maxOccurs="unbounded"/>
+            <xs:element name="blend-tree" type="anim:BlendTreeType" maxOccurs="unbounded"/>
         </xs:sequence>
     </xs:complexType>
 
@@ -73,8 +73,8 @@
         </xs:sequence>
         <xs:attribute name="id" type="xs:string" use="required"/>
         <xs:attribute name="type" type="anim:BlendTreeTypeEnum" use="required"/>
-        <xs:attribute name="paramX" type="xs:string" use="required"/>
-        <xs:attribute name="paramY" type="xs:string"/>
+        <xs:attribute name="param-x" type="xs:string" use="required"/>
+        <xs:attribute name="param-y" type="xs:string"/>
     </xs:complexType>
 
     <xs:simpleType name="BlendTreeTypeEnum">
@@ -87,9 +87,9 @@
     </xs:simpleType>
 
     <xs:complexType name="BlendNodeType">
-        <xs:attribute name="clipRef" type="xs:string" use="required"/>
-        <xs:attribute name="thresholdX" type="xs:float" use="required"/>
-        <xs:attribute name="thresholdY" type="xs:float"/>
+        <xs:attribute name="clip-ref" type="xs:string" use="required"/>
+        <xs:attribute name="threshold-x" type="xs:float" use="required"/>
+        <xs:attribute name="threshold-y" type="xs:float"/>
         <xs:attribute name="speed" type="xs:float" default="1.0"/>
     </xs:complexType>
 
@@ -124,7 +124,7 @@
         <xs:attribute name="id" type="xs:string" use="required"/>
         <xs:attribute name="initial" type="xs:string" use="required"/>
         <xs:attribute name="weight" type="xs:float" default="1.0"/>
-        <xs:attribute name="blendMode" type="anim:LayerBlendModeEnum" default="override"/>
+        <xs:attribute name="blend-mode" type="anim:LayerBlendModeEnum" default="override"/>
         <xs:attribute name="mask" type="xs:string"/>
     </xs:complexType>
 
@@ -141,8 +141,8 @@
         </xs:sequence>
         <xs:attribute name="id" type="xs:string" use="required"/>
         <!-- Either clipRef OR blendTreeRef -->
-        <xs:attribute name="clipRef" type="xs:string"/>
-        <xs:attribute name="blendTreeRef" type="xs:string"/>
+        <xs:attribute name="clip-ref" type="xs:string"/>
+        <xs:attribute name="blend-tree-ref" type="xs:string"/>
         <xs:attribute name="speed" type="xs:float" default="1.0"/>
     </xs:complexType>
 
@@ -150,8 +150,8 @@
         <xs:attribute name="target" type="xs:string" use="required"/>
         <xs:attribute name="condition" type="xs:string"/>
         <xs:attribute name="duration" type="xs:float" default="0.2"/>
-        <xs:attribute name="exitTime" type="xs:float"/>
-        <xs:attribute name="hasExitTime" type="xs:boolean" default="false"/>
+        <xs:attribute name="exit-time" type="xs:float"/>
+        <xs:attribute name="has-exit-time" type="xs:boolean" default="false"/>
     </xs:complexType>
 
     <!-- ===== IK-Chains ===== -->
@@ -164,10 +164,10 @@
     <xs:complexType name="IKChainType">
         <xs:attribute name="id" type="xs:string" use="required"/>
         <xs:attribute name="type" type="anim:IKChainTypeEnum" use="required"/>
-        <xs:attribute name="rootBone" type="xs:string" use="required"/>
-        <xs:attribute name="endBone" type="xs:string" use="required"/>
-        <xs:attribute name="targetBone" type="xs:string"/>
-        <xs:attribute name="poleBone" type="xs:string"/>
+        <xs:attribute name="root-bone" type="xs:string" use="required"/>
+        <xs:attribute name="end-bone" type="xs:string" use="required"/>
+        <xs:attribute name="target-bone" type="xs:string"/>
+        <xs:attribute name="pole-bone" type="xs:string"/>
         <xs:attribute name="weight" type="xs:float" default="1.0"/>
     </xs:complexType>
 

@@ -14,7 +14,7 @@
          Root element: <synthWorld>
          ========================================================================= -->
 
-    <xs:element name="synthWorld" type="world:SynthWorldType"/>
+    <xs:element name="synth-world" type="world:SynthWorldType"/>
 
     <xs:complexType name="SynthWorldType">
         <xs:sequence>
@@ -25,7 +25,7 @@
         </xs:sequence>
         <xs:attribute name="version" type="xs:string" use="required"/>
         <xs:attribute name="id" type="xs:string" use="required"/>
-        <xs:attribute name="originMode" type="world:OriginModeEnum" default="absolute"/>
+        <xs:attribute name="origin-mode" type="world:OriginModeEnum" default="absolute"/>
     </xs:complexType>
 
     <xs:simpleType name="OriginModeEnum">
@@ -50,9 +50,9 @@
         </xs:sequence>
         <xs:attribute name="heightmap" type="xs:string"/>
         <xs:attribute name="resolution" type="xs:int" default="1024"/>
-        <xs:attribute name="cellSize" type="xs:float" default="1.0"/>
-        <xs:attribute name="maxHeight" type="xs:float" default="500"/>
-        <xs:attribute name="lodMode" type="world:LODModeEnum" default="clipmap"/>
+        <xs:attribute name="cell-size" type="xs:float" default="1.0"/>
+        <xs:attribute name="max-height" type="xs:float" default="500"/>
+        <xs:attribute name="lod-mode" type="world:LODModeEnum" default="clipmap"/>
     </xs:complexType>
 
     <xs:simpleType name="LODModeEnum">
@@ -66,11 +66,11 @@
 
     <xs:complexType name="TerrainLayerType">
         <xs:attribute name="id" type="xs:string" use="required"/>
-        <xs:attribute name="materialRef" type="xs:string" use="required"/>
-        <xs:attribute name="splatMap" type="xs:string"/>
-        <xs:attribute name="splatChannel" type="world:SplatChannelEnum"/>
-        <xs:attribute name="tilingX" type="xs:float" default="1.0"/>
-        <xs:attribute name="tilingY" type="xs:float" default="1.0"/>
+        <xs:attribute name="material-ref" type="xs:string" use="required"/>
+        <xs:attribute name="splat-map" type="xs:string"/>
+        <xs:attribute name="splat-channel" type="world:SplatChannelEnum"/>
+        <xs:attribute name="tiling-x" type="xs:float" default="1.0"/>
+        <xs:attribute name="tiling-y" type="xs:float" default="1.0"/>
     </xs:complexType>
 
     <xs:simpleType name="SplatChannelEnum">
@@ -87,9 +87,9 @@
         <xs:sequence>
             <xs:element name="tile" type="world:TileType" maxOccurs="unbounded"/>
         </xs:sequence>
-        <xs:attribute name="sizeX" type="xs:float" use="required"/>
-        <xs:attribute name="sizeZ" type="xs:float" use="required"/>
-        <xs:attribute name="indexMode" type="world:TileIndexModeEnum" default="grid"/>
+        <xs:attribute name="size-x" type="xs:float" use="required"/>
+        <xs:attribute name="size-z" type="xs:float" use="required"/>
+        <xs:attribute name="index-mode" type="world:TileIndexModeEnum" default="grid"/>
     </xs:complexType>
 
     <xs:simpleType name="TileIndexModeEnum">
@@ -104,23 +104,23 @@
         <xs:attribute name="id" type="xs:string" use="required"/>
         <xs:attribute name="x" type="xs:int" use="required"/>
         <xs:attribute name="z" type="xs:int" use="required"/>
-        <xs:attribute name="sceneRef" type="xs:string"/>
-        <xs:attribute name="lod0Uri" type="xs:anyURI"/>
-        <xs:attribute name="lod1Uri" type="xs:anyURI"/>
-        <xs:attribute name="lod2Uri" type="xs:anyURI"/>
-        <xs:attribute name="impostorUri" type="xs:anyURI"/>
+        <xs:attribute name="scene-ref" type="xs:string"/>
+        <xs:attribute name="lod0-uri" type="xs:anyURI"/>
+        <xs:attribute name="lod1-uri" type="xs:anyURI"/>
+        <xs:attribute name="lod2-uri" type="xs:anyURI"/>
+        <xs:attribute name="impostor-uri" type="xs:anyURI"/>
     </xs:complexType>
 
     <!-- ===== Streaming Settings ===== -->
     <xs:complexType name="StreamingType">
-        <xs:attribute name="loadRadius" type="xs:float" default="200.0"/>
-        <xs:attribute name="unloadRadius" type="xs:float" default="300.0"/>
-        <xs:attribute name="preloadAhead" type="xs:int" default="1"/>
-        <xs:attribute name="maxConcurrentLoads" type="xs:int" default="4"/>
-        <xs:attribute name="useImpostorsBeyond" type="xs:float"/>
+        <xs:attribute name="load-radius" type="xs:float" default="200.0"/>
+        <xs:attribute name="unload-radius" type="xs:float" default="300.0"/>
+        <xs:attribute name="preload-ahead" type="xs:int" default="1"/>
+        <xs:attribute name="max-concurrent-loads" type="xs:int" default="4"/>
+        <xs:attribute name="use-impostors-beyond" type="xs:float"/>
         <xs:attribute name="strategy" type="world:StreamingStrategyEnum" default="distance"/>
-        <xs:attribute name="cachePolicy" type="world:CachePolicyEnum" default="lru"/>
-        <xs:attribute name="cacheSizeMB" type="xs:int" default="512"/>
+        <xs:attribute name="cache-policy" type="world:CachePolicyEnum" default="lru"/>
+        <xs:attribute name="cache-size-mb" type="xs:int" default="512"/>
     </xs:complexType>
 
     <xs:simpleType name="StreamingStrategyEnum">

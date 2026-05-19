@@ -21,7 +21,7 @@
     <!-- Extensions Container -->
     <xs:complexType name="SynthExtensionsType">
         <xs:sequence>
-            <xs:element name="synthExtension" type="ext:SynthExtensionType"
+            <xs:element name="synth-extension" type="ext:SynthExtensionType"
                         minOccurs="0" maxOccurs="unbounded"/>
         </xs:sequence>
     </xs:complexType>

@@ -16,7 +16,7 @@
          Root element: <synthNavigation>
          ========================================================================= -->
 
-    <xs:element name="synthNavigation" type="nav:SynthNavigationType"/>
+    <xs:element name="synth-navigation" type="nav:SynthNavigationType"/>
 
     <xs:complexType name="SynthNavigationType">
         <xs:sequence>
@@ -24,7 +24,7 @@
             <xs:element name="areas" type="nav:AreasType" minOccurs="0"/>
             <xs:element name="agents" type="nav:AgentsType"/>
             <xs:element name="navmeshes" type="nav:NavmeshesType" minOccurs="0"/>
-            <xs:element name="offMeshLinks" type="nav:OffMeshLinksType" minOccurs="0"/>
+            <xs:element name="off-mesh-links" type="nav:OffMeshLinksType" minOccurs="0"/>
         </xs:sequence>
         <xs:attribute name="version" type="xs:string" use="required"/>
         <xs:attribute name="id" type="xs:string" use="required"/>
@@ -32,13 +32,13 @@
 
     <!-- Bake-Settings: wie NavMesh aus Scene generiert wird -->
     <xs:complexType name="BakeSettingsType">
-        <xs:attribute name="cellSize" type="xs:float" default="0.3"/>
-        <xs:attribute name="cellHeight" type="xs:float" default="0.2"/>
-        <xs:attribute name="walkableSlope" type="xs:float" default="45.0"/>
-        <xs:attribute name="walkableHeight" type="xs:float" default="2.0"/>
-        <xs:attribute name="walkableClimb" type="xs:float" default="0.4"/>
-        <xs:attribute name="walkableRadius" type="xs:float" default="0.6"/>
-        <xs:attribute name="mergeRegionSize" type="xs:int" default="20"/>
+        <xs:attribute name="cell-size" type="xs:float" default="0.3"/>
+        <xs:attribute name="cell-height" type="xs:float" default="0.2"/>
+        <xs:attribute name="walkable-slope" type="xs:float" default="45.0"/>
+        <xs:attribute name="walkable-height" type="xs:float" default="2.0"/>
+        <xs:attribute name="walkable-climb" type="xs:float" default="0.4"/>
+        <xs:attribute name="walkable-radius" type="xs:float" default="0.6"/>
+        <xs:attribute name="merge-region-size" type="xs:int" default="20"/>
     </xs:complexType>
 
     <!-- Areas: typisierte Bereiche (Wasser, Tür, Klettern, ...) mit Kosten -->
@@ -63,21 +63,21 @@
 
     <xs:complexType name="AgentType">
         <xs:sequence>
-            <xs:element name="allowedArea" type="nav:AreaRefType" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="allowed-area" type="nav:AreaRefType" minOccurs="0" maxOccurs="unbounded"/>
         </xs:sequence>
         <xs:attribute name="id" type="xs:string" use="required"/>
         <xs:attribute name="radius" type="xs:float" use="required"/>
         <xs:attribute name="height" type="xs:float" use="required"/>
-        <xs:attribute name="maxSlope" type="xs:float" default="45.0"/>
-        <xs:attribute name="maxStep" type="xs:float" default="0.4"/>
-        <xs:attribute name="maxSpeed" type="xs:float" default="3.5"/>
+        <xs:attribute name="max-slope" type="xs:float" default="45.0"/>
+        <xs:attribute name="max-step" type="xs:float" default="0.4"/>
+        <xs:attribute name="max-speed" type="xs:float" default="3.5"/>
         <xs:attribute name="acceleration" type="xs:float" default="8.0"/>
-        <xs:attribute name="turnRateDegPerSec" type="xs:float" default="180.0"/>
+        <xs:attribute name="turn-rate-deg-per-sec" type="xs:float" default="180.0"/>
     </xs:complexType>
 
     <xs:complexType name="AreaRefType">
         <xs:attribute name="ref" type="xs:string" use="required"/>
-        <xs:attribute name="costMultiplier" type="xs:float" default="1.0"/>
+        <xs:attribute name="cost-multiplier" type="xs:float" default="1.0"/>
     </xs:complexType>
 
     <!-- Navmeshes: gebackene Daten (URI auf binäre Datei) -->
@@ -89,14 +89,14 @@
 
     <xs:complexType name="NavmeshType">
         <xs:sequence>
-            <xs:element name="boundsMin" type="common:Vec3Type" minOccurs="0"/>
-            <xs:element name="boundsMax" type="common:Vec3Type" minOccurs="0"/>
+            <xs:element name="bounds-min" type="common:Vec3Type" minOccurs="0"/>
+            <xs:element name="bounds-max" type="common:Vec3Type" minOccurs="0"/>
         </xs:sequence>
         <xs:attribute name="id" type="xs:string" use="required"/>
-        <xs:attribute name="sceneRef" type="xs:string"/>
-        <xs:attribute name="dataUri" type="xs:anyURI" use="required"/>
+        <xs:attribute name="scene-ref" type="xs:string"/>
+        <xs:attribute name="data-uri" type="xs:anyURI" use="required"/>
         <xs:attribute name="agent" type="xs:string" use="required"/>
-        <xs:attribute name="tileSize" type="xs:float" default="32.0"/>
+        <xs:attribute name="tile-size" type="xs:float" default="32.0"/>
     </xs:complexType>
 
     <!-- Off-Mesh-Links: Sprünge, Leitern, Teleporter -->

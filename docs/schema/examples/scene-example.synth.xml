@@ -18,7 +18,7 @@
 
     <settings>
         <camera mode="orthographic" angle="45" height="12" follow="player"/>
-        <apiBinding endpoint="/api/scenes/example" autoLoad="true"/>
+        <api-binding endpoint="/api/scenes/example" auto-load="true"/>
     </settings>
 
     <entities>
@@ -45,7 +45,7 @@
             <transform>
                 <position x="0" y="10" z="0"/>
             </transform>
-            <pointLight color="#FFFFFF" intensity="1.0" range="20"/>
+            <point-light color="#FFFFFF" intensity="1.0" range="20"/>
         </entity>
 
         <!-- Building with properties -->

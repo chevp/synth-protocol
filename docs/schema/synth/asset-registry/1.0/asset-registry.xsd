@@ -12,7 +12,7 @@
          ========================================================================= -->
 
     <!-- Root Element -->
-    <xs:element name="synthAssetRegistry" type="ar:AssetRegistryType"/>
+    <xs:element name="synth-asset-registry" type="ar:AssetRegistryType"/>
 
     <xs:complexType name="AssetRegistryType">
         <xs:sequence>
@@ -34,7 +34,7 @@
             <xs:element name="description" type="xs:string" minOccurs="0"/>
             <xs:element name="version" type="xs:string"/>
             <xs:element name="author" type="xs:string" minOccurs="0"/>
-            <xs:element name="baseUrl" type="xs:anyURI"/>
+            <xs:element name="base-url" type="xs:anyURI"/>
         </xs:sequence>
         <xs:attribute name="id" type="xs:string" use="required"/>
     </xs:complexType>
@@ -111,7 +111,7 @@
 
     <xs:complexType name="DependencyType">
         <xs:attribute name="package" type="xs:string" use="required"/>
-        <xs:attribute name="minVersion" type="xs:string" use="optional"/>
+        <xs:attribute name="min-version" type="xs:string" use="optional"/>
     </xs:complexType>
 
 </xs:schema>

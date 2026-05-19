@@ -16,7 +16,7 @@
          ========================================================================= -->
 
     <!-- Root Element -->
-    <xs:element name="synthScene" type="scene:SynthSceneType"/>
+    <xs:element name="synth-scene" type="scene:SynthSceneType"/>
 
     <!-- Scene Type Definition -->
     <xs:complexType name="SynthSceneType">
@@ -38,7 +38,7 @@
     <xs:complexType name="SettingsType">
         <xs:sequence>
             <xs:element name="camera" type="scene:CameraType" minOccurs="0"/>
-            <xs:element name="apiBinding" type="scene:APIBindingType" minOccurs="0"/>
+            <xs:element name="api-binding" type="scene:APIBindingType" minOccurs="0"/>
         </xs:sequence>
     </xs:complexType>
 
@@ -62,7 +62,7 @@
     <!-- API Binding -->
     <xs:complexType name="APIBindingType">
         <xs:attribute name="endpoint" type="xs:string" use="required"/>
-        <xs:attribute name="autoLoad" type="xs:boolean" default="false"/>
+        <xs:attribute name="auto-load" type="xs:boolean" default="false"/>
     </xs:complexType>
 
     <!-- Entities Container -->
@@ -85,7 +85,7 @@
             <xs:element name="mesh" type="common:MeshRefType" minOccurs="0"/>
 
             <!-- Point Light (optional) -->
-            <xs:element name="pointLight" type="scene:PointLightType" minOccurs="0"/>
+            <xs:element name="point-light" type="scene:PointLightType" minOccurs="0"/>
 
             <!-- Properties (optional) -->
             <xs:element name="properties" type="common:PropertiesType" minOccurs="0"/>

@@ -19,41 +19,41 @@
     <!-- =================================================================== -->
     <header>
         <magic>SYNTH</magic>
-        <formatVersion>1</formatVersion>
-        <schemaVersion>1.0.0</schemaVersion>
-        <createdAt>1733580000000</createdAt>
-        <modifiedAt>1733580000000</modifiedAt>
+        <format-version>1</format-version>
+        <schema-version>1.0.0</schema-version>
+        <created-at>1733580000000</created-at>
+        <modified-at>1733580000000</modified-at>
         <compressed>false</compressed>
-        <compressionType>NONE</compressionType>
+        <compression-type>NONE</compression-type>
     </header>
 
     <!-- =================================================================== -->
     <!-- PROJECT ROOT -->
     <!-- =================================================================== -->
     <metadata>
-        <entityId>
+        <entity-id>
             <uuid>proj_blender_pipeline</uuid>
             <version>1</version>
-            <createdAt>1733580000000</createdAt>
-            <updatedAt>1733580000000</updatedAt>
-        </entityId>
+            <created-at>1733580000000</created-at>
+            <updated-at>1733580000000</updated-at>
+        </entity-id>
         <name>Blender Asset Pipeline</name>
         <description>A project demonstrating Blender file processing with synth-nodejs-plugins and synth-plugin-blender</description>
-        <schemaVersion>1.0.0</schemaVersion>
+        <schema-version>1.0.0</schema-version>
         <settings>
-            <defaultSceneId>scene_blender_workspace</defaultSceneId>
-            <thumbnailAssetId>asset_thumbnail</thumbnailAssetId>
-            <autoSaveEnabled>true</autoSaveEnabled>
-            <autoSaveIntervalSeconds>120</autoSaveIntervalSeconds>
-            <customSettings>
+            <default-scene-id>scene_blender_workspace</default-scene-id>
+            <thumbnail-asset-id>asset_thumbnail</thumbnail-asset-id>
+            <auto-save-enabled>true</auto-save-enabled>
+            <auto-save-interval-seconds>120</auto-save-interval-seconds>
+            <custom-settings>
                 <entry key="theme">dark</entry>
                 <entry key="blender.version">4.0</entry>
                 <entry key="blender.path">C:/Program Files/Blender Foundation/Blender 4.0/blender.exe</entry>
                 <entry key="export.format">glTF</entry>
-            </customSettings>
+            </custom-settings>
         </settings>
-        <lastOpenedAt>1733580000000</lastOpenedAt>
-        <lastOpenedBy>artist</lastOpenedBy>
+        <last-opened-at>1733580000000</last-opened-at>
+        <last-opened-by>artist</last-opened-by>
     </metadata>
 
     <!-- =================================================================== -->
@@ -61,16 +61,16 @@
     <!-- synth-nodejs-plugins provides the Node.js runtime for plugins -->
     <!-- synth-plugin-blender provides Blender-specific MCP tools -->
     <!-- =================================================================== -->
-    <mcpServers>
+    <mcp-servers>
         <!-- Node.js Plugin Host - runs synth-nodejs-plugins -->
         <server>
-            <entityId>
+            <entity-id>
                 <uuid>mcp_nodejs_host</uuid>
                 <version>1</version>
-                <createdAt>1733580000000</createdAt>
-                <updatedAt>1733580000000</updatedAt>
-            </entityId>
-            <serverName>synth-nodejs-plugins</serverName>
+                <created-at>1733580000000</created-at>
+                <updated-at>1733580000000</updated-at>
+            </entity-id>
+            <server-name>synth-nodejs-plugins</server-name>
             <version>1.0.0</version>
             <required>true</required>
             <source>MARKETPLACE_SOURCE_LOCAL</source>
@@ -80,21 +80,21 @@
                     <entry key="host">localhost</entry>
                     <entry key="pluginDir">./plugins</entry>
                 </parameters>
-                <autoStart>true</autoStart>
-                <startupTimeoutMs>30000</startupTimeoutMs>
-                <healthCheckIntervalMs>15000</healthCheckIntervalMs>
+                <auto-start>true</auto-start>
+                <startup-timeout-ms>30000</startup-timeout-ms>
+                <health-check-interval-ms>15000</health-check-interval-ms>
             </config>
         </server>
 
         <!-- Blender MCP Server - provided by synth-plugin-blender -->
         <server>
-            <entityId>
+            <entity-id>
                 <uuid>mcp_blender</uuid>
                 <version>1</version>
-                <createdAt>1733580000000</createdAt>
-                <updatedAt>1733580000000</updatedAt>
-            </entityId>
-            <serverName>synth-plugin-blender</serverName>
+                <created-at>1733580000000</created-at>
+                <updated-at>1733580000000</updated-at>
+            </entity-id>
+            <server-name>synth-plugin-blender</server-name>
             <version>1.0.0</version>
             <required>true</required>
             <source>MARKETPLACE_SOURCE_DEV</source>
@@ -106,29 +106,29 @@
                     <entry key="cache.enabled">true</entry>
                     <entry key="cache.dir">./cache/blender</entry>
                 </parameters>
-                <autoStart>true</autoStart>
-                <startupTimeoutMs>60000</startupTimeoutMs>
-                <healthCheckIntervalMs>30000</healthCheckIntervalMs>
+                <auto-start>true</auto-start>
+                <startup-timeout-ms>60000</startup-timeout-ms>
+                <health-check-interval-ms>30000</health-check-interval-ms>
             </config>
         </server>
 
         <!-- Vision Server for texture analysis (optional) -->
         <server>
-            <entityId>
+            <entity-id>
                 <uuid>mcp_vision</uuid>
                 <version>1</version>
-                <createdAt>1733580000000</createdAt>
-                <updatedAt>1733580000000</updatedAt>
-            </entityId>
-            <serverName>synth-vision</serverName>
+                <created-at>1733580000000</created-at>
+                <updated-at>1733580000000</updated-at>
+            </entity-id>
+            <server-name>synth-vision</server-name>
             <version>1.0.0</version>
             <required>false</required>
             <source>MARKETPLACE_SOURCE_DEV</source>
             <config>
-                <autoStart>false</autoStart>
+                <auto-start>false</auto-start>
             </config>
         </server>
-    </mcpServers>
+    </mcp-servers>
 
     <!-- =================================================================== -->
     <!-- PLUGIN REQUIREMENTS -->
@@ -136,17 +136,17 @@
     <plugins>
         <!-- synth-plugin-blender: Blender automation and file handling -->
         <plugin>
-            <entityId>
+            <entity-id>
                 <uuid>plugin_blender</uuid>
                 <version>1</version>
-                <createdAt>1733580000000</createdAt>
-                <updatedAt>1733580000000</updatedAt>
-            </entityId>
+                <created-at>1733580000000</created-at>
+                <updated-at>1733580000000</updated-at>
+            </entity-id>
             <artifact>io.synth.plugins:synth-plugin-blender:1.0.0</artifact>
             <type>PLUGIN_TYPE_NODEJS</type>
             <source>MARKETPLACE_SOURCE_DEV</source>
-            <mcpBridgeServerId>mcp_blender</mcpBridgeServerId>
-            <providesMcpServer>true</providesMcpServer>
+            <mcp-bridge-server-id>mcp_blender</mcp-bridge-server-id>
+            <provides-mcp-server>true</provides-mcp-server>
             <capabilities>
                 <capability>blender.file.load</capability>
                 <capability>blender.file.save</capability>
@@ -161,17 +161,17 @@
 
         <!-- synth-plugin-gltf: glTF processing -->
         <plugin>
-            <entityId>
+            <entity-id>
                 <uuid>plugin_gltf</uuid>
                 <version>1</version>
-                <createdAt>1733580000000</createdAt>
-                <updatedAt>1733580000000</updatedAt>
-            </entityId>
+                <created-at>1733580000000</created-at>
+                <updated-at>1733580000000</updated-at>
+            </entity-id>
             <artifact>io.synth.plugins:synth-plugin-gltf:1.0.0</artifact>
             <type>PLUGIN_TYPE_NODEJS</type>
             <source>MARKETPLACE_SOURCE_DEV</source>
-            <mcpBridgeServerId>mcp_nodejs_host</mcpBridgeServerId>
-            <providesMcpServer>false</providesMcpServer>
+            <mcp-bridge-server-id>mcp_nodejs_host</mcp-bridge-server-id>
+            <provides-mcp-server>false</provides-mcp-server>
             <capabilities>
                 <capability>gltf.load</capability>
                 <capability>gltf.validate</capability>
@@ -193,8 +193,8 @@
                 <label>Home</label>
                 <icon>home</icon>
                 <order>0</order>
-                <accentColor>#2196F3</accentColor>
-                <isDevTab>false</isDevTab>
+                <accent-color>#2196F3</accent-color>
+                <is-dev-tab>false</is-dev-tab>
                 <groups>
                     <group>
                         <id>grp_file</id>
@@ -202,7 +202,7 @@
                         <tools>
                             <tool>
                                 <id>tool_open_blend</id>
-                                <mcpToolName>blender/file/open</mcpToolName>
+                                <mcp-tool-name>blender/file/open</mcp-tool-name>
                                 <icon>folder_open</icon>
                                 <label>Open .blend</label>
                                 <size>TOOL_SIZE_LARGE</size>
@@ -210,7 +210,7 @@
                             </tool>
                             <tool>
                                 <id>tool_save_blend</id>
-                                <mcpToolName>blender/file/save</mcpToolName>
+                                <mcp-tool-name>blender/file/save</mcp-tool-name>
                                 <icon>save</icon>
                                 <label>Save .blend</label>
                                 <size>TOOL_SIZE_LARGE</size>
@@ -224,7 +224,7 @@
                         <tools>
                             <tool>
                                 <id>tool_import_blend</id>
-                                <mcpToolName>blender/file/import</mcpToolName>
+                                <mcp-tool-name>blender/file/import</mcp-tool-name>
                                 <icon>file_upload</icon>
                                 <label>Import File</label>
                                 <size>TOOL_SIZE_SMALL</size>
@@ -240,9 +240,9 @@
                 <label>Blender</label>
                 <icon>view_in_ar</icon>
                 <order>1</order>
-                <mcpServerId>mcp_blender</mcpServerId>
-                <accentColor>#FF6B00</accentColor>
-                <isDevTab>false</isDevTab>
+                <mcp-server-id>mcp_blender</mcp-server-id>
+                <accent-color>#FF6B00</accent-color>
+                <is-dev-tab>false</is-dev-tab>
                 <groups>
                     <group>
                         <id>grp_scene</id>
@@ -250,19 +250,19 @@
                         <tools>
                             <tool>
                                 <id>tool_list_objects</id>
-                                <mcpToolName>blender/scene/list_objects</mcpToolName>
+                                <mcp-tool-name>blender/scene/list_objects</mcp-tool-name>
                                 <icon>list</icon>
                                 <label>List Objects</label>
                                 <size>TOOL_SIZE_SMALL</size>
                             </tool>
                             <tool>
                                 <id>tool_select_object</id>
-                                <mcpToolName>blender/object/select</mcpToolName>
+                                <mcp-tool-name>blender/object/select</mcp-tool-name>
                                 <icon>select_all</icon>
                                 <label>Select Object</label>
                                 <size>TOOL_SIZE_SMALL</size>
                                 <visibility>
-                                    <requiresSelection>true</requiresSelection>
+                                    <requires-selection>true</requires-selection>
                                 </visibility>
                             </tool>
                         </tools>
@@ -273,18 +273,18 @@
                         <tools>
                             <tool>
                                 <id>tool_add_modifier</id>
-                                <mcpToolName>blender/object/add_modifier</mcpToolName>
+                                <mcp-tool-name>blender/object/add_modifier</mcp-tool-name>
                                 <icon>tune</icon>
                                 <label>Add Modifier</label>
                                 <size>TOOL_SIZE_SMALL</size>
                                 <visibility>
-                                    <showWhenSelectionType>mesh</showWhenSelectionType>
-                                    <requiresSelection>true</requiresSelection>
+                                    <show-when-selection-type>mesh</show-when-selection-type>
+                                    <requires-selection>true</requires-selection>
                                 </visibility>
                             </tool>
                             <tool>
                                 <id>tool_apply_transform</id>
-                                <mcpToolName>blender/object/apply_transform</mcpToolName>
+                                <mcp-tool-name>blender/object/apply_transform</mcp-tool-name>
                                 <icon>transform</icon>
                                 <label>Apply Transform</label>
                                 <size>TOOL_SIZE_SMALL</size>
@@ -297,7 +297,7 @@
                         <tools>
                             <tool>
                                 <id>tool_render_preview</id>
-                                <mcpToolName>blender/render/preview</mcpToolName>
+                                <mcp-tool-name>blender/render/preview</mcp-tool-name>
                                 <icon>camera</icon>
                                 <label>Preview</label>
                                 <size>TOOL_SIZE_LARGE</size>
@@ -314,9 +314,9 @@
                 <label>Export</label>
                 <icon>file_download</icon>
                 <order>2</order>
-                <mcpServerId>mcp_blender</mcpServerId>
-                <accentColor>#4CAF50</accentColor>
-                <isDevTab>false</isDevTab>
+                <mcp-server-id>mcp_blender</mcp-server-id>
+                <accent-color>#4CAF50</accent-color>
+                <is-dev-tab>false</is-dev-tab>
                 <groups>
                     <group>
                         <id>grp_export_formats</id>
@@ -324,7 +324,7 @@
                         <tools>
                             <tool>
                                 <id>tool_export_gltf</id>
-                                <mcpToolName>blender/export/gltf</mcpToolName>
+                                <mcp-tool-name>blender/export/gltf</mcp-tool-name>
                                 <icon>3d_rotation</icon>
                                 <label>Export glTF</label>
                                 <size>TOOL_SIZE_LARGE</size>
@@ -332,14 +332,14 @@
                             </tool>
                             <tool>
                                 <id>tool_export_fbx</id>
-                                <mcpToolName>blender/export/fbx</mcpToolName>
+                                <mcp-tool-name>blender/export/fbx</mcp-tool-name>
                                 <icon>layers</icon>
                                 <label>Export FBX</label>
                                 <size>TOOL_SIZE_SMALL</size>
                             </tool>
                             <tool>
                                 <id>tool_export_obj</id>
-                                <mcpToolName>blender/export/obj</mcpToolName>
+                                <mcp-tool-name>blender/export/obj</mcp-tool-name>
                                 <icon>category</icon>
                                 <label>Export OBJ</label>
                                 <size>TOOL_SIZE_SMALL</size>
@@ -352,7 +352,7 @@
                         <tools>
                             <tool>
                                 <id>tool_batch_export</id>
-                                <mcpToolName>blender/export/batch</mcpToolName>
+                                <mcp-tool-name>blender/export/batch</mcp-tool-name>
                                 <icon>dynamic_feed</icon>
                                 <label>Batch Export</label>
                                 <size>TOOL_SIZE_LARGE</size>
@@ -368,9 +368,9 @@
                 <label>Developer</label>
                 <icon>code</icon>
                 <order>99</order>
-                <mcpServerId>mcp_blender</mcpServerId>
-                <accentColor>#9C27B0</accentColor>
-                <isDevTab>true</isDevTab>
+                <mcp-server-id>mcp_blender</mcp-server-id>
+                <accent-color>#9C27B0</accent-color>
+                <is-dev-tab>true</is-dev-tab>
                 <groups>
                     <group>
                         <id>grp_scripts</id>
@@ -378,14 +378,14 @@
                         <tools>
                             <tool>
                                 <id>tool_run_script</id>
-                                <mcpToolName>blender/script/execute</mcpToolName>
+                                <mcp-tool-name>blender/script/execute</mcp-tool-name>
                                 <icon>play_arrow</icon>
                                 <label>Run Python</label>
                                 <size>TOOL_SIZE_SMALL</size>
                             </tool>
                             <tool>
                                 <id>tool_console</id>
-                                <mcpToolName>blender/console/open</mcpToolName>
+                                <mcp-tool-name>blender/console/open</mcp-tool-name>
                                 <icon>terminal</icon>
                                 <label>Console</label>
                                 <size>TOOL_SIZE_SMALL</size>
@@ -402,56 +402,56 @@
     <!-- =================================================================== -->
     <tags>
         <tag>
-            <entityId>
+            <entity-id>
                 <uuid>tag_high_poly</uuid>
                 <version>1</version>
-                <createdAt>1733580000000</createdAt>
-                <updatedAt>1733580000000</updatedAt>
-            </entityId>
+                <created-at>1733580000000</created-at>
+                <updated-at>1733580000000</updated-at>
+            </entity-id>
             <name>High Poly</name>
             <color>#F44336</color>
             <category>quality</category>
         </tag>
         <tag>
-            <entityId>
+            <entity-id>
                 <uuid>tag_low_poly</uuid>
                 <version>1</version>
-                <createdAt>1733580000000</createdAt>
-                <updatedAt>1733580000000</updatedAt>
-            </entityId>
+                <created-at>1733580000000</created-at>
+                <updated-at>1733580000000</updated-at>
+            </entity-id>
             <name>Low Poly</name>
             <color>#4CAF50</color>
             <category>quality</category>
         </tag>
         <tag>
-            <entityId>
+            <entity-id>
                 <uuid>tag_rigged</uuid>
                 <version>1</version>
-                <createdAt>1733580000000</createdAt>
-                <updatedAt>1733580000000</updatedAt>
-            </entityId>
+                <created-at>1733580000000</created-at>
+                <updated-at>1733580000000</updated-at>
+            </entity-id>
             <name>Rigged</name>
             <color>#2196F3</color>
             <category>feature</category>
         </tag>
         <tag>
-            <entityId>
+            <entity-id>
                 <uuid>tag_animated</uuid>
                 <version>1</version>
-                <createdAt>1733580000000</createdAt>
-                <updatedAt>1733580000000</updatedAt>
-            </entityId>
+                <created-at>1733580000000</created-at>
+                <updated-at>1733580000000</updated-at>
+            </entity-id>
             <name>Animated</name>
             <color>#9C27B0</color>
             <category>feature</category>
         </tag>
         <tag>
-            <entityId>
+            <entity-id>
                 <uuid>tag_export_ready</uuid>
                 <version>1</version>
-                <createdAt>1733580000000</createdAt>
-                <updatedAt>1733580000000</updatedAt>
-            </entityId>
+                <created-at>1733580000000</created-at>
+                <updated-at>1733580000000</updated-at>
+            </entity-id>
             <name>Export Ready</name>
             <color>#FF9800</color>
             <category>status</category>
@@ -462,65 +462,65 @@
     <!-- CLUSTER NODES -->
     <!-- Blender assets organized as ClusterNode tree -->
     <!-- =================================================================== -->
-    <clusterNodes>
+    <cluster-nodes>
         <!-- Main Scene -->
         <node>
-            <entityId>
+            <entity-id>
                 <uuid>scene_blender_workspace</uuid>
                 <version>1</version>
-                <createdAt>1733580000000</createdAt>
-                <updatedAt>1733580000000</updatedAt>
-            </entityId>
+                <created-at>1733580000000</created-at>
+                <updated-at>1733580000000</updated-at>
+            </entity-id>
             <name>Blender Workspace</name>
-            <nodeType>CLUSTER_NODE_TYPE_SCENE</nodeType>
+            <node-type>CLUSTER_NODE_TYPE_SCENE</node-type>
             <state>CLUSTER_NODE_STATE_ACTIVE</state>
-            <childIds>
+            <child-ids>
                 <id>folder_models</id>
                 <id>folder_exports</id>
                 <id>folder_scripts</id>
-            </childIds>
-            <siblingOrder>0</siblingOrder>
+            </child-ids>
+            <sibling-order>0</sibling-order>
         </node>
 
         <!-- Models Folder -->
         <node>
-            <entityId>
+            <entity-id>
                 <uuid>folder_models</uuid>
                 <version>1</version>
-                <createdAt>1733580000000</createdAt>
-                <updatedAt>1733580000000</updatedAt>
-            </entityId>
+                <created-at>1733580000000</created-at>
+                <updated-at>1733580000000</updated-at>
+            </entity-id>
             <name>Models</name>
-            <nodeType>CLUSTER_NODE_TYPE_FOLDER</nodeType>
+            <node-type>CLUSTER_NODE_TYPE_FOLDER</node-type>
             <state>CLUSTER_NODE_STATE_ACTIVE</state>
-            <parentId>scene_blender_workspace</parentId>
-            <childIds>
+            <parent-id>scene_blender_workspace</parent-id>
+            <child-ids>
                 <id>blend_character</id>
                 <id>blend_environment</id>
                 <id>blend_props</id>
-            </childIds>
-            <siblingOrder>0</siblingOrder>
+            </child-ids>
+            <sibling-order>0</sibling-order>
         </node>
 
         <!-- Character Blend File -->
         <node>
-            <entityId>
+            <entity-id>
                 <uuid>blend_character</uuid>
                 <version>1</version>
-                <createdAt>1733580000000</createdAt>
-                <updatedAt>1733580000000</updatedAt>
-            </entityId>
+                <created-at>1733580000000</created-at>
+                <updated-at>1733580000000</updated-at>
+            </entity-id>
             <name>character_hero.blend</name>
-            <nodeType>CLUSTER_NODE_TYPE_ASSET</nodeType>
+            <node-type>CLUSTER_NODE_TYPE_ASSET</node-type>
             <state>CLUSTER_NODE_STATE_ACTIVE</state>
-            <parentId>folder_models</parentId>
-            <siblingOrder>0</siblingOrder>
-            <tagIds>
+            <parent-id>folder_models</parent-id>
+            <sibling-order>0</sibling-order>
+            <tag-ids>
                 <id>tag_high_poly</id>
                 <id>tag_rigged</id>
                 <id>tag_animated</id>
                 <id>tag_export_ready</id>
-            </tagIds>
+            </tag-ids>
             <metadata>
                 <entry key="blender.version">4.0</entry>
                 <entry key="format">blend</entry>
@@ -534,20 +534,20 @@
 
         <!-- Environment Blend File -->
         <node>
-            <entityId>
+            <entity-id>
                 <uuid>blend_environment</uuid>
                 <version>1</version>
-                <createdAt>1733580000000</createdAt>
-                <updatedAt>1733580000000</updatedAt>
-            </entityId>
+                <created-at>1733580000000</created-at>
+                <updated-at>1733580000000</updated-at>
+            </entity-id>
             <name>environment_forest.blend</name>
-            <nodeType>CLUSTER_NODE_TYPE_ASSET</nodeType>
+            <node-type>CLUSTER_NODE_TYPE_ASSET</node-type>
             <state>CLUSTER_NODE_STATE_ACTIVE</state>
-            <parentId>folder_models</parentId>
-            <siblingOrder>1</siblingOrder>
-            <tagIds>
+            <parent-id>folder_models</parent-id>
+            <sibling-order>1</sibling-order>
+            <tag-ids>
                 <id>tag_high_poly</id>
-            </tagIds>
+            </tag-ids>
             <metadata>
                 <entry key="blender.version">4.0</entry>
                 <entry key="format">blend</entry>
@@ -558,21 +558,21 @@
 
         <!-- Props Blend File -->
         <node>
-            <entityId>
+            <entity-id>
                 <uuid>blend_props</uuid>
                 <version>1</version>
-                <createdAt>1733580000000</createdAt>
-                <updatedAt>1733580000000</updatedAt>
-            </entityId>
+                <created-at>1733580000000</created-at>
+                <updated-at>1733580000000</updated-at>
+            </entity-id>
             <name>props_collection.blend</name>
-            <nodeType>CLUSTER_NODE_TYPE_ASSET</nodeType>
+            <node-type>CLUSTER_NODE_TYPE_ASSET</node-type>
             <state>CLUSTER_NODE_STATE_ACTIVE</state>
-            <parentId>folder_models</parentId>
-            <siblingOrder>2</siblingOrder>
-            <tagIds>
+            <parent-id>folder_models</parent-id>
+            <sibling-order>2</sibling-order>
+            <tag-ids>
                 <id>tag_low_poly</id>
                 <id>tag_export_ready</id>
-            </tagIds>
+            </tag-ids>
             <metadata>
                 <entry key="blender.version">4.0</entry>
                 <entry key="format">blend</entry>
@@ -583,35 +583,35 @@
 
         <!-- Exports Folder -->
         <node>
-            <entityId>
+            <entity-id>
                 <uuid>folder_exports</uuid>
                 <version>1</version>
-                <createdAt>1733580000000</createdAt>
-                <updatedAt>1733580000000</updatedAt>
-            </entityId>
+                <created-at>1733580000000</created-at>
+                <updated-at>1733580000000</updated-at>
+            </entity-id>
             <name>Exports</name>
-            <nodeType>CLUSTER_NODE_TYPE_FOLDER</nodeType>
+            <node-type>CLUSTER_NODE_TYPE_FOLDER</node-type>
             <state>CLUSTER_NODE_STATE_ACTIVE</state>
-            <parentId>scene_blender_workspace</parentId>
-            <childIds>
+            <parent-id>scene_blender_workspace</parent-id>
+            <child-ids>
                 <id>export_gltf</id>
-            </childIds>
-            <siblingOrder>1</siblingOrder>
+            </child-ids>
+            <sibling-order>1</sibling-order>
         </node>
 
         <!-- Exported glTF -->
         <node>
-            <entityId>
+            <entity-id>
                 <uuid>export_gltf</uuid>
                 <version>1</version>
-                <createdAt>1733580000000</createdAt>
-                <updatedAt>1733580000000</updatedAt>
-            </entityId>
+                <created-at>1733580000000</created-at>
+                <updated-at>1733580000000</updated-at>
+            </entity-id>
             <name>character_hero.glb</name>
-            <nodeType>CLUSTER_NODE_TYPE_ASSET</nodeType>
+            <node-type>CLUSTER_NODE_TYPE_ASSET</node-type>
             <state>CLUSTER_NODE_STATE_ACTIVE</state>
-            <parentId>folder_exports</parentId>
-            <siblingOrder>0</siblingOrder>
+            <parent-id>folder_exports</parent-id>
+            <sibling-order>0</sibling-order>
             <metadata>
                 <entry key="format">glTF Binary</entry>
                 <entry key="mime_type">model/gltf-binary</entry>
@@ -622,42 +622,42 @@
 
         <!-- Scripts Folder -->
         <node>
-            <entityId>
+            <entity-id>
                 <uuid>folder_scripts</uuid>
                 <version>1</version>
-                <createdAt>1733580000000</createdAt>
-                <updatedAt>1733580000000</updatedAt>
-            </entityId>
+                <created-at>1733580000000</created-at>
+                <updated-at>1733580000000</updated-at>
+            </entity-id>
             <name>Scripts</name>
-            <nodeType>CLUSTER_NODE_TYPE_FOLDER</nodeType>
+            <node-type>CLUSTER_NODE_TYPE_FOLDER</node-type>
             <state>CLUSTER_NODE_STATE_ACTIVE</state>
-            <parentId>scene_blender_workspace</parentId>
-            <childIds>
+            <parent-id>scene_blender_workspace</parent-id>
+            <child-ids>
                 <id>script_batch_export</id>
-            </childIds>
-            <siblingOrder>2</siblingOrder>
+            </child-ids>
+            <sibling-order>2</sibling-order>
         </node>
 
         <!-- Batch Export Script -->
         <node>
-            <entityId>
+            <entity-id>
                 <uuid>script_batch_export</uuid>
                 <version>1</version>
-                <createdAt>1733580000000</createdAt>
-                <updatedAt>1733580000000</updatedAt>
-            </entityId>
+                <created-at>1733580000000</created-at>
+                <updated-at>1733580000000</updated-at>
+            </entity-id>
             <name>batch_export.py</name>
-            <nodeType>CLUSTER_NODE_TYPE_DOCUMENT</nodeType>
+            <node-type>CLUSTER_NODE_TYPE_DOCUMENT</node-type>
             <state>CLUSTER_NODE_STATE_ACTIVE</state>
-            <parentId>folder_scripts</parentId>
-            <siblingOrder>0</siblingOrder>
+            <parent-id>folder_scripts</parent-id>
+            <sibling-order>0</sibling-order>
             <metadata>
                 <entry key="format">python</entry>
                 <entry key="mime_type">text/x-python</entry>
                 <entry key="blender_addon">false</entry>
             </metadata>
         </node>
-    </clusterNodes>
+    </cluster-nodes>
 
     <!-- =================================================================== -->
     <!-- COMPONENTS -->
@@ -665,16 +665,16 @@
     <components>
         <!-- Scene Settings -->
         <component>
-            <entityId>
+            <entity-id>
                 <uuid>comp_scene_settings</uuid>
                 <version>1</version>
-                <createdAt>1733580000000</createdAt>
-                <updatedAt>1733580000000</updatedAt>
-            </entityId>
-            <clusterNodeId>scene_blender_workspace</clusterNodeId>
-            <componentType>scene_settings</componentType>
+                <created-at>1733580000000</created-at>
+                <updated-at>1733580000000</updated-at>
+            </entity-id>
+            <cluster-node-id>scene_blender_workspace</cluster-node-id>
+            <component-type>scene_settings</component-type>
             <state>COMPONENT_STATE_ENABLED</state>
-            <schemaVersion>1.0.0</schemaVersion>
+            <schema-version>1.0.0</schema-version>
             <data encoding="json">{
                 "blender": {
                     "defaultVersion": "4.0",
@@ -691,16 +691,16 @@
 
         <!-- Character Blend Info -->
         <component>
-            <entityId>
+            <entity-id>
                 <uuid>comp_character_blend_info</uuid>
                 <version>1</version>
-                <createdAt>1733580000000</createdAt>
-                <updatedAt>1733580000000</updatedAt>
-            </entityId>
-            <clusterNodeId>blend_character</clusterNodeId>
-            <componentType>blender_file_info</componentType>
+                <created-at>1733580000000</created-at>
+                <updated-at>1733580000000</updated-at>
+            </entity-id>
+            <cluster-node-id>blend_character</cluster-node-id>
+            <component-type>blender_file_info</component-type>
             <state>COMPONENT_STATE_ENABLED</state>
-            <schemaVersion>1.0.0</schemaVersion>
+            <schema-version>1.0.0</schema-version>
             <data encoding="json">{
                 "scenes": ["Scene", "Animation_Preview"],
                 "collections": ["Character", "Armature", "Weapons", "LODs"],
@@ -726,18 +726,18 @@
 
         <!-- Batch Export Script Content -->
         <component>
-            <entityId>
+            <entity-id>
                 <uuid>comp_batch_export_script</uuid>
                 <version>1</version>
-                <createdAt>1733580000000</createdAt>
-                <updatedAt>1733580000000</updatedAt>
-            </entityId>
-            <clusterNodeId>script_batch_export</clusterNodeId>
-            <componentType>text_content</componentType>
+                <created-at>1733580000000</created-at>
+                <updated-at>1733580000000</updated-at>
+            </entity-id>
+            <cluster-node-id>script_batch_export</cluster-node-id>
+            <component-type>text_content</component-type>
             <state>COMPONENT_STATE_ENABLED</state>
-            <schemaVersion>1.0.0</schemaVersion>
+            <schema-version>1.0.0</schema-version>
             <!-- Python script for batch exporting Blender files to glTF -->
-            <data encoding="base64" originalEncoding="UTF-8" mimeType="text/x-python" byteSize="1456">IiIiCkJhdGNoIEV4cG9ydCBTY3JpcHQgZm9yIFN5bnRoIFBpcGVsaW5lClVzZXMgc3ludGgtcGx1Z2luLWJsZW5kZXIgTUNQIHRvb2xzCiIiIgppbXBvcnQgYnB5CmltcG9ydCBvcwpmcm9tIHBhdGhsaWIgaW1wb3J0IFBhdGgKCgpkZWYgYmF0Y2hfZXhwb3J0X2dsdGYoc291cmNlX2RpcjogUGF0aCwgb3V0cHV0X2RpcjogUGF0aCwgb3B0aW9ucz1Ob25lKToKICAgICIiIgogICAgQmF0Y2ggZXhwb3J0IGFsbCAuYmxlbmQgZmlsZXMgdG8gZ2xURi4KICAgIAogICAgQXJnczoKICAgICAgICBzb3VyY2VfZGlyOiBEaXJlY3RvcnkgY29udGFpbmluZyAuYmxlbmQgZmlsZXMKICAgICAgICBvdXRwdXRfZGlyOiBEaXJlY3RvcnkgZm9yIGV4cG9ydGVkIC5nbGIgZmlsZXMKICAgICAgICBvcHRpb25zOiBFeHBvcnQgb3B0aW9ucyBkaWN0CiAgICAiIiIKICAgIGRlZmF1bHRfb3B0aW9ucyA9IHsKICAgICAgICAnZXhwb3J0X2Zvcm1hdCc6ICdHTEInLAogICAgICAgICdleHBvcnRfdGV4dHVyZXMnOiBUcnVlLAogICAgICAgICdleHBvcnRfYW5pbWF0aW9ucyc6IFRydWUsCiAgICAgICAgJ2FwcGx5X21vZGlmaWVycyc6IFRydWUsCiAgICAgICAgJ2V4cG9ydF9kcmFjb19tZXNoX2NvbXByZXNzaW9uJzogVHJ1ZSwKICAgIH0KICAgIAogICAgb3B0cyA9IHsqKmRlZmF1bHRfb3B0aW9ucywgKioob3B0aW9ucyBvciB7fSl9CiAgICBvdXRwdXRfZGlyLm1rZGlyKHBhcmVudHM9VHJ1ZSwgZXhpc3Rfb2s9VHJ1ZSkKICAgIAogICAgZXhwb3J0ZWQgPSBbXQogICAgCiAgICBmb3IgYmxlbmRfZmlsZSBpbiBzb3VyY2VfZGlyLmdsb2IoJyouYmxlbmQnKToKICAgICAgICAjIE9wZW4gYmxlbmQgZmlsZQogICAgICAgIGJweS5vcHMud20ub3Blbl9tYWluZmlsZShmaWxlcGF0aD1zdHIoYmxlbmRfZmlsZSkpCiAgICAgICAgCiAgICAgICAgIyBPdXRwdXQgcGF0aAogICAgICAgIG91dHB1dF9wYXRoID0gb3V0cHV0X2RpciAvIGYne2JsZW5kX2ZpbGUuc3RlbX0uZ2xiJwogICAgICAgIAogICAgICAgICMgRXhwb3J0IHRvIGdsVEYKICAgICAgICBicHkub3BzLmV4cG9ydF9zY2VuZS5nbHRmKAogICAgICAgICAgICBmaWxlcGF0aD1zdHIob3V0cHV0X3BhdGgpLAogICAgICAgICAgICBleHBvcnRfZm9ybWF0PW9wdHNbJ2V4cG9ydF9mb3JtYXQnXSwKICAgICAgICAgICAgdXNlX3NlbGVjdGlvbj1GYWxzZSwKICAgICAgICAgICAgZXhwb3J0X2FuaW1hdGlvbnM9b3B0c1snZXhwb3J0X2FuaW1hdGlvbnMnXSwKICAgICAgICAgICAgZXhwb3J0X2FwcGx5PW9wdHNbJ2FwcGx5X21vZGlmaWVycyddLAogICAgICAgICkKICAgICAgICAKICAgICAgICBleHBvcnRlZC5hcHBlbmQoc3RyKG91dHB1dF9wYXRoKSkKICAgICAgICBwcmludChmJ0V4cG9ydGVkOiB7b3V0cHV0X3BhdGh9JykKICAgIAogICAgcmV0dXJuIGV4cG9ydGVkCgoKaWYgX19uYW1lX18gPT0gJ19fbWFpbl9fJzoKICAgICMgRXhhbXBsZSB1c2FnZSB3aXRoIHN5bnRoLXBsdWdpbi1ibGVuZGVyCiAgICBzb3VyY2UgPSBQYXRoKCcuL21vZGVscycpCiAgICBvdXRwdXQgPSBQYXRoKCcuL2V4cG9ydHMvZ2x0ZicpCiAgICAKICAgIHJlc3VsdHMgPSBiYXRjaF9leHBvcnRfZ2x0Zihzb3VyY2UsIG91dHB1dCkKICAgIHByaW50KGYnRXhwb3J0ZWQge2xlbihyZXN1bHRzKX0gZmlsZXMnKQo=</data>
+            <data encoding="base64" original-encoding="UTF-8" mime-type="text/x-python" byte-size="1456">IiIiCkJhdGNoIEV4cG9ydCBTY3JpcHQgZm9yIFN5bnRoIFBpcGVsaW5lClVzZXMgc3ludGgtcGx1Z2luLWJsZW5kZXIgTUNQIHRvb2xzCiIiIgppbXBvcnQgYnB5CmltcG9ydCBvcwpmcm9tIHBhdGhsaWIgaW1wb3J0IFBhdGgKCgpkZWYgYmF0Y2hfZXhwb3J0X2dsdGYoc291cmNlX2RpcjogUGF0aCwgb3V0cHV0X2RpcjogUGF0aCwgb3B0aW9ucz1Ob25lKToKICAgICIiIgogICAgQmF0Y2ggZXhwb3J0IGFsbCAuYmxlbmQgZmlsZXMgdG8gZ2xURi4KICAgIAogICAgQXJnczoKICAgICAgICBzb3VyY2VfZGlyOiBEaXJlY3RvcnkgY29udGFpbmluZyAuYmxlbmQgZmlsZXMKICAgICAgICBvdXRwdXRfZGlyOiBEaXJlY3RvcnkgZm9yIGV4cG9ydGVkIC5nbGIgZmlsZXMKICAgICAgICBvcHRpb25zOiBFeHBvcnQgb3B0aW9ucyBkaWN0CiAgICAiIiIKICAgIGRlZmF1bHRfb3B0aW9ucyA9IHsKICAgICAgICAnZXhwb3J0X2Zvcm1hdCc6ICdHTEInLAogICAgICAgICdleHBvcnRfdGV4dHVyZXMnOiBUcnVlLAogICAgICAgICdleHBvcnRfYW5pbWF0aW9ucyc6IFRydWUsCiAgICAgICAgJ2FwcGx5X21vZGlmaWVycyc6IFRydWUsCiAgICAgICAgJ2V4cG9ydF9kcmFjb19tZXNoX2NvbXByZXNzaW9uJzogVHJ1ZSwKICAgIH0KICAgIAogICAgb3B0cyA9IHsqKmRlZmF1bHRfb3B0aW9ucywgKioob3B0aW9ucyBvciB7fSl9CiAgICBvdXRwdXRfZGlyLm1rZGlyKHBhcmVudHM9VHJ1ZSwgZXhpc3Rfb2s9VHJ1ZSkKICAgIAogICAgZXhwb3J0ZWQgPSBbXQogICAgCiAgICBmb3IgYmxlbmRfZmlsZSBpbiBzb3VyY2VfZGlyLmdsb2IoJyouYmxlbmQnKToKICAgICAgICAjIE9wZW4gYmxlbmQgZmlsZQogICAgICAgIGJweS5vcHMud20ub3Blbl9tYWluZmlsZShmaWxlcGF0aD1zdHIoYmxlbmRfZmlsZSkpCiAgICAgICAgCiAgICAgICAgIyBPdXRwdXQgcGF0aAogICAgICAgIG91dHB1dF9wYXRoID0gb3V0cHV0X2RpciAvIGYne2JsZW5kX2ZpbGUuc3RlbX0uZ2xiJwogICAgICAgIAogICAgICAgICMgRXhwb3J0IHRvIGdsVEYKICAgICAgICBicHkub3BzLmV4cG9ydF9zY2VuZS5nbHRmKAogICAgICAgICAgICBmaWxlcGF0aD1zdHIob3V0cHV0X3BhdGgpLAogICAgICAgICAgICBleHBvcnRfZm9ybWF0PW9wdHNbJ2V4cG9ydF9mb3JtYXQnXSwKICAgICAgICAgICAgdXNlX3NlbGVjdGlvbj1GYWxzZSwKICAgICAgICAgICAgZXhwb3J0X2FuaW1hdGlvbnM9b3B0c1snZXhwb3J0X2FuaW1hdGlvbnMnXSwKICAgICAgICAgICAgZXhwb3J0X2FwcGx5PW9wdHNbJ2FwcGx5X21vZGlmaWVycyddLAogICAgICAgICkKICAgICAgICAKICAgICAgICBleHBvcnRlZC5hcHBlbmQoc3RyKG91dHB1dF9wYXRoKSkKICAgICAgICBwcmludChmJ0V4cG9ydGVkOiB7b3V0cHV0X3BhdGh9JykKICAgIAogICAgcmV0dXJuIGV4cG9ydGVkCgoKaWYgX19uYW1lX18gPT0gJ19fbWFpbl9fJzoKICAgICMgRXhhbXBsZSB1c2FnZSB3aXRoIHN5bnRoLXBsdWdpbi1ibGVuZGVyCiAgICBzb3VyY2UgPSBQYXRoKCcuL21vZGVscycpCiAgICBvdXRwdXQgPSBQYXRoKCcuL2V4cG9ydHMvZ2x0ZicpCiAgICAKICAgIHJlc3VsdHMgPSBiYXRjaF9leHBvcnRfZ2x0Zihzb3VyY2UsIG91dHB1dCkKICAgIHByaW50KGYnRXhwb3J0ZWQge2xlbihyZXN1bHRzKX0gZmlsZXMnKQo=</data>
         </component>
     </components>
 
@@ -748,19 +748,19 @@
     <pipelines>
         <!-- Blender to glTF Export Pipeline -->
         <pipeline>
-            <entityId>
+            <entity-id>
                 <uuid>pipeline_blend_to_gltf</uuid>
                 <version>1</version>
-                <createdAt>1733580000000</createdAt>
-                <updatedAt>1733580000000</updatedAt>
-            </entityId>
+                <created-at>1733580000000</created-at>
+                <updated-at>1733580000000</updated-at>
+            </entity-id>
             <name>Blender to glTF Export</name>
             <description>Export .blend files to optimized glTF format</description>
             <steps>
                 <step>
                     <id>step_load_blend</id>
                     <order>1</order>
-                    <mcpToolName>blender/file/open</mcpToolName>
+                    <mcp-tool-name>blender/file/open</mcp-tool-name>
                     <parameters>
                         <entry key="filepath" ref="$input.blendFile"/>
                     </parameters>
@@ -768,19 +768,19 @@
                 <step>
                     <id>step_apply_transforms</id>
                     <order>2</order>
-                    <mcpToolName>blender/object/apply_transform</mcpToolName>
+                    <mcp-tool-name>blender/object/apply_transform</mcp-tool-name>
                     <parameters>
                         <entry key="all_objects">true</entry>
                         <entry key="location">true</entry>
                         <entry key="rotation">true</entry>
                         <entry key="scale">true</entry>
                     </parameters>
-                    <dependsOn>step_load_blend</dependsOn>
+                    <depends-on>step_load_blend</depends-on>
                 </step>
                 <step>
                     <id>step_export_gltf</id>
                     <order>3</order>
-                    <mcpToolName>blender/export/gltf</mcpToolName>
+                    <mcp-tool-name>blender/export/gltf</mcp-tool-name>
                     <parameters>
                         <entry key="filepath" ref="$output.gltfFile"/>
                         <entry key="export_format">GLB</entry>
@@ -788,16 +788,16 @@
                         <entry key="export_animations">true</entry>
                         <entry key="export_draco_mesh_compression">true</entry>
                     </parameters>
-                    <dependsOn>step_apply_transforms</dependsOn>
+                    <depends-on>step_apply_transforms</depends-on>
                 </step>
                 <step>
                     <id>step_validate_gltf</id>
                     <order>4</order>
-                    <mcpToolName>gltf/validate</mcpToolName>
+                    <mcp-tool-name>gltf/validate</mcp-tool-name>
                     <parameters>
                         <entry key="filepath" ref="$output.gltfFile"/>
                     </parameters>
-                    <dependsOn>step_export_gltf</dependsOn>
+                    <depends-on>step_export_gltf</depends-on>
                 </step>
             </steps>
             <triggers>
@@ -808,19 +808,19 @@
 
         <!-- LOD Generation Pipeline -->
         <pipeline>
-            <entityId>
+            <entity-id>
                 <uuid>pipeline_lod_generation</uuid>
                 <version>1</version>
-                <createdAt>1733580000000</createdAt>
-                <updatedAt>1733580000000</updatedAt>
-            </entityId>
+                <created-at>1733580000000</created-at>
+                <updated-at>1733580000000</updated-at>
+            </entity-id>
             <name>LOD Generation</name>
             <description>Generate Level of Detail meshes from high-poly source</description>
             <steps>
                 <step>
                     <id>step_load</id>
                     <order>1</order>
-                    <mcpToolName>blender/file/open</mcpToolName>
+                    <mcp-tool-name>blender/file/open</mcp-tool-name>
                     <parameters>
                         <entry key="filepath" ref="$input.blendFile"/>
                     </parameters>
@@ -828,33 +828,33 @@
                 <step>
                     <id>step_decimate_lod1</id>
                     <order>2</order>
-                    <mcpToolName>blender/object/add_modifier</mcpToolName>
+                    <mcp-tool-name>blender/object/add_modifier</mcp-tool-name>
                     <parameters>
                         <entry key="modifier">DECIMATE</entry>
                         <entry key="ratio">0.5</entry>
                         <entry key="suffix">_LOD1</entry>
                     </parameters>
-                    <dependsOn>step_load</dependsOn>
+                    <depends-on>step_load</depends-on>
                 </step>
                 <step>
                     <id>step_decimate_lod2</id>
                     <order>3</order>
-                    <mcpToolName>blender/object/add_modifier</mcpToolName>
+                    <mcp-tool-name>blender/object/add_modifier</mcp-tool-name>
                     <parameters>
                         <entry key="modifier">DECIMATE</entry>
                         <entry key="ratio">0.25</entry>
                         <entry key="suffix">_LOD2</entry>
                     </parameters>
-                    <dependsOn>step_decimate_lod1</dependsOn>
+                    <depends-on>step_decimate_lod1</depends-on>
                 </step>
                 <step>
                     <id>step_save</id>
                     <order>4</order>
-                    <mcpToolName>blender/file/save</mcpToolName>
+                    <mcp-tool-name>blender/file/save</mcp-tool-name>
                     <parameters>
                         <entry key="filepath" ref="$output.blendFile"/>
                     </parameters>
-                    <dependsOn>step_decimate_lod2</dependsOn>
+                    <depends-on>step_decimate_lod2</depends-on>
                 </step>
             </steps>
             <triggers>
@@ -868,17 +868,17 @@
     <!-- =================================================================== -->
     <assets>
         <asset>
-            <entityId>
+            <entity-id>
                 <uuid>asset_thumbnail</uuid>
                 <version>1</version>
-                <createdAt>1733580000000</createdAt>
-                <updatedAt>1733580000000</updatedAt>
-            </entityId>
+                <created-at>1733580000000</created-at>
+                <updated-at>1733580000000</updated-at>
+            </entity-id>
             <name>project-thumbnail</name>
             <type>ASSET_TYPE_TEXTURE</type>
-            <sourcePath>./assets/thumbnail.png</sourcePath>
+            <source-path>./assets/thumbnail.png</source-path>
             <uri>asset://project/assets/thumbnail.png</uri>
-            <sizeBytes>32768</sizeBytes>
+            <size-bytes>32768</size-bytes>
             <checksum>a1b2c3d4e5f6</checksum>
             <metadata>
                 <entry key="width">512</entry>
@@ -887,17 +887,17 @@
             </metadata>
         </asset>
         <asset>
-            <entityId>
+            <entity-id>
                 <uuid>asset_blend_character</uuid>
                 <version>1</version>
-                <createdAt>1733580000000</createdAt>
-                <updatedAt>1733580000000</updatedAt>
-            </entityId>
+                <created-at>1733580000000</created-at>
+                <updated-at>1733580000000</updated-at>
+            </entity-id>
             <name>character_hero.blend</name>
             <type>ASSET_TYPE_MODEL_3D</type>
-            <sourcePath>./models/character_hero.blend</sourcePath>
+            <source-path>./models/character_hero.blend</source-path>
             <uri>asset://project/models/character_hero.blend</uri>
-            <sizeBytes>52428800</sizeBytes>
+            <size-bytes>52428800</size-bytes>
             <checksum>f1e2d3c4b5a6</checksum>
             <metadata>
                 <entry key="format">BLEND</entry>

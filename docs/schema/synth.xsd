@@ -34,12 +34,12 @@
             <xs:element name="component" type="s:ComponentType"/>
             <xs:element name="routes" type="s:RoutesType"/>
             <xs:element name="runtime" type="s:RuntimeType"/>
-            <xs:element name="runtimeRenderer" type="s:RuntimeRendererType"/>
-            <xs:element name="runtimeLogic" type="s:RuntimeLogicType"/>
-            <xs:element name="gameProject" type="s:GameProjectType"/>
-            <xs:element name="assetRegistry" type="s:AssetRegistryType"/>
+            <xs:element name="runtime-renderer" type="s:RuntimeRendererType"/>
+            <xs:element name="runtime-logic" type="s:RuntimeLogicType"/>
+            <xs:element name="game-project" type="s:GameProjectType"/>
+            <xs:element name="asset-registry" type="s:AssetRegistryType"/>
             <xs:element name="extension" type="s:ExtensionContainerType"/>
-            <xs:element name="shopCatalog" type="s:ShopCatalogType"/>
+            <xs:element name="shop-catalog" type="s:ShopCatalogType"/>
         </xs:choice>
         <xs:attribute name="version" type="xs:string" default="1.0"/>
     </xs:complexType>
@@ -141,7 +141,7 @@
     <xs:complexType name="MountType">
         <xs:attribute name="scheme" type="xs:string" use="required"/>
         <xs:attribute name="path" type="xs:string" use="required"/>
-        <xs:attribute name="readOnly" type="xs:boolean" default="true"/>
+        <xs:attribute name="read-only" type="xs:boolean" default="true"/>
     </xs:complexType>
 
     <xs:complexType name="MountsType">
@@ -165,14 +165,14 @@
         <xs:sequence>
             <xs:element name="metadata" type="s:ProjectMetadataType"/>
             <xs:element name="configuration" type="s:ConfigurationType" minOccurs="0"/>
-            <xs:element name="toolRegistry" type="s:ToolRegistryType" minOccurs="0"/>
+            <xs:element name="tool-registry" type="s:ToolRegistryType" minOccurs="0"/>
             <xs:element name="pipelines" type="s:PipelinesType" minOccurs="0"/>
             <xs:element name="mounts" type="s:MountsType" minOccurs="0"/>
             <xs:element name="resources" type="s:ResourcesType" minOccurs="0"/>
             <xs:element name="settings" type="s:SettingsType" minOccurs="0"/>
         </xs:sequence>
         <xs:attribute name="version" type="xs:string" default="1.0"/>
-        <xs:attribute name="schemaVersion" type="xs:string" default="1.0"/>
+        <xs:attribute name="schema-version" type="xs:string" default="1.0"/>
     </xs:complexType>
 
     <xs:complexType name="ProjectMetadataType">
@@ -260,9 +260,9 @@
         </xs:sequence>
         <xs:attribute name="id" type="xs:string" use="required"/>
         <xs:attribute name="tool" type="xs:string" use="required"/>
-        <xs:attribute name="dependsOn" type="xs:string"/>
+        <xs:attribute name="depends-on" type="xs:string"/>
         <xs:attribute name="timeout" type="xs:int"/>
-        <xs:attribute name="continueOnError" type="xs:boolean" default="false"/>
+        <xs:attribute name="continue-on-error" type="xs:boolean" default="false"/>
     </xs:complexType>
 
     <xs:complexType name="IOType">
@@ -354,7 +354,7 @@
     <xs:complexType name="SceneSettingsType">
         <xs:sequence>
             <xs:element name="camera" type="s:SceneCameraType" minOccurs="0"/>
-            <xs:element name="apiBinding" type="s:APIBindingType" minOccurs="0"/>
+            <xs:element name="api-binding" type="s:APIBindingType" minOccurs="0"/>
         </xs:sequence>
     </xs:complexType>
 
@@ -375,7 +375,7 @@
 
     <xs:complexType name="APIBindingType">
         <xs:attribute name="endpoint" type="xs:string" use="required"/>
-        <xs:attribute name="autoLoad" type="xs:boolean" default="false"/>
+        <xs:attribute name="auto-load" type="xs:boolean" default="false"/>
     </xs:complexType>
 
     <xs:complexType name="EntitiesType">
@@ -389,7 +389,7 @@
             <xs:element name="component" type="s:ComponentRefType" minOccurs="0"/>
             <xs:element name="transform" type="s:TransformType" minOccurs="0"/>
             <xs:element name="mesh" type="s:MeshRefType" minOccurs="0"/>
-            <xs:element name="pointLight" type="s:PointLightType" minOccurs="0"/>
+            <xs:element name="point-light" type="s:PointLightType" minOccurs="0"/>
             <xs:element name="properties" type="s:PropertiesType" minOccurs="0"/>
             <xs:element name="entity" type="s:EntityType" minOccurs="0" maxOccurs="unbounded"/>
         </xs:sequence>
@@ -418,8 +418,8 @@
             <xs:element name="mesh" type="s:MeshRefType" minOccurs="0"/>
             <xs:element name="properties" type="s:PropertiesType" minOccurs="0"/>
             <xs:element name="scripts" type="s:ComponentScriptsType" minOccurs="0"/>
-            <xs:element name="uiLayout" type="s:UILayoutType" minOccurs="0"/>
-            <xs:element name="stateMachine" type="s:StateMachineType" minOccurs="0"/>
+            <xs:element name="ui-layout" type="s:UILayoutType" minOccurs="0"/>
+            <xs:element name="state-machine" type="s:StateMachineType" minOccurs="0"/>
         </xs:sequence>
         <xs:attribute name="id" type="xs:string" use="required"/>
     </xs:complexType>
@@ -486,9 +486,9 @@
         <xs:attribute name="gap" type="xs:int"/>
         <xs:attribute name="background" type="xs:string"/>
         <xs:attribute name="visible" type="xs:boolean" default="true"/>
-        <xs:attribute name="visibleWhen" type="xs:string"/>
+        <xs:attribute name="visible-when" type="xs:string"/>
         <xs:attribute name="modal" type="xs:boolean" default="false"/>
-        <xs:attribute name="dataSource" type="xs:string"/>
+        <xs:attribute name="data-source" type="xs:string"/>
         <xs:attribute name="scrollable" type="xs:boolean" default="false"/>
     </xs:complexType>
 
@@ -502,10 +502,10 @@
 
     <xs:complexType name="UIListType">
         <xs:sequence>
-            <xs:element name="itemTemplate" type="s:UIItemTemplateType"/>
+            <xs:element name="item-template" type="s:UIItemTemplateType"/>
         </xs:sequence>
         <xs:attribute name="id" type="xs:string" use="required"/>
-        <xs:attribute name="dataSource" type="xs:string" use="required"/>
+        <xs:attribute name="data-source" type="xs:string" use="required"/>
         <xs:attribute name="layout" type="s:UILayoutModeEnum" default="vertical"/>
         <xs:attribute name="width" type="xs:int"/>
         <xs:attribute name="height" type="xs:int"/>
@@ -528,20 +528,20 @@
         <xs:attribute name="type" type="s:UIWidgetTypeEnum" use="required"/>
         <xs:attribute name="id" type="xs:string" use="required"/>
         <xs:attribute name="text" type="xs:string"/>
-        <xs:attribute name="fontSize" type="xs:int"/>
+        <xs:attribute name="font-size" type="xs:int"/>
         <xs:attribute name="align" type="xs:string"/>
         <xs:attribute name="color" type="xs:string"/>
-        <xs:attribute name="dataBinding" type="xs:string"/>
-        <xs:attribute name="onClick" type="xs:string"/>
-        <xs:attribute name="toggleState" type="xs:string"/>
-        <xs:attribute name="activeText" type="xs:string"/>
-        <xs:attribute name="activeColor" type="xs:string"/>
-        <xs:attribute name="inactiveColor" type="xs:string"/>
+        <xs:attribute name="data-binding" type="xs:string"/>
+        <xs:attribute name="on-click" type="xs:string"/>
+        <xs:attribute name="toggle-state" type="xs:string"/>
+        <xs:attribute name="active-text" type="xs:string"/>
+        <xs:attribute name="active-color" type="xs:string"/>
+        <xs:attribute name="inactive-color" type="xs:string"/>
         <xs:attribute name="width" type="xs:int"/>
         <xs:attribute name="height" type="xs:int"/>
         <xs:attribute name="format" type="xs:string"/>
         <xs:attribute name="src" type="xs:string"/>
-        <xs:attribute name="disabledWhen" type="xs:string"/>
+        <xs:attribute name="disabled-when" type="xs:string"/>
     </xs:complexType>
 
     <xs:simpleType name="UIWidgetTypeEnum">
@@ -591,7 +591,7 @@
     <xs:complexType name="RouteType">
         <xs:sequence>
             <xs:element name="scene" type="s:SceneRefType"/>
-            <xs:element name="spawnPoint" type="s:SpawnPointType" minOccurs="1" maxOccurs="unbounded"/>
+            <xs:element name="spawn-point" type="s:SpawnPointType" minOccurs="1" maxOccurs="unbounded"/>
             <xs:element name="params" type="s:RouteParamsType" minOccurs="0"/>
         </xs:sequence>
         <xs:attribute name="id" type="xs:string" use="required"/>
@@ -701,7 +701,7 @@
     <xs:complexType name="RuntimeAssetsType">
         <xs:sequence>
             <xs:element name="mount" type="s:MountType" minOccurs="0" maxOccurs="unbounded"/>
-            <xs:element name="searchPath" type="s:SearchPathType" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="search-path" type="s:SearchPathType" minOccurs="0" maxOccurs="unbounded"/>
         </xs:sequence>
     </xs:complexType>
 
@@ -974,7 +974,7 @@
         <xs:attribute name="port" type="xs:int"/>
         <xs:attribute name="database" type="xs:string"/>
         <xs:attribute name="username" type="xs:string"/>
-        <xs:attribute name="poolSize" type="xs:int" default="10"/>
+        <xs:attribute name="pool-size" type="xs:int" default="10"/>
     </xs:complexType>
 
     <xs:complexType name="ServerType">
@@ -1000,9 +1000,9 @@
 
     <xs:complexType name="GameLogicType">
         <xs:sequence>
-            <xs:element name="tickRate" type="xs:int" default="60"/>
-            <xs:element name="maxPlayers" type="xs:int" default="100"/>
-            <xs:element name="saveInterval" type="xs:int" default="300"/>
+            <xs:element name="tick-rate" type="xs:int" default="60"/>
+            <xs:element name="max-players" type="xs:int" default="100"/>
+            <xs:element name="save-interval" type="xs:int" default="300"/>
             <xs:element name="plugins" type="s:PluginsType" minOccurs="0"/>
         </xs:sequence>
     </xs:complexType>
@@ -1088,7 +1088,7 @@
         <xs:sequence>
             <xs:element name="file" type="s:GameDataFileType" minOccurs="0" maxOccurs="unbounded"/>
         </xs:sequence>
-        <xs:attribute name="schemaRef" type="xs:string"/>
+        <xs:attribute name="schema-ref" type="xs:string"/>
     </xs:complexType>
 
     <xs:complexType name="GameDataFileType">
@@ -1098,7 +1098,7 @@
 
     <xs:complexType name="GameScriptsType">
         <xs:sequence>
-            <xs:element name="stateMachine" type="s:GameScriptRefType" minOccurs="0"/>
+            <xs:element name="state-machine" type="s:GameScriptRefType" minOccurs="0"/>
             <xs:element name="glue" type="s:GameScriptRefType" minOccurs="0"/>
         </xs:sequence>
     </xs:complexType>
@@ -1110,16 +1110,16 @@
     <xs:complexType name="BackendType">
         <xs:sequence>
             <xs:element name="runtime" type="xs:string"/>
-            <xs:element name="autoStart" type="xs:boolean" default="true" minOccurs="0"/>
-            <xs:element name="waitForReady" type="xs:boolean" default="true" minOccurs="0"/>
-            <xs:element name="startupTimeout" type="xs:int" default="30" minOccurs="0"/>
+            <xs:element name="auto-start" type="xs:boolean" default="true" minOccurs="0"/>
+            <xs:element name="wait-for-ready" type="xs:boolean" default="true" minOccurs="0"/>
+            <xs:element name="startup-timeout" type="xs:int" default="30" minOccurs="0"/>
         </xs:sequence>
     </xs:complexType>
 
     <xs:complexType name="GameRendererType">
         <xs:sequence>
             <xs:element name="runtime" type="xs:string"/>
-            <xs:element name="autoStart" type="xs:boolean" default="true" minOccurs="0"/>
+            <xs:element name="auto-start" type="xs:boolean" default="true" minOccurs="0"/>
         </xs:sequence>
     </xs:complexType>
 
@@ -1137,9 +1137,9 @@
 
     <xs:complexType name="LauncherType">
         <xs:sequence>
-            <xs:element name="startupOrder" type="s:StartupOrderEnum" default="sequential" minOccurs="0"/>
-            <xs:element name="showConsole" type="xs:boolean" default="true" minOccurs="0"/>
-            <xs:element name="workingDirectory" type="xs:string" minOccurs="0"/>
+            <xs:element name="startup-order" type="s:StartupOrderEnum" default="sequential" minOccurs="0"/>
+            <xs:element name="show-console" type="xs:boolean" default="true" minOccurs="0"/>
+            <xs:element name="working-directory" type="xs:string" minOccurs="0"/>
         </xs:sequence>
     </xs:complexType>
 
@@ -1195,7 +1195,7 @@
             <xs:element name="properties" type="s:PropertiesType" minOccurs="0"/>
         </xs:sequence>
         <xs:attribute name="id" type="xs:string" use="required"/>
-        <xs:attribute name="componentRef" type="xs:string" use="required"/>
+        <xs:attribute name="component-ref" type="xs:string" use="required"/>
     </xs:complexType>
 
     <xs:complexType name="RotationType">
@@ -1211,7 +1211,7 @@
             <xs:element name="description" type="xs:string" minOccurs="0"/>
             <xs:element name="version" type="xs:string"/>
             <xs:element name="author" type="xs:string" minOccurs="0"/>
-            <xs:element name="baseUrl" type="xs:anyURI"/>
+            <xs:element name="base-url" type="xs:anyURI"/>
         </xs:sequence>
         <xs:attribute name="id" type="xs:string" use="required"/>
     </xs:complexType>
@@ -1267,7 +1267,7 @@
 
     <xs:complexType name="PackageDependencyType">
         <xs:attribute name="package" type="xs:string" use="required"/>
-        <xs:attribute name="minVersion" type="xs:string" use="optional"/>
+        <xs:attribute name="min-version" type="xs:string" use="optional"/>
     </xs:complexType>
 
     <!-- ================================================================= -->
@@ -1349,7 +1349,7 @@
     <xs:complexType name="ShopStockType">
         <xs:attribute name="unlimited" type="xs:boolean" default="true"/>
         <xs:attribute name="max" type="xs:int" use="optional"/>
-        <xs:attribute name="refreshInterval" type="xs:int" use="optional"/>
+        <xs:attribute name="refresh-interval" type="xs:int" use="optional"/>
     </xs:complexType>
 
     <!-- ================================================================= -->
@@ -1359,7 +1359,7 @@
 
     <xs:complexType name="ExtensionContainerType">
         <xs:sequence>
-            <xs:element name="synthExtension" type="s:SynthExtensionType"
+            <xs:element name="synth-extension" type="s:SynthExtensionType"
                         minOccurs="0" maxOccurs="unbounded"/>
         </xs:sequence>
     </xs:complexType>
@@ -1401,7 +1401,7 @@
             <xs:element name="function" type="s:ServiceFunctionType" maxOccurs="unbounded"/>
         </xs:sequence>
         <xs:attribute name="id" type="xs:string" use="required"/>
-        <xs:attribute name="luaBinding" type="xs:string" use="required"/>
+        <xs:attribute name="lua-binding" type="xs:string" use="required"/>
     </xs:complexType>
 
     <xs:complexType name="ServiceFunctionType">

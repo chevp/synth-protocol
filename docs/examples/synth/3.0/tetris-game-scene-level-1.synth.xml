@@ -13,7 +13,7 @@
   Runtime: nuna-sdk-cpp with tetris-game-plugin.dll
   Schema Version: 3.0.0
 -->
-<synthGame xmlns="https://chevp.github.io/synth-protocol/schema/synth/game/3.0"
+<synth-game xmlns="https://chevp.github.io/synth-protocol/schema/synth/game/3.0"
            xmlns:core="https://chevp.github.io/synth-protocol/schema/synth/core/3.0"
            xmlns:runtime="https://chevp.github.io/synth-protocol/schema/synth/runtime/3.0"
            xmlns:plugin="https://chevp.github.io/synth-protocol/schema/synth/plugin/3.0"
@@ -26,10 +26,10 @@
     <!-- ═══════════════════════════════════════════════════════════════════════ -->
     <header>
         <magic>SYNG</magic>
-        <formatVersion>3</formatVersion>
-        <schemaVersion>3.0.0</schemaVersion>
-        <createdAt>1738800000000</createdAt>
-        <modifiedAt>1738800000000</modifiedAt>
+        <format-version>3</format-version>
+        <schema-version>3.0.0</schema-version>
+        <created-at>1738800000000</created-at>
+        <modified-at>1738800000000</modified-at>
         <checksum algorithm="xxhash64">a1b2c3d4e5f67890</checksum>
     </header>
 
@@ -46,13 +46,13 @@
         <genre>puzzle</genre>
         <offline>true</offline>
         <settings>
-            <targetFps>60</targetFps>
-            <fixedTimestep>0.016666</fixedTimestep>
+            <target-fps>60</target-fps>
+            <fixed-timestep>0.016666</fixed-timestep>
             <vsync>true</vsync>
-            <windowWidth>800</windowWidth>
-            <windowHeight>600</windowHeight>
-            <windowTitle>Tetris - Level 1</windowTitle>
-            <allowResize>false</allowResize>
+            <window-width>800</window-width>
+            <window-height>600</window-height>
+            <window-title>Tetris - Level 1</window-title>
+            <allow-resize>false</allow-resize>
         </settings>
     </game>
 
@@ -176,25 +176,25 @@
         <!-- Minimal Processor Pipeline for Tetris -->
         <runtime:processors>
             <!-- Input Stage -->
-            <runtime:stage name="Input" orderRange="0-49">
+            <runtime:stage name="Input" order-range="0-49">
                 <runtime:processor order="10" name="PlatformEventProcessor" enabled="true"/>
                 <runtime:processor order="20" name="InputMappingProcessor" enabled="true"/>
             </runtime:stage>
 
             <!-- Data Stage (Minimal) -->
-            <runtime:stage name="Data" orderRange="50-99">
+            <runtime:stage name="Data" order-range="50-99">
                 <runtime:processor order="95" name="JobSchedulerProcessor" enabled="true"/>
                 <runtime:processor order="96" name="AssetLoadResultProcessor" enabled="true"/>
             </runtime:stage>
 
             <!-- Game Logic Stage (Plugin processors injected here) -->
-            <runtime:stage name="GameLogic" orderRange="200-299">
+            <runtime:stage name="GameLogic" order-range="200-299">
                 <runtime:processor order="200" name="StateMachineProcessor" enabled="true"/>
                 <!-- Plugin processors: 250-255 injected by tetris_game_plugin -->
             </runtime:stage>
 
             <!-- Render Stage -->
-            <runtime:stage name="Render" orderRange="600-799">
+            <runtime:stage name="Render" order-range="600-799">
                 <runtime:processor order="600" name="FrameBeginProcessor" enabled="true"/>
                 <runtime:processor order="610" name="CommandBufferBeginProcessor" enabled="true"/>
                 <runtime:processor order="660" name="ForwardOpaqueProcessor" enabled="true"/>
@@ -209,7 +209,7 @@
             </runtime:stage>
 
             <!-- Audio Stage -->
-            <runtime:stage name="Audio" orderRange="800-899">
+            <runtime:stage name="Audio" order-range="800-899">
                 <runtime:processor order="800" name="AudioUpdateProcessor" enabled="true"/>
                 <!-- Plugin processor: 805 TetrisAudioProcessor injected -->
                 <runtime:processor order="820" name="AudioMixProcessor" enabled="true"/>
@@ -217,7 +217,7 @@
             </runtime:stage>
 
             <!-- Cleanup Stage -->
-            <runtime:stage name="Cleanup" orderRange="900-999">
+            <runtime:stage name="Cleanup" order-range="900-999">
                 <runtime:processor order="900" name="FrameStatsProcessor" enabled="true"/>
                 <runtime:processor order="990" name="FrameEndProcessor" enabled="true"/>
             </runtime:stage>
@@ -229,7 +229,7 @@
     <!-- INPUT MAPPING -->
     <!-- Keyboard/Gamepad bindings for Tetris controls -->
     <!-- ═══════════════════════════════════════════════════════════════════════ -->
-    <inputMapping>
+    <input-mapping>
         <action id="move_left">
             <binding device="keyboard" key="ArrowLeft"/>
             <binding device="keyboard" key="A"/>
@@ -284,7 +284,7 @@
             <binding device="keyboard" key="R"/>
             <binding device="gamepad" button="Select"/>
         </action>
-    </inputMapping>
+    </input-mapping>
 
     <!-- ═══════════════════════════════════════════════════════════════════════ -->
     <!-- STATE MACHINES (Offline Game Logic) -->
@@ -532,7 +532,7 @@
     <!-- GAME DATA -->
     <!-- Level-specific configuration and constants -->
     <!-- ═══════════════════════════════════════════════════════════════════════ -->
-    <gameData>
+    <game-data>
 
         <!-- Board Configuration -->
         <config id="board">
@@ -575,36 +575,36 @@
         <tetrominoes>
             <tetromino id="I" color="#00FFFF">
                 <shape>[[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]]</shape>
-                <wallKicks standard="SRS_I"/>
+                <wall-kicks standard="SRS_I"/>
             </tetromino>
             <tetromino id="O" color="#FFFF00">
                 <shape>[[1,1],[1,1]]</shape>
-                <wallKicks standard="NONE"/>
+                <wall-kicks standard="NONE"/>
             </tetromino>
             <tetromino id="T" color="#AA00FF">
                 <shape>[[0,1,0],[1,1,1],[0,0,0]]</shape>
-                <wallKicks standard="SRS"/>
+                <wall-kicks standard="SRS"/>
             </tetromino>
             <tetromino id="S" color="#00FF00">
                 <shape>[[0,1,1],[1,1,0],[0,0,0]]</shape>
-                <wallKicks standard="SRS"/>
+                <wall-kicks standard="SRS"/>
             </tetromino>
             <tetromino id="Z" color="#FF0000">
                 <shape>[[1,1,0],[0,1,1],[0,0,0]]</shape>
-                <wallKicks standard="SRS"/>
+                <wall-kicks standard="SRS"/>
             </tetromino>
             <tetromino id="J" color="#0000FF">
                 <shape>[[1,0,0],[1,1,1],[0,0,0]]</shape>
-                <wallKicks standard="SRS"/>
+                <wall-kicks standard="SRS"/>
             </tetromino>
             <tetromino id="L" color="#FFA500">
                 <shape>[[0,0,1],[1,1,1],[0,0,0]]</shape>
-                <wallKicks standard="SRS"/>
+                <wall-kicks standard="SRS"/>
             </tetromino>
         </tetrominoes>
 
         <!-- SRS Wall Kick Data -->
-        <wallKickTables>
+        <wall-kick-tables>
             <table id="SRS">
                 <!-- 0->R (spawn to right) -->
                 <kicks from="0" to="R">[[-1,0],[-1,1],[0,-2],[-1,-2]]</kicks>
@@ -626,74 +626,74 @@
                 <kicks from="L" to="0">[[1,0],[-2,0],[1,-2],[-2,1]]</kicks>
                 <kicks from="0" to="L">[[-1,0],[2,0],[-1,2],[2,-1]]</kicks>
             </table>
-        </wallKickTables>
+        </wall-kick-tables>
 
         <!-- Random Generator (7-Bag System) -->
         <randomizer type="7-bag">
             <pieces>I,O,T,S,Z,J,L</pieces>
         </randomizer>
 
-    </gameData>
+    </game-data>
 
     <!-- ═══════════════════════════════════════════════════════════════════════ -->
     <!-- UI PANELS -->
     <!-- ImGui-based UI definitions -->
     <!-- ═══════════════════════════════════════════════════════════════════════ -->
-    <uiPanels>
+    <ui-panels>
 
         <panel id="main_menu_panel" type="fullscreen">
-            <widget type="text" text="TETRIS" fontSize="72" color="#00FFFF" align="center" y="100"/>
-            <widget type="text" text="Level 1" fontSize="24" color="#FFFFFF" align="center" y="180"/>
-            <widget type="button" id="btn_start" text="START GAME" x="center" y="300" onClick="send_event:START_GAME"/>
-            <widget type="button" id="btn_quit" text="QUIT" x="center" y="360" onClick="send_event:QUIT"/>
-            <widget type="text" text="High Score: {highscore}" fontSize="18" color="#FFD700" align="center" y="450"/>
+            <widget type="text" text="TETRIS" font-size="72" color="#00FFFF" align="center" y="100"/>
+            <widget type="text" text="Level 1" font-size="24" color="#FFFFFF" align="center" y="180"/>
+            <widget type="button" id="btn_start" text="START GAME" x="center" y="300" on-click="send_event:START_GAME"/>
+            <widget type="button" id="btn_quit" text="QUIT" x="center" y="360" on-click="send_event:QUIT"/>
+            <widget type="text" text="High Score: {highscore}" font-size="18" color="#FFD700" align="center" y="450"/>
         </panel>
 
         <panel id="game_hud_panel" type="overlay">
             <!-- Score Display -->
-            <widget type="text" text="SCORE" fontSize="14" color="#888888" x="620" y="50"/>
-            <widget type="text" text="{score}" fontSize="28" color="#FFFFFF" x="620" y="70" binding="game.score"/>
+            <widget type="text" text="SCORE" font-size="14" color="#888888" x="620" y="50"/>
+            <widget type="text" text="{score}" font-size="28" color="#FFFFFF" x="620" y="70" binding="game.score"/>
 
             <!-- Level Display -->
-            <widget type="text" text="LEVEL" fontSize="14" color="#888888" x="620" y="130"/>
-            <widget type="text" text="{level}" fontSize="28" color="#00FFFF" x="620" y="150" binding="game.level"/>
+            <widget type="text" text="LEVEL" font-size="14" color="#888888" x="620" y="130"/>
+            <widget type="text" text="{level}" font-size="28" color="#00FFFF" x="620" y="150" binding="game.level"/>
 
             <!-- Lines Display -->
-            <widget type="text" text="LINES" fontSize="14" color="#888888" x="620" y="210"/>
-            <widget type="text" text="{lines}" fontSize="28" color="#FFFFFF" x="620" y="230" binding="game.lines"/>
+            <widget type="text" text="LINES" font-size="14" color="#888888" x="620" y="210"/>
+            <widget type="text" text="{lines}" font-size="28" color="#FFFFFF" x="620" y="230" binding="game.lines"/>
 
             <!-- Next Piece Preview -->
-            <widget type="text" text="NEXT" fontSize="14" color="#888888" x="620" y="310"/>
+            <widget type="text" text="NEXT" font-size="14" color="#888888" x="620" y="310"/>
             <widget type="tetromino_preview" id="next_preview" x="620" y="330" pieces="5" binding="game.next_queue"/>
 
             <!-- Hold Piece -->
-            <widget type="text" text="HOLD" fontSize="14" color="#888888" x="50" y="50"/>
+            <widget type="text" text="HOLD" font-size="14" color="#888888" x="50" y="50"/>
             <widget type="tetromino_preview" id="hold_preview" x="50" y="70" pieces="1" binding="game.hold_piece"/>
         </panel>
 
         <panel id="countdown_panel" type="fullscreen_overlay">
-            <widget type="text" text="{countdown}" fontSize="144" color="#FFFFFF" align="center" y="center" binding="countdown"/>
+            <widget type="text" text="{countdown}" font-size="144" color="#FFFFFF" align="center" y="center" binding="countdown"/>
         </panel>
 
         <panel id="pause_panel" type="fullscreen_overlay" background="rgba(0,0,0,0.7)">
-            <widget type="text" text="PAUSED" fontSize="48" color="#FFFFFF" align="center" y="200"/>
-            <widget type="button" text="RESUME" x="center" y="300" onClick="send_event:RESUME"/>
-            <widget type="button" text="QUIT TO MENU" x="center" y="360" onClick="send_event:QUIT_TO_MENU"/>
+            <widget type="text" text="PAUSED" font-size="48" color="#FFFFFF" align="center" y="200"/>
+            <widget type="button" text="RESUME" x="center" y="300" on-click="send_event:RESUME"/>
+            <widget type="button" text="QUIT TO MENU" x="center" y="360" on-click="send_event:QUIT_TO_MENU"/>
         </panel>
 
         <panel id="game_over_panel" type="fullscreen_overlay" background="rgba(0,0,0,0.8)">
-            <widget type="text" text="GAME OVER" fontSize="48" color="#FF0000" align="center" y="150"/>
-            <widget type="text" text="Score: {score}" fontSize="24" color="#FFFFFF" align="center" y="230"/>
-            <widget type="text" text="Lines: {lines}" fontSize="18" color="#888888" align="center" y="270"/>
-            <widget type="button" text="RETRY" x="center" y="350" onClick="send_event:RETRY"/>
-            <widget type="button" text="MAIN MENU" x="center" y="410" onClick="send_event:QUIT_TO_MENU"/>
+            <widget type="text" text="GAME OVER" font-size="48" color="#FF0000" align="center" y="150"/>
+            <widget type="text" text="Score: {score}" font-size="24" color="#FFFFFF" align="center" y="230"/>
+            <widget type="text" text="Lines: {lines}" font-size="18" color="#888888" align="center" y="270"/>
+            <widget type="button" text="RETRY" x="center" y="350" on-click="send_event:RETRY"/>
+            <widget type="button" text="MAIN MENU" x="center" y="410" on-click="send_event:QUIT_TO_MENU"/>
         </panel>
 
         <panel id="new_highscore_panel" type="overlay">
-            <widget type="text" text="NEW HIGH SCORE!" fontSize="24" color="#FFD700" align="center" y="100" animation="pulse"/>
+            <widget type="text" text="NEW HIGH SCORE!" font-size="24" color="#FFD700" align="center" y="100" animation="pulse"/>
         </panel>
 
-    </uiPanels>
+    </ui-panels>
 
     <!-- ═══════════════════════════════════════════════════════════════════════ -->
     <!-- EMBEDDED ASSETS -->
@@ -765,7 +765,7 @@
     <!-- LOCAL STORAGE SCHEMA -->
     <!-- Defines what can be persisted locally (no server) -->
     <!-- ═══════════════════════════════════════════════════════════════════════ -->
-    <localStorage>
+    <local-storage>
         <schema>
             <field id="highscore" type="int32" default="0"/>
             <field id="highscore_lines" type="int32" default="0"/>
@@ -779,6 +779,6 @@
             <field id="settings_hold_enabled" type="bool" default="true"/>
         </schema>
         <file>tetris_save.dat</file>
-    </localStorage>
+    </local-storage>
 
-</synthGame>
+</synth-game>

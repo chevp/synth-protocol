@@ -51,13 +51,13 @@
             <xs:element name="command" type="xs:string"/>
             <xs:element name="args" type="mcp:ArgsType" minOccurs="0"/>
             <xs:element name="env" type="mcp:EnvType" minOccurs="0"/>
-            <xs:element name="workDir" type="xs:string" minOccurs="0"/>
+            <xs:element name="work-dir" type="xs:string" minOccurs="0"/>
         </xs:sequence>
     </xs:complexType>
 
     <xs:complexType name="HttpTransportType">
         <xs:sequence>
-            <xs:element name="baseUrl" type="xs:anyURI"/>
+            <xs:element name="base-url" type="xs:anyURI"/>
             <xs:element name="headers" type="mcp:HeadersType" minOccurs="0"/>
         </xs:sequence>
         <xs:attribute name="timeout" type="xs:int" default="30000"/>
@@ -114,7 +114,7 @@
     <xs:complexType name="ToolType">
         <xs:sequence>
             <xs:element name="description" type="xs:string"/>
-            <xs:element name="inputSchema" type="mcp:JsonSchemaType"/>
+            <xs:element name="input-schema" type="mcp:JsonSchemaType"/>
         </xs:sequence>
         <xs:attribute name="name" type="xs:string" use="required"/>
     </xs:complexType>
@@ -168,7 +168,7 @@
         </xs:sequence>
         <xs:attribute name="uri" type="xs:anyURI" use="required"/>
         <xs:attribute name="name" type="xs:string"/>
-        <xs:attribute name="mimeType" type="xs:string"/>
+        <xs:attribute name="mime-type" type="xs:string"/>
     </xs:complexType>
 
     <!-- MCP Prompts -->

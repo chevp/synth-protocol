@@ -41,7 +41,7 @@
     </properties>
 
     <!-- Optional State Machine -->
-    <stateMachine id="building_fsm" initial="IDLE">
+    <state-machine id="building_fsm" initial="IDLE">
         <state id="IDLE">
             <properties>
                 <property name="highlighted" type="bool" value="false"/>
@@ -63,7 +63,7 @@
             </properties>
             <transition event="DESELECT" target="IDLE"/>
         </state>
-    </stateMachine>
+    </state-machine>
 
 </component>
 </synth>

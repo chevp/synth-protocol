@@ -14,7 +14,7 @@
          ========================================================================= -->
 
     <!-- Root Element -->
-    <xs:element name="synthRoutes" type="routes:SynthRoutesType"/>
+    <xs:element name="synth-routes" type="routes:SynthRoutesType"/>
 
     <!-- Routes Container -->
     <xs:complexType name="SynthRoutesType">
@@ -30,7 +30,7 @@
             <xs:element name="scene" type="routes:SceneRefType"/>
 
             <!-- Spawn Points -->
-            <xs:element name="spawnPoint" type="routes:SpawnPointType" minOccurs="1" maxOccurs="unbounded"/>
+            <xs:element name="spawn-point" type="routes:SpawnPointType" minOccurs="1" maxOccurs="unbounded"/>
 
             <!-- Route Parameters (optional) -->
             <xs:element name="params" type="routes:ParamsType" minOccurs="0"/>
@@ -46,7 +46,7 @@
         <xs:attribute name="path" type="xs:string" use="required"/>
         <xs:attribute name="default" type="xs:boolean" default="false"/>
         <!-- v1.2: Globale Strategie für diese Route (überschreibbar pro <load>) -->
-        <xs:attribute name="loadStrategy" type="routes:LoadStrategyEnum" default="eager"/>
+        <xs:attribute name="load-strategy" type="routes:LoadStrategyEnum" default="eager"/>
     </xs:complexType>
 
     <!-- ===== Loading (v1.2) ===== -->
@@ -62,9 +62,9 @@
         <xs:attribute name="strategy" type="routes:LoadStrategyEnum" use="required"/>
         <xs:attribute name="priority" type="xs:int" default="0"/>
         <!-- Für streamed: Aktivierungs-Radius/Distanz -->
-        <xs:attribute name="streamRadius" type="xs:float"/>
+        <xs:attribute name="stream-radius" type="xs:float"/>
         <!-- Für preload: maximale Wartezeit in ms, sonst weiter ohne -->
-        <xs:attribute name="preloadTimeoutMs" type="xs:int"/>
+        <xs:attribute name="preload-timeout-ms" type="xs:int"/>
     </xs:complexType>
 
     <xs:simpleType name="LoadStrategyEnum">
@@ -82,18 +82,18 @@
          einen synthServices-Service, der die Guard-Methode bereitstellt. -->
     <xs:complexType name="GuardsType">
         <xs:sequence>
-            <xs:element name="canActivate" type="routes:GuardRefType" minOccurs="0" maxOccurs="unbounded"/>
-            <xs:element name="canDeactivate" type="routes:GuardRefType" minOccurs="0" maxOccurs="unbounded"/>
-            <xs:element name="canLoad" type="routes:GuardRefType" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="can-activate" type="routes:GuardRefType" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="can-deactivate" type="routes:GuardRefType" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="can-load" type="routes:GuardRefType" minOccurs="0" maxOccurs="unbounded"/>
         </xs:sequence>
     </xs:complexType>
 
     <xs:complexType name="GuardRefType">
-        <xs:attribute name="serviceRef" type="xs:string" use="required"/>
+        <xs:attribute name="service-ref" type="xs:string" use="required"/>
         <xs:attribute name="method" type="xs:string" use="required"/>
         <!-- "deny", "redirect", or "back" -->
-        <xs:attribute name="onFail" type="routes:GuardFailEnum" default="deny"/>
-        <xs:attribute name="redirectTo" type="xs:string"/>
+        <xs:attribute name="on-fail" type="routes:GuardFailEnum" default="deny"/>
+        <xs:attribute name="redirect-to" type="xs:string"/>
     </xs:complexType>
 
     <xs:simpleType name="GuardFailEnum">
@@ -115,9 +115,9 @@
 
     <xs:complexType name="ResolverRefType">
         <xs:attribute name="key" type="xs:string" use="required"/>
-        <xs:attribute name="serviceRef" type="xs:string" use="required"/>
+        <xs:attribute name="service-ref" type="xs:string" use="required"/>
         <xs:attribute name="method" type="xs:string" use="required"/>
-        <xs:attribute name="timeoutMs" type="xs:int" default="30000"/>
+        <xs:attribute name="timeout-ms" type="xs:int" default="30000"/>
         <xs:attribute name="required" type="xs:boolean" default="true"/>
     </xs:complexType>
 

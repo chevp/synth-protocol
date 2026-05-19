@@ -11,12 +11,12 @@
          Root element: <synthInput>
          ========================================================================= -->
 
-    <xs:element name="synthInput" type="input:SynthInputType"/>
+    <xs:element name="synth-input" type="input:SynthInputType"/>
 
     <xs:complexType name="SynthInputType">
         <xs:sequence>
             <xs:element name="contexts" type="input:ContextsType"/>
-            <xs:element name="actionMaps" type="input:ActionMapsType"/>
+            <xs:element name="action-maps" type="input:ActionMapsType"/>
         </xs:sequence>
         <xs:attribute name="version" type="xs:string" use="required"/>
         <xs:attribute name="id" type="xs:string" use="required"/>
@@ -32,13 +32,13 @@
     <xs:complexType name="ContextType">
         <xs:attribute name="id" type="xs:string" use="required"/>
         <xs:attribute name="priority" type="xs:int" default="0"/>
-        <xs:attribute name="blocksLower" type="xs:boolean" default="true"/>
+        <xs:attribute name="blocks-lower" type="xs:boolean" default="true"/>
     </xs:complexType>
 
     <!-- Action-Maps: gruppieren Actions pro Context -->
     <xs:complexType name="ActionMapsType">
         <xs:sequence>
-            <xs:element name="actionMap" type="input:ActionMapType" maxOccurs="unbounded"/>
+            <xs:element name="action-map" type="input:ActionMapType" maxOccurs="unbounded"/>
         </xs:sequence>
     </xs:complexType>
 

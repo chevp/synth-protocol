@@ -14,7 +14,7 @@
          Root element: <synthParticles>
          ========================================================================= -->
 
-    <xs:element name="synthParticles" type="vfx:SynthParticlesType"/>
+    <xs:element name="synth-particles" type="vfx:SynthParticlesType"/>
 
     <xs:complexType name="SynthParticlesType">
         <xs:sequence>
@@ -31,13 +31,13 @@
             <xs:element name="emission" type="vfx:EmissionModuleType" minOccurs="0"/>
             <xs:element name="velocity" type="vfx:VelocityModuleType" minOccurs="0"/>
             <xs:element name="force" type="vfx:ForceModuleType" minOccurs="0" maxOccurs="unbounded"/>
-            <xs:element name="colorOverLifetime" type="vfx:GradientType" minOccurs="0"/>
-            <xs:element name="sizeOverLifetime" type="vfx:CurveType" minOccurs="0"/>
-            <xs:element name="rotationOverLifetime" type="vfx:CurveType" minOccurs="0"/>
+            <xs:element name="color-over-lifetime" type="vfx:GradientType" minOccurs="0"/>
+            <xs:element name="size-over-lifetime" type="vfx:CurveType" minOccurs="0"/>
+            <xs:element name="rotation-over-lifetime" type="vfx:CurveType" minOccurs="0"/>
             <xs:element name="render" type="vfx:RenderModuleType"/>
             <xs:element name="trail" type="vfx:TrailModuleType" minOccurs="0"/>
             <xs:element name="collision" type="vfx:CollisionModuleType" minOccurs="0"/>
-            <xs:element name="subEmitter" type="vfx:SubEmitterType" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="sub-emitter" type="vfx:SubEmitterType" minOccurs="0" maxOccurs="unbounded"/>
         </xs:sequence>
         <xs:attribute name="id" type="xs:string" use="required"/>
     </xs:complexType>
@@ -47,14 +47,14 @@
         <xs:attribute name="duration" type="xs:float" default="5.0"/>
         <xs:attribute name="loop" type="xs:boolean" default="true"/>
         <xs:attribute name="prewarm" type="xs:boolean" default="false"/>
-        <xs:attribute name="startDelay" type="xs:float" default="0.0"/>
-        <xs:attribute name="startLifetime" type="xs:float" default="2.0"/>
-        <xs:attribute name="startSpeed" type="xs:float" default="1.0"/>
-        <xs:attribute name="startSize" type="xs:float" default="0.1"/>
-        <xs:attribute name="startColor" type="xs:string" default="#FFFFFF"/>
-        <xs:attribute name="gravityModifier" type="xs:float" default="0.0"/>
-        <xs:attribute name="simulationSpace" type="vfx:SimulationSpaceEnum" default="local"/>
-        <xs:attribute name="maxParticles" type="xs:int" default="1000"/>
+        <xs:attribute name="start-delay" type="xs:float" default="0.0"/>
+        <xs:attribute name="start-lifetime" type="xs:float" default="2.0"/>
+        <xs:attribute name="start-speed" type="xs:float" default="1.0"/>
+        <xs:attribute name="start-size" type="xs:float" default="0.1"/>
+        <xs:attribute name="start-color" type="xs:string" default="#FFFFFF"/>
+        <xs:attribute name="gravity-modifier" type="xs:float" default="0.0"/>
+        <xs:attribute name="simulation-space" type="vfx:SimulationSpaceEnum" default="local"/>
+        <xs:attribute name="max-particles" type="xs:int" default="1000"/>
     </xs:complexType>
 
     <xs:simpleType name="SimulationSpaceEnum">
@@ -71,9 +71,9 @@
         <xs:attribute name="radius" type="xs:float" default="1.0"/>
         <xs:attribute name="angle" type="xs:float" default="25.0"/>
         <xs:attribute name="length" type="xs:float" default="5.0"/>
-        <xs:attribute name="arcDeg" type="xs:float" default="360.0"/>
-        <xs:attribute name="emitFromShell" type="xs:boolean" default="false"/>
-        <xs:attribute name="meshRef" type="xs:string"/>
+        <xs:attribute name="arc-deg" type="xs:float" default="360.0"/>
+        <xs:attribute name="emit-from-shell" type="xs:boolean" default="false"/>
+        <xs:attribute name="mesh-ref" type="xs:string"/>
     </xs:complexType>
 
     <xs:simpleType name="ShapeTypeEnum">
@@ -94,8 +94,8 @@
         <xs:sequence>
             <xs:element name="burst" type="vfx:BurstType" minOccurs="0" maxOccurs="unbounded"/>
         </xs:sequence>
-        <xs:attribute name="rateOverTime" type="xs:float" default="10.0"/>
-        <xs:attribute name="rateOverDistance" type="xs:float" default="0.0"/>
+        <xs:attribute name="rate-over-time" type="xs:float" default="10.0"/>
+        <xs:attribute name="rate-over-distance" type="xs:float" default="0.0"/>
     </xs:complexType>
 
     <xs:complexType name="BurstType">
@@ -123,7 +123,7 @@
         </xs:sequence>
         <xs:attribute name="type" type="vfx:ForceTypeEnum" use="required"/>
         <xs:attribute name="strength" type="xs:float" default="1.0"/>
-        <xs:attribute name="turbulenceFreq" type="xs:float"/>
+        <xs:attribute name="turbulence-freq" type="xs:float"/>
     </xs:complexType>
 
     <xs:simpleType name="ForceTypeEnum">
@@ -162,9 +162,9 @@
     <!-- ===== Render ===== -->
     <xs:complexType name="RenderModuleType">
         <xs:attribute name="mode" type="vfx:RenderModeEnum" default="billboard"/>
-        <xs:attribute name="materialRef" type="xs:string" use="required"/>
-        <xs:attribute name="meshRef" type="xs:string"/>
-        <xs:attribute name="sortMode" type="vfx:SortModeEnum" default="none"/>
+        <xs:attribute name="material-ref" type="xs:string" use="required"/>
+        <xs:attribute name="mesh-ref" type="xs:string"/>
+        <xs:attribute name="sort-mode" type="vfx:SortModeEnum" default="none"/>
         <xs:attribute name="alignment" type="vfx:AlignmentEnum" default="view"/>
     </xs:complexType>
 
@@ -199,18 +199,18 @@
 
     <!-- ===== Trail / Collision / SubEmitter ===== -->
     <xs:complexType name="TrailModuleType">
-        <xs:attribute name="lifetimeMultiplier" type="xs:float" default="1.0"/>
+        <xs:attribute name="lifetime-multiplier" type="xs:float" default="1.0"/>
         <xs:attribute name="ratio" type="xs:float" default="1.0"/>
-        <xs:attribute name="minVertexDistance" type="xs:float" default="0.2"/>
-        <xs:attribute name="materialRef" type="xs:string"/>
+        <xs:attribute name="min-vertex-distance" type="xs:float" default="0.2"/>
+        <xs:attribute name="material-ref" type="xs:string"/>
     </xs:complexType>
 
     <xs:complexType name="CollisionModuleType">
         <xs:attribute name="type" type="vfx:CollisionTypeEnum" default="world"/>
         <xs:attribute name="dampen" type="xs:float" default="0.5"/>
         <xs:attribute name="bounce" type="xs:float" default="0.5"/>
-        <xs:attribute name="lifetimeLoss" type="xs:float" default="0.0"/>
-        <xs:attribute name="layerMask" type="xs:string" default="*"/>
+        <xs:attribute name="lifetime-loss" type="xs:float" default="0.0"/>
+        <xs:attribute name="layer-mask" type="xs:string" default="*"/>
     </xs:complexType>
 
     <xs:simpleType name="CollisionTypeEnum">
@@ -223,7 +223,7 @@
 
     <xs:complexType name="SubEmitterType">
         <xs:attribute name="trigger" type="vfx:SubEmitterTriggerEnum" use="required"/>
-        <xs:attribute name="emitterRef" type="xs:string" use="required"/>
+        <xs:attribute name="emitter-ref" type="xs:string" use="required"/>
         <xs:attribute name="probability" type="xs:float" default="1.0"/>
     </xs:complexType>
 

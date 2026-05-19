@@ -32,11 +32,11 @@
     <!-- Runtime Configuration -->
     <xs:complexType name="RuntimeType">
         <xs:sequence>
-            <xs:element name="workDir" type="xs:string" minOccurs="0"/>
-            <xs:element name="tempDir" type="xs:string" minOccurs="0"/>
-            <xs:element name="cacheDir" type="xs:string" minOccurs="0"/>
-            <xs:element name="maxMemoryMb" type="xs:int" minOccurs="0"/>
-            <xs:element name="maxThreads" type="xs:int" minOccurs="0"/>
+            <xs:element name="work-dir" type="xs:string" minOccurs="0"/>
+            <xs:element name="temp-dir" type="xs:string" minOccurs="0"/>
+            <xs:element name="cache-dir" type="xs:string" minOccurs="0"/>
+            <xs:element name="max-memory-mb" type="xs:int" minOccurs="0"/>
+            <xs:element name="max-threads" type="xs:int" minOccurs="0"/>
         </xs:sequence>
         <xs:attribute name="mode" type="core:RuntimeModeEnum" default="production"/>
     </xs:complexType>
@@ -91,7 +91,7 @@
             <xs:element name="exporter" type="core:ExporterType" maxOccurs="unbounded" minOccurs="0"/>
         </xs:sequence>
         <xs:attribute name="enabled" type="xs:boolean" default="true"/>
-        <xs:attribute name="intervalSeconds" type="xs:int" default="60"/>
+        <xs:attribute name="interval-seconds" type="xs:int" default="60"/>
     </xs:complexType>
 
     <xs:complexType name="ExporterType">
@@ -158,7 +158,7 @@
             <xs:element name="metrics" type="core:ConfigMapType" minOccurs="0"/>
         </xs:sequence>
         <xs:attribute name="healthy" type="xs:boolean" use="required"/>
-        <xs:attribute name="uptimeMs" type="xs:long"/>
+        <xs:attribute name="uptime-ms" type="xs:long"/>
     </xs:complexType>
 
     <!-- Error Info -->

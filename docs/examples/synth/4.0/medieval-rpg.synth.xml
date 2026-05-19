@@ -11,8 +11,8 @@
 
   Hub: synth-core-hub (Port 8180)
   Producers:
-    - synth-asset-builder  (Port 8182) reads <assetLibraries>
-    - synth-scene-service  (Port 8181) reads <sceneLibraries>
+    - synth-asset-builder  (Port 8182) reads <asset-libraries>
+    - synth-scene-service  (Port 8181) reads <scene-libraries>
 
   Schema Version: 4.0.0
 -->
@@ -24,10 +24,10 @@
     <!-- ═══════════════════════════════════════════════════════════════════════ -->
     <header>
         <magic>SYNTH</magic>
-        <formatVersion>4</formatVersion>
-        <schemaVersion>4.0.0</schemaVersion>
-        <createdAt>1738800000000</createdAt>
-        <modifiedAt>1738800000000</modifiedAt>
+        <format-version>4</format-version>
+        <schema-version>4.0.0</schema-version>
+        <created-at>1738800000000</created-at>
+        <modified-at>1738800000000</modified-at>
         <checksum algorithm="xxhash64">f8a2b1c3d4e56789</checksum>
     </header>
 
@@ -35,17 +35,17 @@
     <!-- PROJECT METADATA                                                      -->
     <!-- ═══════════════════════════════════════════════════════════════════════ -->
     <metadata>
-        <entityId>
+        <entity-id>
             <uuid>proj_medieval_rpg</uuid>
             <version>1</version>
-        </entityId>
+        </entity-id>
         <name>Medieval RPG</name>
         <description>Open-world medieval RPG with village, forest and dungeon zones</description>
         <author>chevp</author>
         <settings>
-            <defaultSceneId>scene_village_square</defaultSceneId>
-            <targetFps>60</targetFps>
-            <studioMode>false</studioMode>
+            <default-scene-id>scene_village_square</default-scene-id>
+            <target-fps>60</target-fps>
+            <studio-mode>false</studio-mode>
         </settings>
     </metadata>
 
@@ -54,7 +54,7 @@
     <!-- Domain-separated SQLite databases (.assetlib)                         -->
     <!-- Producer: synth-asset-builder (Port 8182)                             -->
     <!-- ═══════════════════════════════════════════════════════════════════════ -->
-    <assetLibraries>
+    <asset-libraries>
 
         <library domain="medieval-town" path="assets/medieval-town.assetlib">
             <description>Buildings, props, and materials for the medieval town</description>
@@ -101,40 +101,40 @@
             </tags>
         </library>
 
-    </assetLibraries>
+    </asset-libraries>
 
     <!-- ═══════════════════════════════════════════════════════════════════════ -->
     <!-- SCENE LIBRARIES                                                       -->
     <!-- Domain-separated SQLite databases (.scenelib)                         -->
     <!-- Producer: synth-scene-service (Port 8181)                             -->
     <!-- ═══════════════════════════════════════════════════════════════════════ -->
-    <sceneLibraries>
+    <scene-libraries>
 
         <library domain="village" path="scenes/village.scenelib">
             <description>Medieval village with marketplace, tavern, blacksmith</description>
             <scenes>
                 <scene id="scene_village_square" default="true">
                     <name>Village Square</name>
-                    <assetDomains>
+                    <asset-domains>
                         <domain>medieval-town</domain>
                         <domain>stylized-nature</domain>
                         <domain>rpg-characters</domain>
                         <domain>rpg-audio</domain>
-                    </assetDomains>
+                    </asset-domains>
                 </scene>
                 <scene id="scene_tavern_interior">
                     <name>Tavern Interior</name>
-                    <assetDomains>
+                    <asset-domains>
                         <domain>medieval-town</domain>
                         <domain>rpg-characters</domain>
-                    </assetDomains>
+                    </asset-domains>
                 </scene>
                 <scene id="scene_blacksmith">
                     <name>Blacksmith Workshop</name>
-                    <assetDomains>
+                    <asset-domains>
                         <domain>medieval-town</domain>
                         <domain>rpg-characters</domain>
-                    </assetDomains>
+                    </asset-domains>
                 </scene>
             </scenes>
         </library>
@@ -144,18 +144,18 @@
             <scenes>
                 <scene id="scene_forest_path">
                     <name>Forest Path</name>
-                    <assetDomains>
+                    <asset-domains>
                         <domain>stylized-nature</domain>
                         <domain>rpg-characters</domain>
                         <domain>rpg-audio</domain>
-                    </assetDomains>
+                    </asset-domains>
                 </scene>
                 <scene id="scene_forest_clearing">
                     <name>Forest Clearing</name>
-                    <assetDomains>
+                    <asset-domains>
                         <domain>stylized-nature</domain>
                         <domain>rpg-characters</domain>
-                    </assetDomains>
+                    </asset-domains>
                 </scene>
             </scenes>
         </library>
@@ -165,32 +165,32 @@
             <scenes>
                 <scene id="scene_dungeon_entrance">
                     <name>Dungeon Entrance</name>
-                    <assetDomains>
+                    <asset-domains>
                         <domain>dungeon-kit</domain>
                         <domain>stylized-nature</domain>
                         <domain>rpg-characters</domain>
-                    </assetDomains>
+                    </asset-domains>
                 </scene>
                 <scene id="scene_dungeon_floor_1">
                     <name>Dungeon Floor 1</name>
-                    <assetDomains>
+                    <asset-domains>
                         <domain>dungeon-kit</domain>
                         <domain>rpg-characters</domain>
                         <domain>rpg-audio</domain>
-                    </assetDomains>
+                    </asset-domains>
                 </scene>
                 <scene id="scene_dungeon_boss">
                     <name>Boss Chamber</name>
-                    <assetDomains>
+                    <asset-domains>
                         <domain>dungeon-kit</domain>
                         <domain>rpg-characters</domain>
                         <domain>rpg-audio</domain>
-                    </assetDomains>
+                    </asset-domains>
                 </scene>
             </scenes>
         </library>
 
-    </sceneLibraries>
+    </scene-libraries>
 
     <!-- ═══════════════════════════════════════════════════════════════════════ -->
     <!-- PLUGIN SYSTEM                                                         -->
@@ -205,28 +205,28 @@
 
             <processors>
                 <processor id="CombatProcessor" order="250" stage="GameLogic">
-                    <cppClass>rpg::CombatProcessor</cppClass>
+                    <cpp-class>rpg::CombatProcessor</cpp-class>
                 </processor>
                 <processor id="InventoryProcessor" order="260" stage="GameLogic">
-                    <cppClass>rpg::InventoryProcessor</cppClass>
+                    <cpp-class>rpg::InventoryProcessor</cpp-class>
                 </processor>
                 <processor id="QuestProcessor" order="270" stage="GameLogic">
-                    <cppClass>rpg::QuestProcessor</cppClass>
+                    <cpp-class>rpg::QuestProcessor</cpp-class>
                 </processor>
                 <processor id="DialogueProcessor" order="280" stage="GameLogic">
-                    <cppClass>rpg::DialogueProcessor</cppClass>
+                    <cpp-class>rpg::DialogueProcessor</cpp-class>
                 </processor>
                 <processor id="NPCAIProcessor" order="290" stage="GameLogic">
-                    <cppClass>rpg::NPCAIProcessor</cppClass>
+                    <cpp-class>rpg::NPCAIProcessor</cpp-class>
                 </processor>
             </processors>
 
             <jobs>
                 <job id="SaveGameJob" pool="io_pool" priority="NORMAL">
-                    <cppClass>rpg::SaveGameJob</cppClass>
+                    <cpp-class>rpg::SaveGameJob</cpp-class>
                 </job>
                 <job id="NavMeshBuildJob" pool="compute_pool" priority="BACKGROUND">
-                    <cppClass>rpg::NavMeshBuildJob</cppClass>
+                    <cpp-class>rpg::NavMeshBuildJob</cpp-class>
                 </job>
             </jobs>
         </module>
@@ -236,60 +236,60 @@
     <!-- ═══════════════════════════════════════════════════════════════════════ -->
     <!-- RUNTIME CONFIGURATION                                                 -->
     <!-- ═══════════════════════════════════════════════════════════════════════ -->
-    <runtimeConfiguration>
+    <runtime-configuration>
 
-        <threadPools>
+        <thread-pools>
             <pool id="io_pool" type="IO">
                 <threads platform="desktop">4</threads>
                 <threads platform="android">2</threads>
-                <queueSize>256</queueSize>
+                <queue-size>256</queue-size>
             </pool>
             <pool id="compute_pool" type="COMPUTE">
                 <threads platform="desktop">8</threads>
                 <threads platform="android">4</threads>
-                <queueSize>128</queueSize>
+                <queue-size>128</queue-size>
             </pool>
             <pool id="dedicated_pool" type="DEDICATED">
                 <thread id="audio_thread" affinity="high_priority"/>
                 <thread id="network_thread" affinity="normal"/>
             </pool>
-        </threadPools>
+        </thread-pools>
 
         <processors>
-            <stage name="Input" orderRange="0-49">
+            <stage name="Input" order-range="0-49">
                 <processor order="10" name="PlatformEventProcessor" enabled="true"/>
                 <processor order="20" name="InputMappingProcessor" enabled="true"/>
             </stage>
 
-            <stage name="Data" orderRange="50-99">
+            <stage name="Data" order-range="50-99">
                 <processor order="95" name="JobSchedulerProcessor" enabled="true"/>
                 <processor order="96" name="AssetLoadResultProcessor" enabled="true"/>
                 <processor order="97" name="SceneLoadOrchestratorProcessor" enabled="true"/>
             </stage>
 
-            <stage name="GameLogic" orderRange="200-299">
+            <stage name="GameLogic" order-range="200-299">
                 <processor order="200" name="StateMachineProcessor" enabled="true"/>
                 <!-- Plugin processors 250-290 injected by rpg_game_plugin -->
             </stage>
 
-            <stage name="Physics" orderRange="300-399">
+            <stage name="Physics" order-range="300-399">
                 <processor order="300" name="PhysicsStepProcessor" enabled="true"/>
                 <processor order="320" name="CharacterControllerProcessor" enabled="true"/>
             </stage>
 
-            <stage name="Animation" orderRange="400-499">
+            <stage name="Animation" order-range="400-499">
                 <processor order="400" name="AnimationUpdateProcessor" enabled="true"/>
                 <processor order="450" name="SkinningProcessor" enabled="true"/>
             </stage>
 
-            <stage name="Scene" orderRange="500-599">
+            <stage name="Scene" order-range="500-599">
                 <processor order="500" name="SceneGraphUpdateProcessor" enabled="true"/>
                 <processor order="510" name="TransformProcessor" enabled="true"/>
                 <processor order="530" name="FrustumCullProcessor" enabled="true"/>
                 <processor order="598" name="GpuUploadProcessor" enabled="true"/>
             </stage>
 
-            <stage name="Render" orderRange="600-799">
+            <stage name="Render" order-range="600-799">
                 <processor order="600" name="FrameBeginProcessor" enabled="true"/>
                 <processor order="610" name="CommandBufferBeginProcessor" enabled="true"/>
                 <processor order="620" name="ShadowMapProcessor" enabled="true"/>
@@ -305,24 +305,24 @@
                 <processor order="795" name="PresentProcessor" enabled="true"/>
             </stage>
 
-            <stage name="Audio" orderRange="800-899">
+            <stage name="Audio" order-range="800-899">
                 <processor order="800" name="AudioUpdateProcessor" enabled="true"/>
                 <processor order="810" name="Audio3DProcessor" enabled="true"/>
                 <processor order="880" name="AudioSubmitProcessor" enabled="true"/>
             </stage>
 
-            <stage name="Cleanup" orderRange="900-999">
+            <stage name="Cleanup" order-range="900-999">
                 <processor order="900" name="FrameStatsProcessor" enabled="true"/>
                 <processor order="990" name="FrameEndProcessor" enabled="true"/>
             </stage>
         </processors>
 
-    </runtimeConfiguration>
+    </runtime-configuration>
 
     <!-- ═══════════════════════════════════════════════════════════════════════ -->
     <!-- INPUT MAPPING                                                         -->
     <!-- ═══════════════════════════════════════════════════════════════════════ -->
-    <inputMapping>
+    <input-mapping>
         <action id="move_forward">
             <binding device="keyboard" key="W"/>
             <binding device="gamepad" axis="LeftStickY" threshold="0.3"/>
@@ -359,7 +359,7 @@
             <binding device="keyboard" key="Escape"/>
             <binding device="gamepad" button="Start"/>
         </action>
-    </inputMapping>
+    </input-mapping>
 
 </project>
 </synth>

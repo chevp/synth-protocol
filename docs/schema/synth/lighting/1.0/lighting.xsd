@@ -15,7 +15,7 @@
          Root element: <synthLighting>
          ========================================================================= -->
 
-    <xs:element name="synthLighting" type="light:SynthLightingType"/>
+    <xs:element name="synth-lighting" type="light:SynthLightingType"/>
 
     <xs:complexType name="SynthLightingType">
         <xs:sequence>
@@ -23,7 +23,7 @@
             <xs:element name="ibl" type="light:IBLType" minOccurs="0"/>
             <xs:element name="lights" type="light:LightsType" minOccurs="0"/>
             <xs:element name="probes" type="light:ProbesType" minOccurs="0"/>
-            <xs:element name="shadowSettings" type="light:ShadowSettingsType" minOccurs="0"/>
+            <xs:element name="shadow-settings" type="light:ShadowSettingsType" minOccurs="0"/>
         </xs:sequence>
         <xs:attribute name="version" type="xs:string" use="required"/>
         <xs:attribute name="id" type="xs:string" use="required"/>
@@ -45,12 +45,12 @@
 
     <!-- IBL: Image-Based Lighting (HDRI Environment + Reflections) -->
     <xs:complexType name="IBLType">
-        <xs:attribute name="envMap" type="xs:string"/>
+        <xs:attribute name="env-map" type="xs:string"/>
         <xs:attribute name="irradiance" type="xs:string"/>
         <xs:attribute name="prefilter" type="xs:string"/>
-        <xs:attribute name="brdfLut" type="xs:string"/>
+        <xs:attribute name="brdf-lut" type="xs:string"/>
         <xs:attribute name="intensity" type="xs:float" default="1.0"/>
-        <xs:attribute name="rotationDeg" type="xs:float" default="0"/>
+        <xs:attribute name="rotation-deg" type="xs:float" default="0"/>
     </xs:complexType>
 
     <!-- Lights ===== -->
@@ -71,9 +71,9 @@
         <xs:attribute name="color" type="xs:string" default="#FFFFFF"/>
         <xs:attribute name="intensity" type="xs:float" default="1.0"/>
         <xs:attribute name="enabled" type="xs:boolean" default="true"/>
-        <xs:attribute name="castShadows" type="xs:boolean" default="false"/>
-        <xs:attribute name="indirectMultiplier" type="xs:float" default="1.0"/>
-        <xs:attribute name="layerMask" type="xs:string" default="*"/>
+        <xs:attribute name="cast-shadows" type="xs:boolean" default="false"/>
+        <xs:attribute name="indirect-multiplier" type="xs:float" default="1.0"/>
+        <xs:attribute name="layer-mask" type="xs:string" default="*"/>
     </xs:complexType>
 
     <xs:complexType name="DirectionalLightType">
@@ -82,8 +82,8 @@
                 <xs:sequence>
                     <xs:element name="direction" type="common:Vec3Type"/>
                 </xs:sequence>
-                <xs:attribute name="cascadeCount" type="xs:int" default="4"/>
-                <xs:attribute name="cascadeSplits" type="xs:string" default="0.067 0.2 0.467 1.0"/>
+                <xs:attribute name="cascade-count" type="xs:int" default="4"/>
+                <xs:attribute name="cascade-splits" type="xs:string" default="0.067 0.2 0.467 1.0"/>
             </xs:extension>
         </xs:complexContent>
     </xs:complexType>
@@ -104,8 +104,8 @@
                     <xs:element name="direction" type="common:Vec3Type"/>
                 </xs:sequence>
                 <xs:attribute name="range" type="xs:float" use="required"/>
-                <xs:attribute name="innerConeDeg" type="xs:float" default="20"/>
-                <xs:attribute name="outerConeDeg" type="xs:float" default="30"/>
+                <xs:attribute name="inner-cone-deg" type="xs:float" default="20"/>
+                <xs:attribute name="outer-cone-deg" type="xs:float" default="30"/>
                 <xs:attribute name="falloff" type="light:FalloffEnum" default="inverseSquare"/>
             </xs:extension>
         </xs:complexContent>
@@ -141,8 +141,8 @@
     <xs:complexType name="ProbesType">
         <xs:sequence>
             <xs:choice maxOccurs="unbounded">
-                <xs:element name="reflectionProbe" type="light:ReflectionProbeType"/>
-                <xs:element name="lightProbe" type="light:LightProbeType"/>
+                <xs:element name="reflection-probe" type="light:ReflectionProbeType"/>
+                <xs:element name="light-probe" type="light:LightProbeType"/>
             </xs:choice>
         </xs:sequence>
     </xs:complexType>
@@ -154,8 +154,8 @@
         </xs:sequence>
         <xs:attribute name="id" type="xs:string" use="required"/>
         <xs:attribute name="resolution" type="xs:int" default="256"/>
-        <xs:attribute name="boxProjection" type="xs:boolean" default="false"/>
-        <xs:attribute name="updateMode" type="light:ProbeUpdateEnum" default="baked"/>
+        <xs:attribute name="box-projection" type="xs:boolean" default="false"/>
+        <xs:attribute name="update-mode" type="light:ProbeUpdateEnum" default="baked"/>
     </xs:complexType>
 
     <xs:complexType name="LightProbeType">
@@ -179,7 +179,7 @@
         <xs:attribute name="resolution" type="xs:int" default="2048"/>
         <xs:attribute name="distance" type="xs:float" default="100"/>
         <xs:attribute name="bias" type="xs:float" default="0.005"/>
-        <xs:attribute name="normalBias" type="xs:float" default="0.4"/>
+        <xs:attribute name="normal-bias" type="xs:float" default="0.4"/>
         <xs:attribute name="softness" type="light:ShadowSoftnessEnum" default="pcf"/>
     </xs:complexType>
 
