@@ -29,6 +29,13 @@
             color: #34495e;
             margin-top: 30px;
         }
+        h3 {
+            color: #34495e;
+        }
+        .lead {
+            font-size: 1.05em;
+            color: #555;
+        }
         .schema-list {
             list-style: none;
             padding: 0;
@@ -47,6 +54,26 @@
         }
         .schema-list a:hover {
             text-decoration: underline;
+        }
+        .namespace {
+            color: #7f8c8d;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        th, td {
+            text-align: left;
+            padding: 8px 12px;
+            border-bottom: 1px solid #e1e4e8;
+            vertical-align: top;
+        }
+        th {
+            background: #f8f9fa;
+            color: #34495e;
         }
         code {
             background: #f8f8f8;
@@ -67,10 +94,12 @@
             color: inherit;
             padding: 0;
         }
-        .namespace {
-            color: #7f8c8d;
-            font-size: 0.9em;
-            margin-top: 5px;
+        .note {
+            background: #eaf4fb;
+            border-left: 4px solid #3498db;
+            padding: 12px 16px;
+            border-radius: 4px;
+            margin: 15px 0;
         }
     </style>
 </head>
@@ -78,76 +107,138 @@
     <div class="container">
         <h1>Synth Protocol - XML Schemas</h1>
 
-        <p>This page provides access to XML Schema Definitions (XSD) for the Synth Protocol.</p>
+        <p class="lead">This page provides access to the XML Schema Definitions (XSD) for the
+        Synth Protocol. All Synth document types share a single unified schema with one
+        <code>&lt;synth&gt;</code> root element.</p>
 
-        <h2>Available Schemas</h2>
+        <h2>Unified Schema</h2>
 
-        <h3>Component Schema</h3>
+        <p>Every <code>.synth.xml</code> document uses the same root element and namespace.
+        The <strong>first child element</strong> of <code>&lt;synth&gt;</code> selects the
+        document type (project, scene, component, and so on).</p>
+
         <ul class="schema-list">
             <li>
-                <a href="synth/component/1.0/component.xsd">component.xsd (v1.0)</a>
-                <div class="namespace">Namespace: <code>https://chevp.github.io/synth-protocol/schema/synth/component/1.0</code></div>
-                <p>Schema for Synth component definitions. Used in <code>.synth.xml</code> component files.</p>
+                <a href="synth/1.0/synth.xsd">synth.xsd (v1.0)</a>
+                <div class="namespace">Namespace: <code>https://chevp.github.io/synth-protocol/schema/synth/1.0</code></div>
+                <p>The single, unified schema for all Synth document types. Validates the
+                <code>&lt;synth&gt;</code> root and every supported document type below.</p>
             </li>
         </ul>
 
-        <h3>Scene Schema</h3>
+        <h3>Document Types</h3>
+
+        <p>These are the child elements permitted directly under <code>&lt;synth&gt;</code>:</p>
+
+        <table>
+            <thead>
+                <tr><th>Element</th><th>Purpose</th></tr>
+            </thead>
+            <tbody>
+                <tr><td><code>&lt;project&gt;</code></td><td>Project configuration: metadata, servers, security, asset mounts, resources, settings.</td></tr>
+                <tr><td><code>&lt;scene&gt;</code></td><td>Scene definition: entities, transforms, component references, lights, camera.</td></tr>
+                <tr><td><code>&lt;component&gt;</code></td><td>Reusable component definition: metadata, mesh reference, properties.</td></tr>
+                <tr><td><code>&lt;routes&gt;</code></td><td>Route/endpoint mappings for the runtime.</td></tr>
+                <tr><td><code>&lt;runtime&gt;</code></td><td>Runtime configuration.</td></tr>
+                <tr><td><code>&lt;runtime-renderer&gt;</code></td><td>Renderer-specific runtime configuration.</td></tr>
+                <tr><td><code>&lt;runtime-logic&gt;</code></td><td>Logic-layer runtime configuration.</td></tr>
+                <tr><td><code>&lt;game-project&gt;</code></td><td>Game project definition built on top of a project.</td></tr>
+                <tr><td><code>&lt;asset-registry&gt;</code></td><td>Registry of assets, fragments, and components.</td></tr>
+                <tr><td><code>&lt;extension&gt;</code></td><td>Extension container for domain-specific additions.</td></tr>
+                <tr><td><code>&lt;shop-catalog&gt;</code></td><td>Shop / catalog definition (e.g. merchant inventories).</td></tr>
+            </tbody>
+        </table>
+
+        <h2>Elyrion Schema</h2>
         <ul class="schema-list">
             <li>
-                <a href="synth/scene/1.0/scene.xsd">scene.xsd (v1.0)</a>
-                <div class="namespace">Namespace: <code>https://chevp.github.io/synth-protocol/schema/synth/scene/1.0</code></div>
-                <p>Schema for Synth scene definitions. Used in scene <code>.synth.xml</code> files.</p>
+                <a href="elyrion/1.0/elyrion.xsd">elyrion.xsd (v1.0)</a>
+                <div class="namespace">Namespace: <code>https://chevp.github.io/synth-protocol/schema/elyrion/1.0</code></div>
+                <p>Schema for Elyrion package/scene descriptors: dependencies, remote sources,
+                assets, and asset variants.</p>
             </li>
         </ul>
 
-        <h3>Project Schema</h3>
-        <ul class="schema-list">
-            <li>
-                <a href="synth/project/1.0/project.xsd">project.xsd (v1.0)</a>
-                <div class="namespace">Namespace: <code>https://chevp.github.io/synth-protocol/schema/synth/project/1.0</code></div>
-                <p>Schema for Synth project configuration files.</p>
-            </li>
-        </ul>
+        <h2>Usage Examples</h2>
 
-        <h2>Usage Example</h2>
-
-        <h3>Component Definition</h3>
+        <h3>Project Definition</h3>
         <pre><code>&lt;?xml version="1.0" encoding="UTF-8"?&gt;
-&lt;synthComponent version="1.0" id="my-component"
-                xmlns="https://chevp.github.io/synth-protocol/schema/synth/component/1.0"
-                xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-                xsi:schemaLocation="https://chevp.github.io/synth-protocol/schema/synth/component/1.0
-                                    https://chevp.github.io/synth-protocol/schema/synth/component/1.0/component.xsd"&gt;
-    &lt;metadata&gt;
-        &lt;name&gt;My Component&lt;/name&gt;
-        &lt;type&gt;custom&lt;/type&gt;
-    &lt;/metadata&gt;
-    &lt;properties&gt;
-        &lt;property name="enabled" type="bool" value="true"/&gt;
-    &lt;/properties&gt;
-&lt;/synthComponent&gt;</code></pre>
+&lt;synth version="1.0" xmlns="https://chevp.github.io/synth-protocol/schema/synth/1.0"&gt;
+    &lt;project schema-version="1.0"&gt;
+        &lt;metadata id="my-game"&gt;
+            &lt;name&gt;My Game&lt;/name&gt;
+            &lt;version&gt;0.1.0&lt;/version&gt;
+        &lt;/metadata&gt;
+        &lt;settings&gt;
+            &lt;setting key="defaultScene" value="plaza"/&gt;
+        &lt;/settings&gt;
+    &lt;/project&gt;
+&lt;/synth&gt;</code></pre>
 
         <h3>Scene Definition</h3>
         <pre><code>&lt;?xml version="1.0" encoding="UTF-8"?&gt;
-&lt;synthScene version="1.0" id="my-scene"
-             xmlns="https://chevp.github.io/synth-protocol/schema/synth/scene/1.0"
-             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-             xsi:schemaLocation="https://chevp.github.io/synth-protocol/schema/synth/scene/1.0
-                                 https://chevp.github.io/synth-protocol/schema/synth/scene/1.0/scene.xsd"&gt;
-    &lt;metadata&gt;
-        &lt;name&gt;My Scene&lt;/name&gt;
-    &lt;/metadata&gt;
-    &lt;entities&gt;
-        &lt;entity id="player" name="Player"&gt;
-            &lt;transform&gt;
-                &lt;position x="0" y="0" z="0"/&gt;
-            &lt;/transform&gt;
-        &lt;/entity&gt;
-    &lt;/entities&gt;
-&lt;/synthScene&gt;</code></pre>
+&lt;synth version="1.0" xmlns="https://chevp.github.io/synth-protocol/schema/synth/1.0"&gt;
+    &lt;scene version="1.0" id="plaza-scene"&gt;
+        &lt;metadata&gt;
+            &lt;name&gt;Town Plaza&lt;/name&gt;
+        &lt;/metadata&gt;
+        &lt;entities&gt;
+            &lt;entity id="player_spawn" name="Player Spawn Point"&gt;
+                &lt;component ref="components/player/spawn-point.synth.xml"/&gt;
+                &lt;transform&gt;
+                    &lt;position x="0" y="0.1" z="10"/&gt;
+                &lt;/transform&gt;
+            &lt;/entity&gt;
+        &lt;/entities&gt;
+    &lt;/scene&gt;
+&lt;/synth&gt;</code></pre>
+
+        <h3>Component Definition</h3>
+        <pre><code>&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;synth version="1.0" xmlns="https://chevp.github.io/synth-protocol/schema/synth/1.0"&gt;
+    &lt;component id="npc-merchant"&gt;
+        &lt;metadata&gt;
+            &lt;name&gt;Merchant NPC&lt;/name&gt;
+            &lt;type&gt;npc&lt;/type&gt;
+        &lt;/metadata&gt;
+        &lt;mesh ref="synth://assets/models/character_merchant"/&gt;
+        &lt;properties&gt;
+            &lt;property name="interactable" type="bool" value="true"/&gt;
+        &lt;/properties&gt;
+    &lt;/component&gt;
+&lt;/synth&gt;</code></pre>
+
+        <p>More complete, ready-to-run examples live in the
+        <a href="examples/">examples/</a> directory.</p>
 
         <h2>Local Development</h2>
-        <p>For local development, you can use an XML catalog to resolve schema URLs to local files. See the <code>docs/schema/catalog.xml</code> file.</p>
+        <p>For offline editing and IDE validation, use the XML catalog to resolve schema URLs
+        to local files. See <a href="catalog.xml"><code>catalog.xml</code></a>. It maps the
+        <code>synth/1.0</code> and <code>elyrion/1.0</code> namespaces to their local
+        <code>.xsd</code> files, and also records legacy and roadmap namespaces for reference.</p>
+
+        <div class="note">
+            <strong>Note:</strong> Earlier releases exposed separate
+            <code>component.xsd</code>, <code>scene.xsd</code>, and <code>project.xsd</code>
+            files with distinct root elements (<code>&lt;synthComponent&gt;</code>,
+            <code>&lt;synthScene&gt;</code>, …). These have been consolidated into the single
+            <code>synth.xsd</code> above, and all documents now share the <code>&lt;synth&gt;</code>
+            root.
+        </div>
+
+        <h2>Related Schemas</h2>
+        <ul class="schema-list">
+            <li>
+                <a href="synth/sqlite/1.0/">SQLite Schema (v1.0)</a>
+                <p>Relational schema for storing Synth project, core, MCP, and security data
+                in SQLite. See <a href="synth/sqlite/1.0/README.md">README</a>.</p>
+            </li>
+            <li>
+                <a href="unified/">Unified Schema</a>
+                <p>Cross-format mapping and the unified SQL schema for asset collections and
+                component formats. See <a href="unified/README.md">README</a>.</p>
+            </li>
+        </ul>
 
         <hr style="margin: 40px 0; border: none; border-top: 1px solid #ecf0f1;">
 
