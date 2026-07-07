@@ -1,0 +1,577 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SYNTH GLTF XML SCHEMA
+  Version 2.0
+
+  Defines native glTF embedding in XML.
+  Follows the glTF 2.0 specification structure.
+
+  Key principle: Native syntax embedding - glTF structure stays glTF.
+  Reference: https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:gltf="https://chevp.github.io/synth-protocol/schema/synth/gltf/2.0"
+           targetNamespace="https://chevp.github.io/synth-protocol/schema/synth/gltf/2.0"
+           elementFormDefault="qualified">
+
+    <!-- ================================================================= -->
+    <!-- GLTF ROOT ELEMENT -->
+    <!-- ================================================================= -->
+    <xs:element name="gltf" type="gltf:GltfType"/>
+
+    <xs:complexType name="GltfType">
+        <xs:annotation>
+            <xs:documentation>
+                Root element for embedded glTF content.
+                Follows the glTF 2.0 specification structure.
+            </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="asset" type="gltf:AssetType"/>
+            <xs:element name="scenes" type="gltf:ScenesType" minOccurs="0"/>
+            <xs:element name="nodes" type="gltf:NodesType" minOccurs="0"/>
+            <xs:element name="meshes" type="gltf:MeshesType" minOccurs="0"/>
+            <xs:element name="materials" type="gltf:MaterialsType" minOccurs="0"/>
+            <xs:element name="textures" type="gltf:TexturesType" minOccurs="0"/>
+            <xs:element name="images" type="gltf:ImagesType" minOccurs="0"/>
+            <xs:element name="samplers" type="gltf:SamplersType" minOccurs="0"/>
+            <xs:element name="accessors" type="gltf:AccessorsType" minOccurs="0"/>
+            <xs:element name="bufferViews" type="gltf:BufferViewsType" minOccurs="0"/>
+            <xs:element name="buffers" type="gltf:BuffersType" minOccurs="0"/>
+            <xs:element name="animations" type="gltf:AnimationsType" minOccurs="0"/>
+            <xs:element name="skins" type="gltf:SkinsType" minOccurs="0"/>
+            <xs:element name="cameras" type="gltf:CamerasType" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="scene" type="xs:integer"/>
+    </xs:complexType>
+
+    <!-- ================================================================= -->
+    <!-- ASSET (Required) -->
+    <!-- ================================================================= -->
+    <xs:complexType name="AssetType">
+        <xs:sequence>
+            <xs:element name="version" type="xs:string"/>
+            <xs:element name="generator" type="xs:string" minOccurs="0"/>
+            <xs:element name="copyright" type="xs:string" minOccurs="0"/>
+            <xs:element name="minVersion" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ================================================================= -->
+    <!-- SCENES -->
+    <!-- ================================================================= -->
+    <xs:complexType name="ScenesType">
+        <xs:sequence>
+            <xs:element name="scene" type="gltf:SceneType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="SceneType">
+        <xs:sequence>
+            <xs:element name="name" type="xs:string" minOccurs="0"/>
+            <xs:element name="nodes" type="gltf:IndexListType" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ================================================================= -->
+    <!-- NODES -->
+    <!-- ================================================================= -->
+    <xs:complexType name="NodesType">
+        <xs:sequence>
+            <xs:element name="node" type="gltf:NodeType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="NodeType">
+        <xs:sequence>
+            <xs:element name="name" type="xs:string" minOccurs="0"/>
+            <xs:element name="mesh" type="xs:integer" minOccurs="0"/>
+            <xs:element name="camera" type="xs:integer" minOccurs="0"/>
+            <xs:element name="skin" type="xs:integer" minOccurs="0"/>
+            <xs:element name="children" type="gltf:IndexListType" minOccurs="0"/>
+            <xs:element name="translation" type="gltf:Vec3Type" minOccurs="0"/>
+            <xs:element name="rotation" type="gltf:Vec4Type" minOccurs="0"/>
+            <xs:element name="scale" type="gltf:Vec3Type" minOccurs="0"/>
+            <xs:element name="matrix" type="gltf:Mat4Type" minOccurs="0"/>
+            <xs:element name="weights" type="gltf:FloatListType" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ================================================================= -->
+    <!-- MESHES -->
+    <!-- ================================================================= -->
+    <xs:complexType name="MeshesType">
+        <xs:sequence>
+            <xs:element name="mesh" type="gltf:MeshType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="MeshType">
+        <xs:sequence>
+            <xs:element name="name" type="xs:string" minOccurs="0"/>
+            <xs:element name="primitives" type="gltf:PrimitivesType"/>
+            <xs:element name="weights" type="gltf:FloatListType" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="PrimitivesType">
+        <xs:sequence>
+            <xs:element name="primitive" type="gltf:PrimitiveType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="PrimitiveType">
+        <xs:sequence>
+            <xs:element name="attributes" type="gltf:AttributesType"/>
+            <xs:element name="indices" type="xs:integer" minOccurs="0"/>
+            <xs:element name="material" type="xs:integer" minOccurs="0"/>
+            <xs:element name="mode" type="gltf:PrimitiveModeType" minOccurs="0"/>
+            <xs:element name="targets" type="gltf:MorphTargetsType" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="AttributesType">
+        <xs:sequence>
+            <xs:element name="POSITION" type="xs:integer" minOccurs="0"/>
+            <xs:element name="NORMAL" type="xs:integer" minOccurs="0"/>
+            <xs:element name="TANGENT" type="xs:integer" minOccurs="0"/>
+            <xs:element name="TEXCOORD_0" type="xs:integer" minOccurs="0"/>
+            <xs:element name="TEXCOORD_1" type="xs:integer" minOccurs="0"/>
+            <xs:element name="COLOR_0" type="xs:integer" minOccurs="0"/>
+            <xs:element name="JOINTS_0" type="xs:integer" minOccurs="0"/>
+            <xs:element name="WEIGHTS_0" type="xs:integer" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:simpleType name="PrimitiveModeType">
+        <xs:restriction base="xs:integer">
+            <xs:enumeration value="0"/> <!-- POINTS -->
+            <xs:enumeration value="1"/> <!-- LINES -->
+            <xs:enumeration value="2"/> <!-- LINE_LOOP -->
+            <xs:enumeration value="3"/> <!-- LINE_STRIP -->
+            <xs:enumeration value="4"/> <!-- TRIANGLES -->
+            <xs:enumeration value="5"/> <!-- TRIANGLE_STRIP -->
+            <xs:enumeration value="6"/> <!-- TRIANGLE_FAN -->
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:complexType name="MorphTargetsType">
+        <xs:sequence>
+            <xs:element name="target" type="gltf:AttributesType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ================================================================= -->
+    <!-- MATERIALS -->
+    <!-- ================================================================= -->
+    <xs:complexType name="MaterialsType">
+        <xs:sequence>
+            <xs:element name="material" type="gltf:MaterialType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="MaterialType">
+        <xs:sequence>
+            <xs:element name="name" type="xs:string" minOccurs="0"/>
+            <xs:element name="pbrMetallicRoughness" type="gltf:PbrMetallicRoughnessType" minOccurs="0"/>
+            <xs:element name="normalTexture" type="gltf:NormalTextureInfoType" minOccurs="0"/>
+            <xs:element name="occlusionTexture" type="gltf:OcclusionTextureInfoType" minOccurs="0"/>
+            <xs:element name="emissiveTexture" type="gltf:TextureInfoType" minOccurs="0"/>
+            <xs:element name="emissiveFactor" type="gltf:Vec3Type" minOccurs="0"/>
+            <xs:element name="alphaMode" type="gltf:AlphaModeType" minOccurs="0"/>
+            <xs:element name="alphaCutoff" type="xs:float" minOccurs="0"/>
+            <xs:element name="doubleSided" type="xs:boolean" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="PbrMetallicRoughnessType">
+        <xs:sequence>
+            <xs:element name="baseColorFactor" type="gltf:Vec4Type" minOccurs="0"/>
+            <xs:element name="baseColorTexture" type="gltf:TextureInfoType" minOccurs="0"/>
+            <xs:element name="metallicFactor" type="xs:float" minOccurs="0"/>
+            <xs:element name="roughnessFactor" type="xs:float" minOccurs="0"/>
+            <xs:element name="metallicRoughnessTexture" type="gltf:TextureInfoType" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="TextureInfoType">
+        <xs:sequence>
+            <xs:element name="index" type="xs:integer"/>
+            <xs:element name="texCoord" type="xs:integer" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="NormalTextureInfoType">
+        <xs:complexContent>
+            <xs:extension base="gltf:TextureInfoType">
+                <xs:sequence>
+                    <xs:element name="scale" type="xs:float" minOccurs="0"/>
+                </xs:sequence>
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+
+    <xs:complexType name="OcclusionTextureInfoType">
+        <xs:complexContent>
+            <xs:extension base="gltf:TextureInfoType">
+                <xs:sequence>
+                    <xs:element name="strength" type="xs:float" minOccurs="0"/>
+                </xs:sequence>
+            </xs:extension>
+        </xs:complexContent>
+    </xs:complexType>
+
+    <xs:simpleType name="AlphaModeType">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="OPAQUE"/>
+            <xs:enumeration value="MASK"/>
+            <xs:enumeration value="BLEND"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ================================================================= -->
+    <!-- TEXTURES -->
+    <!-- ================================================================= -->
+    <xs:complexType name="TexturesType">
+        <xs:sequence>
+            <xs:element name="texture" type="gltf:TextureType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="TextureType">
+        <xs:sequence>
+            <xs:element name="name" type="xs:string" minOccurs="0"/>
+            <xs:element name="sampler" type="xs:integer" minOccurs="0"/>
+            <xs:element name="source" type="xs:integer" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ================================================================= -->
+    <!-- IMAGES -->
+    <!-- ================================================================= -->
+    <xs:complexType name="ImagesType">
+        <xs:sequence>
+            <xs:element name="image" type="gltf:ImageType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="ImageType">
+        <xs:sequence>
+            <xs:element name="name" type="xs:string" minOccurs="0"/>
+            <xs:element name="uri" type="xs:anyURI" minOccurs="0"/>
+            <xs:element name="mimeType" type="xs:string" minOccurs="0"/>
+            <xs:element name="bufferView" type="xs:integer" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ================================================================= -->
+    <!-- SAMPLERS -->
+    <!-- ================================================================= -->
+    <xs:complexType name="SamplersType">
+        <xs:sequence>
+            <xs:element name="sampler" type="gltf:SamplerType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="SamplerType">
+        <xs:sequence>
+            <xs:element name="name" type="xs:string" minOccurs="0"/>
+            <xs:element name="magFilter" type="gltf:FilterType" minOccurs="0"/>
+            <xs:element name="minFilter" type="gltf:FilterType" minOccurs="0"/>
+            <xs:element name="wrapS" type="gltf:WrapType" minOccurs="0"/>
+            <xs:element name="wrapT" type="gltf:WrapType" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:simpleType name="FilterType">
+        <xs:restriction base="xs:integer">
+            <xs:enumeration value="9728"/> <!-- NEAREST -->
+            <xs:enumeration value="9729"/> <!-- LINEAR -->
+            <xs:enumeration value="9984"/> <!-- NEAREST_MIPMAP_NEAREST -->
+            <xs:enumeration value="9985"/> <!-- LINEAR_MIPMAP_NEAREST -->
+            <xs:enumeration value="9986"/> <!-- NEAREST_MIPMAP_LINEAR -->
+            <xs:enumeration value="9987"/> <!-- LINEAR_MIPMAP_LINEAR -->
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="WrapType">
+        <xs:restriction base="xs:integer">
+            <xs:enumeration value="33071"/> <!-- CLAMP_TO_EDGE -->
+            <xs:enumeration value="33648"/> <!-- MIRRORED_REPEAT -->
+            <xs:enumeration value="10497"/> <!-- REPEAT -->
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ================================================================= -->
+    <!-- ACCESSORS -->
+    <!-- ================================================================= -->
+    <xs:complexType name="AccessorsType">
+        <xs:sequence>
+            <xs:element name="accessor" type="gltf:AccessorType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="AccessorType">
+        <xs:sequence>
+            <xs:element name="name" type="xs:string" minOccurs="0"/>
+            <xs:element name="bufferView" type="xs:integer" minOccurs="0"/>
+            <xs:element name="byteOffset" type="xs:integer" minOccurs="0"/>
+            <xs:element name="componentType" type="gltf:ComponentType"/>
+            <xs:element name="normalized" type="xs:boolean" minOccurs="0"/>
+            <xs:element name="count" type="xs:integer"/>
+            <xs:element name="type" type="gltf:AccessorDataType"/>
+            <xs:element name="max" type="gltf:FloatListType" minOccurs="0"/>
+            <xs:element name="min" type="gltf:FloatListType" minOccurs="0"/>
+            <xs:element name="sparse" type="gltf:SparseType" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:simpleType name="ComponentType">
+        <xs:restriction base="xs:integer">
+            <xs:enumeration value="5120"/> <!-- BYTE -->
+            <xs:enumeration value="5121"/> <!-- UNSIGNED_BYTE -->
+            <xs:enumeration value="5122"/> <!-- SHORT -->
+            <xs:enumeration value="5123"/> <!-- UNSIGNED_SHORT -->
+            <xs:enumeration value="5125"/> <!-- UNSIGNED_INT -->
+            <xs:enumeration value="5126"/> <!-- FLOAT -->
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="AccessorDataType">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="SCALAR"/>
+            <xs:enumeration value="VEC2"/>
+            <xs:enumeration value="VEC3"/>
+            <xs:enumeration value="VEC4"/>
+            <xs:enumeration value="MAT2"/>
+            <xs:enumeration value="MAT3"/>
+            <xs:enumeration value="MAT4"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:complexType name="SparseType">
+        <xs:sequence>
+            <xs:element name="count" type="xs:integer"/>
+            <xs:element name="indices" type="gltf:SparseIndicesType"/>
+            <xs:element name="values" type="gltf:SparseValuesType"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="SparseIndicesType">
+        <xs:sequence>
+            <xs:element name="bufferView" type="xs:integer"/>
+            <xs:element name="byteOffset" type="xs:integer" minOccurs="0"/>
+            <xs:element name="componentType" type="gltf:ComponentType"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="SparseValuesType">
+        <xs:sequence>
+            <xs:element name="bufferView" type="xs:integer"/>
+            <xs:element name="byteOffset" type="xs:integer" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ================================================================= -->
+    <!-- BUFFER VIEWS -->
+    <!-- ================================================================= -->
+    <xs:complexType name="BufferViewsType">
+        <xs:sequence>
+            <xs:element name="bufferView" type="gltf:BufferViewType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="BufferViewType">
+        <xs:sequence>
+            <xs:element name="name" type="xs:string" minOccurs="0"/>
+            <xs:element name="buffer" type="xs:integer"/>
+            <xs:element name="byteOffset" type="xs:integer" minOccurs="0"/>
+            <xs:element name="byteLength" type="xs:integer"/>
+            <xs:element name="byteStride" type="xs:integer" minOccurs="0"/>
+            <xs:element name="target" type="gltf:BufferViewTarget" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:simpleType name="BufferViewTarget">
+        <xs:restriction base="xs:integer">
+            <xs:enumeration value="34962"/> <!-- ARRAY_BUFFER -->
+            <xs:enumeration value="34963"/> <!-- ELEMENT_ARRAY_BUFFER -->
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ================================================================= -->
+    <!-- BUFFERS -->
+    <!-- ================================================================= -->
+    <xs:complexType name="BuffersType">
+        <xs:sequence>
+            <xs:element name="buffer" type="gltf:BufferType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="BufferType">
+        <xs:sequence>
+            <xs:element name="name" type="xs:string" minOccurs="0"/>
+            <xs:element name="uri" type="xs:anyURI" minOccurs="0"/>
+            <xs:element name="byteLength" type="xs:integer"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ================================================================= -->
+    <!-- ANIMATIONS -->
+    <!-- ================================================================= -->
+    <xs:complexType name="AnimationsType">
+        <xs:sequence>
+            <xs:element name="animation" type="gltf:AnimationType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="AnimationType">
+        <xs:sequence>
+            <xs:element name="name" type="xs:string" minOccurs="0"/>
+            <xs:element name="channels" type="gltf:ChannelsType"/>
+            <xs:element name="samplers" type="gltf:AnimationSamplersType"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="ChannelsType">
+        <xs:sequence>
+            <xs:element name="channel" type="gltf:ChannelType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="ChannelType">
+        <xs:sequence>
+            <xs:element name="sampler" type="xs:integer"/>
+            <xs:element name="target" type="gltf:ChannelTargetType"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="ChannelTargetType">
+        <xs:sequence>
+            <xs:element name="node" type="xs:integer" minOccurs="0"/>
+            <xs:element name="path" type="gltf:AnimationPathType"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:simpleType name="AnimationPathType">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="translation"/>
+            <xs:enumeration value="rotation"/>
+            <xs:enumeration value="scale"/>
+            <xs:enumeration value="weights"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:complexType name="AnimationSamplersType">
+        <xs:sequence>
+            <xs:element name="sampler" type="gltf:AnimationSamplerType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="AnimationSamplerType">
+        <xs:sequence>
+            <xs:element name="input" type="xs:integer"/>
+            <xs:element name="output" type="xs:integer"/>
+            <xs:element name="interpolation" type="gltf:InterpolationType" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:simpleType name="InterpolationType">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="LINEAR"/>
+            <xs:enumeration value="STEP"/>
+            <xs:enumeration value="CUBICSPLINE"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ================================================================= -->
+    <!-- SKINS -->
+    <!-- ================================================================= -->
+    <xs:complexType name="SkinsType">
+        <xs:sequence>
+            <xs:element name="skin" type="gltf:SkinType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="SkinType">
+        <xs:sequence>
+            <xs:element name="name" type="xs:string" minOccurs="0"/>
+            <xs:element name="inverseBindMatrices" type="xs:integer" minOccurs="0"/>
+            <xs:element name="skeleton" type="xs:integer" minOccurs="0"/>
+            <xs:element name="joints" type="gltf:IndexListType"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ================================================================= -->
+    <!-- CAMERAS -->
+    <!-- ================================================================= -->
+    <xs:complexType name="CamerasType">
+        <xs:sequence>
+            <xs:element name="camera" type="gltf:CameraType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="CameraType">
+        <xs:sequence>
+            <xs:element name="name" type="xs:string" minOccurs="0"/>
+            <xs:element name="type" type="gltf:CameraProjectionType"/>
+            <xs:choice>
+                <xs:element name="perspective" type="gltf:PerspectiveType"/>
+                <xs:element name="orthographic" type="gltf:OrthographicType"/>
+            </xs:choice>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:simpleType name="CameraProjectionType">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="perspective"/>
+            <xs:enumeration value="orthographic"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:complexType name="PerspectiveType">
+        <xs:sequence>
+            <xs:element name="aspectRatio" type="xs:float" minOccurs="0"/>
+            <xs:element name="yfov" type="xs:float"/>
+            <xs:element name="zfar" type="xs:float" minOccurs="0"/>
+            <xs:element name="znear" type="xs:float"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="OrthographicType">
+        <xs:sequence>
+            <xs:element name="xmag" type="xs:float"/>
+            <xs:element name="ymag" type="xs:float"/>
+            <xs:element name="zfar" type="xs:float"/>
+            <xs:element name="znear" type="xs:float"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ================================================================= -->
+    <!-- HELPER TYPES -->
+    <!-- ================================================================= -->
+    <xs:complexType name="IndexListType">
+        <xs:sequence>
+            <xs:element name="index" type="xs:integer" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="FloatListType">
+        <xs:sequence>
+            <xs:element name="value" type="xs:float" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:simpleType name="Vec3Type">
+        <xs:list itemType="xs:float"/>
+    </xs:simpleType>
+
+    <xs:simpleType name="Vec4Type">
+        <xs:list itemType="xs:float"/>
+    </xs:simpleType>
+
+    <xs:simpleType name="Mat4Type">
+        <xs:list itemType="xs:float"/>
+    </xs:simpleType>
+
+</xs:schema>

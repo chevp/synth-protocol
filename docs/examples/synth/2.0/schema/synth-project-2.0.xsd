@@ -1,0 +1,335 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SYNTH PROJECT XML SCHEMA
+  Version 2.0 - DSL-Enhanced XML
+
+  This schema defines the structure for .synth project files with embedded DSL commands.
+
+  Key Features:
+  - Proper XML structure with namespaces
+  - <dsl:commands> element for 5-Slot Grammar DSL syntax
+  - ECS architecture: ClusterNodes + Components
+  - Event history for undo/redo
+  - MCP server integration
+  - Asset management with chp:// protocol
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:synth="https://chevp.github.io/synth-protocol/schema/synth/project/2.0"
+           xmlns:core="https://chevp.github.io/synth-protocol/schema/synth/core/2.0"
+           xmlns:dsl="https://chevp.github.io/synth-protocol/schema/synth/dsl/2.0"
+           xmlns:glsl="https://chevp.github.io/synth-protocol/schema/synth/glsl/2.0"
+           xmlns:gltf="https://chevp.github.io/synth-protocol/schema/synth/gltf/2.0"
+           targetNamespace="https://chevp.github.io/synth-protocol/schema/synth/project/2.0"
+           elementFormDefault="qualified">
+
+    <!-- ================================================================= -->
+    <!-- IMPORTS -->
+    <!-- Native syntax embedding: each domain uses its native syntax -->
+    <!-- - dsl: 5-Slot Grammar DSL for synth commands -->
+    <!-- - glsl: Native GLSL shader code -->
+    <!-- - gltf: Native glTF 2.0 structure -->
+    <!-- ================================================================= -->
+    <xs:import namespace="https://chevp.github.io/synth-protocol/schema/synth/core/2.0"
+               schemaLocation="synth-core-2.0.xsd"/>
+    <xs:import namespace="https://chevp.github.io/synth-protocol/schema/synth/dsl/2.0"
+               schemaLocation="synth-dsl-2.0.xsd"/>
+    <xs:import namespace="https://chevp.github.io/synth-protocol/schema/synth/glsl/2.0"
+               schemaLocation="synth-glsl-2.0.xsd"/>
+    <xs:import namespace="https://chevp.github.io/synth-protocol/schema/synth/gltf/2.0"
+               schemaLocation="synth-gltf-2.0.xsd"/>
+
+    <!-- ================================================================= -->
+    <!-- ROOT ELEMENT -->
+    <!-- ================================================================= -->
+    <xs:element name="synthProject" type="synth:SynthProjectType"/>
+
+    <xs:complexType name="SynthProjectType">
+        <xs:sequence>
+            <xs:element name="header" type="synth:HeaderType"/>
+            <xs:element name="project" type="synth:ProjectType"/>
+            <xs:element name="mcpServers" type="synth:McpServersType" minOccurs="0"/>
+            <xs:element name="plugins" type="synth:PluginsType" minOccurs="0"/>
+            <xs:element name="tags" type="synth:TagsType" minOccurs="0"/>
+            <xs:element name="clusterNodes" type="synth:ClusterNodesType"/>
+            <xs:element name="components" type="synth:ComponentsType"/>
+            <xs:element name="assets" type="synth:AssetsType" minOccurs="0"/>
+            <xs:element name="shaders" type="synth:ShadersType" minOccurs="0"/>
+            <xs:element name="embeddedGltf" type="synth:EmbeddedGltfType" minOccurs="0"/>
+            <xs:element name="history" type="synth:HistoryType" minOccurs="0"/>
+            <xs:element name="events" type="synth:EventsType" minOccurs="0"/>
+            <xs:element name="agents" type="synth:AgentsType" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ================================================================= -->
+    <!-- HEADER -->
+    <!-- ================================================================= -->
+    <xs:complexType name="HeaderType">
+        <xs:sequence>
+            <xs:element name="magic" type="xs:string" fixed="SYNTH"/>
+            <xs:element name="formatVersion" type="xs:integer"/>
+            <xs:element name="schemaVersion" type="xs:string"/>
+            <xs:element name="createdAt" type="xs:long"/>
+            <xs:element name="modifiedAt" type="xs:long"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ================================================================= -->
+    <!-- PROJECT -->
+    <!-- ================================================================= -->
+    <xs:complexType name="ProjectType">
+        <xs:sequence>
+            <xs:element ref="core:entityId"/>
+            <xs:element name="name" type="xs:string"/>
+            <xs:element name="description" type="xs:string" minOccurs="0"/>
+            <xs:element ref="dsl:commands" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ================================================================= -->
+    <!-- MCP SERVERS -->
+    <!-- ================================================================= -->
+    <xs:complexType name="McpServersType">
+        <xs:sequence>
+            <xs:element name="server" type="synth:McpServerType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="McpServerType">
+        <xs:sequence>
+            <xs:element name="serverName" type="xs:string"/>
+            <xs:element name="version" type="xs:string"/>
+            <xs:element name="required" type="xs:boolean"/>
+            <xs:element name="source" type="synth:MarketplaceSourceType"/>
+            <xs:element ref="dsl:commands" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <xs:simpleType name="MarketplaceSourceType">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="MARKETPLACE_SOURCE_LOCAL"/>
+            <xs:enumeration value="MARKETPLACE_SOURCE_DEV"/>
+            <xs:enumeration value="MARKETPLACE_SOURCE_PRODUCTION"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ================================================================= -->
+    <!-- PLUGINS -->
+    <!-- ================================================================= -->
+    <xs:complexType name="PluginsType">
+        <xs:sequence>
+            <xs:element name="plugin" type="synth:PluginType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="PluginType">
+        <xs:sequence>
+            <xs:element name="artifact" type="xs:string"/>
+            <xs:element name="type" type="synth:PluginTypeEnum"/>
+            <xs:element name="mcpBridgeServerId" type="xs:string" minOccurs="0"/>
+            <xs:element ref="dsl:commands" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <xs:simpleType name="PluginTypeEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="PLUGIN_TYPE_JAR"/>
+            <xs:enumeration value="PLUGIN_TYPE_NODEJS"/>
+            <xs:enumeration value="PLUGIN_TYPE_PYTHON"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ================================================================= -->
+    <!-- TAGS -->
+    <!-- ================================================================= -->
+    <xs:complexType name="TagsType">
+        <xs:sequence>
+            <xs:element ref="dsl:commands" minOccurs="0"/>
+            <xs:element name="tag" type="synth:TagType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="TagType">
+        <xs:sequence>
+            <xs:element name="name" type="xs:string"/>
+            <xs:element name="color" type="xs:string"/>
+            <xs:element name="category" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <!-- ================================================================= -->
+    <!-- CLUSTER NODES -->
+    <!-- ================================================================= -->
+    <xs:complexType name="ClusterNodesType">
+        <xs:sequence>
+            <xs:element name="node" type="synth:ClusterNodeType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="ClusterNodeType">
+        <xs:sequence>
+            <xs:element name="name" type="xs:string"/>
+            <xs:element ref="dsl:commands" minOccurs="0"/>
+            <xs:element name="parentId" type="xs:string" minOccurs="0"/>
+            <xs:element name="childIds" type="synth:IdListType" minOccurs="0"/>
+            <xs:element name="tagIds" type="synth:IdListType" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="type" type="synth:ClusterNodeTypeEnum" use="required"/>
+    </xs:complexType>
+
+    <xs:simpleType name="ClusterNodeTypeEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="CLUSTER_NODE_TYPE_SCENE"/>
+            <xs:enumeration value="CLUSTER_NODE_TYPE_FOLDER"/>
+            <xs:enumeration value="CLUSTER_NODE_TYPE_ASSET"/>
+            <xs:enumeration value="CLUSTER_NODE_TYPE_PREFAB"/>
+            <xs:enumeration value="CLUSTER_NODE_TYPE_CAMERA"/>
+            <xs:enumeration value="CLUSTER_NODE_TYPE_LIGHT"/>
+            <xs:enumeration value="CLUSTER_NODE_TYPE_DOCUMENT"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:complexType name="IdListType">
+        <xs:sequence>
+            <xs:element name="id" type="xs:string" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ================================================================= -->
+    <!-- COMPONENTS -->
+    <!-- ================================================================= -->
+    <xs:complexType name="ComponentsType">
+        <xs:sequence>
+            <xs:element name="component" type="synth:ComponentType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="ComponentType">
+        <xs:sequence>
+            <xs:element name="clusterNodeId" type="xs:string"/>
+            <xs:element ref="dsl:commands"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="type" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <!-- ================================================================= -->
+    <!-- ASSETS -->
+    <!-- ================================================================= -->
+    <xs:complexType name="AssetsType">
+        <xs:sequence>
+            <xs:element ref="dsl:commands" minOccurs="0"/>
+            <xs:element name="asset" type="synth:AssetType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="AssetType">
+        <xs:sequence>
+            <xs:element name="name" type="xs:string"/>
+            <xs:element name="type" type="synth:AssetTypeEnum"/>
+            <xs:element name="uri" type="xs:anyURI"/>
+            <xs:element name="sourcePath" type="xs:string" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <xs:simpleType name="AssetTypeEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="ASSET_TYPE_TEXTURE"/>
+            <xs:enumeration value="ASSET_TYPE_MODEL_3D"/>
+            <xs:enumeration value="ASSET_TYPE_SHADER"/>
+            <xs:enumeration value="ASSET_TYPE_AUDIO"/>
+            <xs:enumeration value="ASSET_TYPE_SCRIPT"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ================================================================= -->
+    <!-- SHADERS (Native GLSL Embedding) -->
+    <!-- Contains native GLSL shader code - syntax is actual GLSL -->
+    <!-- ================================================================= -->
+    <xs:complexType name="ShadersType">
+        <xs:sequence>
+            <xs:element ref="glsl:program" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ================================================================= -->
+    <!-- EMBEDDED GLTF (Native glTF Embedding) -->
+    <!-- Contains native glTF 2.0 structure - syntax is actual glTF -->
+    <!-- ================================================================= -->
+    <xs:complexType name="EmbeddedGltfType">
+        <xs:sequence>
+            <xs:element ref="gltf:gltf" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ================================================================= -->
+    <!-- HISTORY (EVENT LOG) -->
+    <!-- ================================================================= -->
+    <xs:complexType name="HistoryType">
+        <xs:sequence>
+            <xs:element name="event" type="synth:HistoryEventType" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="maxEvents" type="xs:integer" default="1000"/>
+        <xs:attribute name="enabled" type="xs:boolean" default="true"/>
+    </xs:complexType>
+
+    <xs:complexType name="HistoryEventType">
+        <xs:simpleContent>
+            <xs:extension base="xs:string">
+                <xs:attribute name="id" type="xs:string" use="required"/>
+                <xs:attribute name="ts" type="xs:long" use="required"/>
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+
+    <!-- ================================================================= -->
+    <!-- EVENTS (SUBSCRIPTIONS) -->
+    <!-- ================================================================= -->
+    <xs:complexType name="EventsType">
+        <xs:sequence>
+            <xs:element ref="dsl:commands" minOccurs="0"/>
+            <xs:element name="subscription" type="synth:SubscriptionType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="SubscriptionType">
+        <xs:sequence>
+            <xs:element name="pattern" type="xs:string"/>
+            <xs:element name="handler" type="xs:string"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <!-- ================================================================= -->
+    <!-- AGENTS -->
+    <!-- ================================================================= -->
+    <xs:complexType name="AgentsType">
+        <xs:sequence>
+            <xs:element name="agent" type="synth:AgentType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="AgentType">
+        <xs:sequence>
+            <xs:element name="name" type="xs:string"/>
+            <xs:element name="type" type="synth:AgentTypeEnum"/>
+            <xs:element name="mcpServerId" type="xs:string" minOccurs="0"/>
+            <xs:element ref="dsl:commands" minOccurs="0"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+    </xs:complexType>
+
+    <xs:simpleType name="AgentTypeEnum">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="AGENT_TYPE_REACTIVE"/>
+            <xs:enumeration value="AGENT_TYPE_PROACTIVE"/>
+            <xs:enumeration value="AGENT_TYPE_HYBRID"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+</xs:schema>

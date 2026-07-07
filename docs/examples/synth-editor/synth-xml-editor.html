@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Synth XML Editor</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/foldgutter.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0f0f1a;
+            color: #e0e0e0;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        header {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            padding: 14px 24px;
+            border-bottom: 1px solid #313244;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        header h1 { font-size: 16px; color: #94e2d5; }
+        header .subtitle { font-size: 11px; color: #6c7086; }
+        header .version {
+            margin-left: auto;
+            background: #cba6f730;
+            color: #cba6f7;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 10px;
+        }
+
+        .toolbar {
+            background: #1a1a2e;
+            padding: 8px 16px;
+            border-bottom: 1px solid #313244;
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+        .toolbar button {
+            background: #313244;
+            border: none;
+            color: #cdd6f4;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 11px;
+            transition: all 0.2s;
+        }
+        .toolbar button:hover { background: #94e2d5; color: #0f0f1a; }
+        .toolbar .sep { width: 1px; height: 20px; background: #313244; margin: 0 8px; }
+        .toolbar .hint { margin-left: auto; font-size: 10px; color: #6c7086; }
+        .toolbar .hint kbd { background: #313244; padding: 2px 6px; border-radius: 4px; }
+
+        .main { flex: 1; display: flex; overflow: hidden; }
+
+        /* Tree Panel */
+        .tree-panel {
+            width: 260px;
+            background: #1a1a2e;
+            border-right: 1px solid #313244;
+            display: flex;
+            flex-direction: column;
+        }
+        .tree-header {
+            padding: 12px;
+            background: #16213e;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #6c7086;
+            border-bottom: 1px solid #313244;
+        }
+        .tree-content { flex: 1; overflow-y: auto; padding: 8px; }
+        .tree-node {
+            padding: 6px 8px;
+            margin: 2px 0;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.1s;
+        }
+        .tree-node:hover { background: #313244; }
+        .tree-node.active { background: #94e2d520; color: #94e2d5; }
+        .tree-node .icon {
+            width: 18px; height: 18px;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 4px;
+            font-size: 10px;
+        }
+        .tree-node .icon.synth { background: #cba6f730; color: #cba6f7; }
+        .tree-node .icon.scene { background: #89b4fa30; color: #89b4fa; }
+        .tree-node .icon.node { background: #a6e3a130; color: #a6e3a1; }
+        .tree-node .icon.script { background: #f9e2af30; color: #f9e2af; }
+        .tree-node .icon.model { background: #f38ba830; color: #f38ba8; }
+        .tree-node .icon.shader { background: #94e2d530; color: #94e2d5; }
+        .tree-node .icon.texture { background: #fab38730; color: #fab387; }
+        .tree-children { padding-left: 16px; }
+        .tree-node .badge {
+            margin-left: auto;
+            font-size: 8px;
+            padding: 2px 6px;
+            border-radius: 8px;
+            background: #313244;
+            color: #6c7086;
+        }
+
+        /* Editor */
+        .editor-panel { flex: 1; display: flex; flex-direction: column; }
+        .editor-tabs {
+            background: #16213e;
+            display: flex;
+            border-bottom: 1px solid #313244;
+        }
+        .editor-tab {
+            padding: 10px 16px;
+            font-size: 11px;
+            color: #6c7086;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .editor-tab:hover { color: #cdd6f4; }
+        .editor-tab.active { color: #94e2d5; border-bottom-color: #94e2d5; }
+        .editor-tab .close {
+            margin-left: 8px;
+            opacity: 0.5;
+            font-size: 14px;
+        }
+        .editor-tab .close:hover { opacity: 1; }
+
+        .CodeMirror {
+            flex: 1; height: auto;
+            font-family: 'JetBrains Mono', 'Consolas', monospace;
+            font-size: 12px; line-height: 1.6;
+            background: #0f0f1a; color: #cdd6f4;
+        }
+        .CodeMirror-gutters { background: #1a1a2e; border-right: 1px solid #313244; }
+        .CodeMirror-linenumber { color: #45475a; }
+        .CodeMirror-cursor { border-left: 2px solid #94e2d5; }
+        .CodeMirror-selected { background: #31324480 !important; }
+        .CodeMirror-foldgutter { width: 16px; }
+        .CodeMirror-foldgutter-open { color: #6c7086; }
+        .CodeMirror-foldgutter-folded { color: #94e2d5; }
+
+        /* Synth XML Syntax */
+        .cm-synth-tag { color: #94e2d5; }
+        .cm-synth-attribute { color: #89b4fa; }
+        .cm-synth-string { color: #a6e3a1; }
+        .cm-synth-comment { color: #6c7086; font-style: italic; }
+        .cm-synth-special-tag { color: #cba6f7; font-weight: bold; }
+        .cm-synth-script { color: #f9e2af; }
+        .cm-synth-glsl { color: #94e2d5; }
+        .cm-synth-ref { color: #f38ba8; }
+        .cm-synth-cdata { color: #fab387; }
+
+        /* Embedded content highlight */
+        .cm-synth-embedded { background: #ffffff08; }
+
+        /* Autocomplete */
+        .CodeMirror-hints {
+            background: #1a1a2e;
+            border: 1px solid #313244;
+            border-radius: 8px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            max-height: 280px;
+            padding: 4px 0;
+        }
+        .CodeMirror-hint {
+            padding: 6px 12px;
+            color: #cdd6f4;
+            cursor: pointer;
+        }
+        .CodeMirror-hint:hover { background: #313244; }
+        .CodeMirror-hint-active { background: #94e2d5 !important; color: #0f0f1a; }
+
+        /* Output Panel */
+        .output-panel {
+            height: 180px;
+            background: #16213e;
+            border-top: 1px solid #313244;
+            display: flex;
+            flex-direction: column;
+        }
+        .output-tabs {
+            display: flex;
+            background: #1a1a2e;
+            border-bottom: 1px solid #313244;
+        }
+        .output-tab {
+            padding: 8px 14px;
+            font-size: 10px;
+            color: #6c7086;
+            cursor: pointer;
+        }
+        .output-tab:hover { color: #cdd6f4; }
+        .output-tab.active { color: #94e2d5; border-bottom: 2px solid #94e2d5; }
+        .output-content {
+            flex: 1;
+            overflow: auto;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 11px;
+        }
+        .output-content pre { color: #6c7086; white-space: pre-wrap; }
+        .output-content .error { color: #f38ba8; }
+        .output-content .success { color: #a6e3a1; }
+        .output-content .info { color: #89b4fa; }
+
+        /* Properties Panel */
+        .props-panel {
+            width: 280px;
+            background: #1a1a2e;
+            border-left: 1px solid #313244;
+            display: flex;
+            flex-direction: column;
+        }
+        .props-header {
+            padding: 12px;
+            background: #16213e;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #6c7086;
+            border-bottom: 1px solid #313244;
+        }
+        .props-content { flex: 1; overflow-y: auto; padding: 12px; }
+        .prop-section { margin-bottom: 16px; }
+        .prop-section-title {
+            font-size: 9px;
+            text-transform: uppercase;
+            color: #6c7086;
+            margin-bottom: 8px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid #313244;
+        }
+        .prop-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 6px;
+            font-size: 11px;
+        }
+        .prop-label { width: 80px; color: #6c7086; }
+        .prop-value {
+            flex: 1;
+            background: #0f0f1a;
+            border: 1px solid #313244;
+            padding: 6px 8px;
+            border-radius: 4px;
+            color: #cdd6f4;
+            font-family: monospace;
+            font-size: 10px;
+        }
+        .prop-value:focus { outline: none; border-color: #94e2d5; }
+
+        .status-bar {
+            background: #16213e;
+            padding: 6px 16px;
+            font-size: 10px;
+            color: #6c7086;
+            display: flex;
+            gap: 20px;
+            border-top: 1px solid #313244;
+        }
+        .status-bar .valid { color: #a6e3a1; }
+        .status-bar .error { color: #f38ba8; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Synth XML Editor</h1>
+        <div class="subtitle">XML-based format with script, model, shader tags - like HTML</div>
+        <span class="version">synth.xml v1.0</span>
+    </header>
+
+    <div class="toolbar">
+        <button onclick="validateXML()">Validate</button>
+        <button onclick="formatXML()">Format</button>
+        <div class="sep"></div>
+        <button onclick="loadExample('project')">Project</button>
+        <button onclick="loadExample('scene')">Scene</button>
+        <button onclick="loadExample('material')">Material</button>
+        <button onclick="loadExample('embedded')">Embedded</button>
+        <button onclick="loadExample('events')">Events</button>
+        <div class="sep"></div>
+        <button onclick="exportJSON()">Export JSON</button>
+        <span class="hint"><kbd>Ctrl</kbd>+<kbd>Space</kbd> autocomplete</span>
+    </div>
+
+    <div class="main">
+        <div class="tree-panel">
+            <div class="tree-header">Document Structure</div>
+            <div class="tree-content" id="treeContent">
+                <!-- Populated by JS -->
+            </div>
+        </div>
+
+        <div class="editor-panel">
+            <div class="editor-tabs">
+                <div class="editor-tab active">
+                    <span>index.synth.xml</span>
+                </div>
+            </div>
+            <textarea id="editor"></textarea>
+            <div class="output-panel">
+                <div class="output-tabs">
+                    <div class="output-tab active" data-tab="parsed" onclick="showOutput('parsed')">Parsed</div>
+                    <div class="output-tab" data-tab="refs" onclick="showOutput('refs')">References</div>
+                    <div class="output-tab" data-tab="errors" onclick="showOutput('errors')">Errors</div>
+                </div>
+                <div class="output-content">
+                    <pre id="outputParsed"></pre>
+                    <pre id="outputRefs" style="display:none;"></pre>
+                    <pre id="outputErrors" style="display:none;"></pre>
+                </div>
+            </div>
+        </div>
+
+        <div class="props-panel">
+            <div class="props-header">Element Properties</div>
+            <div class="props-content" id="propsContent">
+                <div class="prop-section">
+                    <div class="prop-section-title">Selection</div>
+                    <div style="color:#6c7086; font-size:11px;">Select an element in the tree</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="status-bar">
+        <span id="statusValid">Ready</span>
+        <span id="statusLine">Line: 1</span>
+        <span id="statusElements">Elements: 0</span>
+        <span style="margin-left:auto;">Synth XML v1.0</span>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchtags.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/foldcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/foldgutter.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/xml-fold.min.js"></script>
+    <script>
+        // Synth XML Tags
+        const SYNTH_TAGS = {
+            // Root & structure
+            'synth': { desc: 'Root element', attrs: ['version', 'xmlns'] },
+            'meta': { desc: 'Metadata section', attrs: ['name', 'version', 'author'] },
+            'project': { desc: 'Project configuration', attrs: ['default-scene'] },
+            'children': { desc: 'Child entity definitions', attrs: [] },
+            'folder': { desc: 'Entity folder reference', attrs: ['type', 'pattern', 'ref'] },
+
+            // Scene structure
+            'scene': { desc: 'Scene definition', attrs: ['id', 'name', 'state'] },
+            'node': { desc: 'Scene node (entity)', attrs: ['id', 'name', 'type', 'parent'] },
+            'transform': { desc: 'Transform component', attrs: ['position', 'rotation', 'scale'] },
+
+            // Content embedding tags (like HTML)
+            'script': { desc: 'Embedded script/logic', attrs: ['type', 'src', 'lang'] },
+            'model': { desc: 'Embedded or referenced 3D model', attrs: ['type', 'src', 'format'] },
+            'shader': { desc: 'Embedded or referenced shader', attrs: ['type', 'src', 'stage'] },
+            'texture': { desc: 'Texture reference', attrs: ['type', 'src', 'format'] },
+            'material': { desc: 'Material definition', attrs: ['id', 'name', 'type'] },
+
+            // Data embedding
+            'data': { desc: 'Embedded raw data', attrs: ['type', 'encoding'] },
+            'json': { desc: 'Embedded JSON data', attrs: ['type'] },
+            'glsl': { desc: 'Embedded GLSL code', attrs: ['stage'] },
+            'text': { desc: 'Embedded text content', attrs: ['type'] },
+
+            // References
+            'ref': { desc: 'External file reference', attrs: ['src', 'type', 'async'] },
+            'import': { desc: 'Import external synth file', attrs: ['src', 'as'] },
+            'include': { desc: 'Include external content', attrs: ['src', 'type'] },
+
+            // MCP & Agents
+            'mcp': { desc: 'MCP server configuration', attrs: [] },
+            'server': { desc: 'MCP server definition', attrs: ['id', 'transport', 'command', 'url'] },
+            'agents': { desc: 'Agent definitions', attrs: [] },
+            'agent': { desc: 'Agent definition', attrs: ['id', 'type', 'name'] },
+
+            // Events (5-slot grammar DSL)
+            'events': { desc: 'Event history section', attrs: ['max-events', 'enabled'] },
+            'event': { desc: 'CompactEvent (5-slot grammar)', attrs: ['id', 'ts', 'correlation'] },
+            'history': { desc: 'Event history for undo/replay', attrs: ['max-events'] },
+
+            // Components
+            'mesh': { desc: 'Mesh component', attrs: ['ref', 'primitive'] },
+            'physics': { desc: 'Physics component', attrs: ['mass', 'collider'] },
+            'light': { desc: 'Light component', attrs: ['type', 'color', 'intensity'] },
+            'camera': { desc: 'Camera component', attrs: ['type', 'fov', 'near', 'far'] }
+        };
+
+        // CodeMirror mode for Synth XML
+        CodeMirror.defineMode('synth-xml', function() {
+            const specialTags = ['script', 'model', 'shader', 'glsl', 'json', 'data', 'text', 'event'];
+
+            return {
+                startState: () => ({
+                    inTag: false,
+                    tagName: '',
+                    inAttribute: false,
+                    inString: false,
+                    stringChar: '',
+                    inSpecial: false,
+                    specialTag: '',
+                    depth: 0
+                }),
+                token: function(stream, state) {
+                    // Inside special tag content
+                    if (state.inSpecial) {
+                        const endTag = '</' + state.specialTag;
+                        if (stream.match(endTag, false)) {
+                            state.inSpecial = false;
+                            state.specialTag = '';
+                        } else {
+                            stream.next();
+                            if (state.specialTag === 'glsl' || state.specialTag === 'shader') {
+                                return 'synth-glsl synth-embedded';
+                            } else if (state.specialTag === 'script') {
+                                return 'synth-script synth-embedded';
+                            }
+                            return 'synth-cdata synth-embedded';
+                        }
+                        return null;
+                    }
+
+                    // Comment
+                    if (stream.match('<!--')) {
+                        while (!stream.match('-->') && !stream.eol()) stream.next();
+                        return 'synth-comment';
+                    }
+
+                    // CDATA
+                    if (stream.match('<![CDATA[')) {
+                        while (!stream.match(']]>') && !stream.eol()) stream.next();
+                        return 'synth-cdata';
+                    }
+
+                    // End tag
+                    if (stream.match(/<\/[\w-]+>/)) {
+                        return 'synth-tag';
+                    }
+
+                    // Start tag opening
+                    if (stream.match(/<[\w-]+/)) {
+                        const tagMatch = stream.current().slice(1);
+                        state.inTag = true;
+                        state.tagName = tagMatch;
+                        if (specialTags.includes(tagMatch)) {
+                            return 'synth-special-tag';
+                        }
+                        return 'synth-tag';
+                    }
+
+                    // Inside tag
+                    if (state.inTag) {
+                        if (stream.eatSpace()) return null;
+
+                        // Self-closing or end
+                        if (stream.match('/>') || stream.match('>')) {
+                            state.inTag = false;
+                            // Check if entering special tag
+                            if (specialTags.includes(state.tagName) && stream.current() === '>') {
+                                state.inSpecial = true;
+                                state.specialTag = state.tagName;
+                            }
+                            state.tagName = '';
+                            return 'synth-tag';
+                        }
+
+                        // Attribute value
+                        if (stream.match(/"[^"]*"/)) {
+                            // Check for chp:// protocol
+                            if (stream.current().includes('chp://')) {
+                                return 'synth-ref';
+                            }
+                            return 'synth-string';
+                        }
+                        if (stream.match(/'[^']*'/)) {
+                            return 'synth-string';
+                        }
+
+                        // Attribute name
+                        if (stream.match(/[\w-]+(?=\s*=)/)) {
+                            return 'synth-attribute';
+                        }
+
+                        // =
+                        if (stream.eat('=')) return null;
+
+                        stream.next();
+                        return null;
+                    }
+
+                    // Text content
+                    if (!stream.eatSpace()) {
+                        stream.next();
+                    }
+                    return null;
+                }
+            };
+        });
+
+        // Autocomplete
+        function synthXMLHint(cm) {
+            const cursor = cm.getCursor();
+            const line = cm.getLine(cursor.line);
+            const beforeCursor = line.substring(0, cursor.ch);
+
+            let suggestions = [];
+            let start = cursor.ch;
+
+            // After < - suggest tags
+            if (beforeCursor.match(/<[\w-]*$/)) {
+                const match = beforeCursor.match(/<([\w-]*)$/);
+                const prefix = match ? match[1] : '';
+                start = cursor.ch - prefix.length;
+
+                suggestions = Object.entries(SYNTH_TAGS)
+                    .filter(([tag]) => tag.startsWith(prefix))
+                    .map(([tag, info]) => ({
+                        text: tag,
+                        displayText: `<${tag}> - ${info.desc}`
+                    }));
+            }
+            // Inside tag - suggest attributes
+            else if (beforeCursor.match(/<[\w-]+[^>]*\s[\w-]*$/)) {
+                const tagMatch = beforeCursor.match(/<([\w-]+)/);
+                const attrMatch = beforeCursor.match(/\s([\w-]*)$/);
+                const tagName = tagMatch ? tagMatch[1] : '';
+                const prefix = attrMatch ? attrMatch[1] : '';
+                start = cursor.ch - prefix.length;
+
+                const tagInfo = SYNTH_TAGS[tagName];
+                if (tagInfo) {
+                    suggestions = tagInfo.attrs
+                        .filter(attr => attr.startsWith(prefix))
+                        .map(attr => ({
+                            text: attr + '=""',
+                            displayText: attr
+                        }));
+                }
+                // Common attributes
+                suggestions.push(
+                    { text: 'id=""', displayText: 'id' },
+                    { text: 'name=""', displayText: 'name' },
+                    { text: 'src=""', displayText: 'src' },
+                    { text: 'ref=""', displayText: 'ref' },
+                    { text: 'type=""', displayText: 'type' }
+                );
+            }
+
+            if (!suggestions.length) return null;
+
+            return {
+                list: suggestions,
+                from: CodeMirror.Pos(cursor.line, start),
+                to: cursor
+            };
+        }
+
+        // Parse XML and build tree
+        function parseXML(text) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(text, 'application/xml');
+            const errors = [];
+
+            // Check for parse errors
+            const parseError = doc.querySelector('parsererror');
+            if (parseError) {
+                errors.push({ msg: parseError.textContent.split('\n')[0] });
+            }
+
+            return { doc, errors };
+        }
+
+        function buildTree(doc) {
+            const container = document.getElementById('treeContent');
+            container.innerHTML = '';
+
+            function createNode(el, depth = 0) {
+                const div = document.createElement('div');
+
+                const node = document.createElement('div');
+                node.className = 'tree-node';
+                node.style.paddingLeft = (depth * 12) + 'px';
+
+                const icon = document.createElement('span');
+                icon.className = 'icon ' + getIconClass(el.tagName);
+                icon.textContent = el.tagName[0].toUpperCase();
+
+                const label = document.createElement('span');
+                label.textContent = el.tagName;
+                if (el.id || el.getAttribute('name')) {
+                    label.textContent += ` "${el.id || el.getAttribute('name')}"`;
+                }
+
+                node.appendChild(icon);
+                node.appendChild(label);
+
+                // Badge for special tags
+                if (['script', 'model', 'shader', 'glsl'].includes(el.tagName.toLowerCase())) {
+                    const badge = document.createElement('span');
+                    badge.className = 'badge';
+                    badge.textContent = el.getAttribute('type') || el.getAttribute('stage') || 'embedded';
+                    node.appendChild(badge);
+                }
+
+                node.onclick = () => showProperties(el);
+                div.appendChild(node);
+
+                // Children
+                if (el.children.length > 0) {
+                    const children = document.createElement('div');
+                    children.className = 'tree-children';
+                    Array.from(el.children).forEach(child => {
+                        children.appendChild(createNode(child, depth + 1));
+                    });
+                    div.appendChild(children);
+                }
+
+                return div;
+            }
+
+            function getIconClass(tagName) {
+                const tag = tagName.toLowerCase();
+                if (tag === 'synth') return 'synth';
+                if (tag === 'scene') return 'scene';
+                if (tag === 'node') return 'node';
+                if (tag === 'script') return 'script';
+                if (tag === 'model' || tag === 'mesh') return 'model';
+                if (tag === 'shader' || tag === 'glsl') return 'shader';
+                if (tag === 'texture') return 'texture';
+                return 'node';
+            }
+
+            if (doc.documentElement) {
+                container.appendChild(createNode(doc.documentElement));
+            }
+
+            // Count elements
+            const count = doc.querySelectorAll('*').length;
+            document.getElementById('statusElements').textContent = `Elements: ${count}`;
+        }
+
+        function showProperties(el) {
+            const container = document.getElementById('propsContent');
+            let html = `<div class="prop-section">
+                <div class="prop-section-title">${el.tagName}</div>
+                <div class="prop-row"><span class="prop-label">Tag</span><input class="prop-value" value="${el.tagName}" readonly></div>
+            </div>`;
+
+            // Attributes
+            if (el.attributes.length > 0) {
+                html += '<div class="prop-section"><div class="prop-section-title">Attributes</div>';
+                Array.from(el.attributes).forEach(attr => {
+                    const isRef = attr.value.includes('chp://');
+                    html += `<div class="prop-row">
+                        <span class="prop-label">${attr.name}</span>
+                        <input class="prop-value" value="${attr.value}" readonly style="${isRef ? 'color:#f38ba8;' : ''}">
+                    </div>`;
+                });
+                html += '</div>';
+            }
+
+            // Text content
+            const text = el.textContent.trim();
+            if (text && el.children.length === 0) {
+                const preview = text.length > 100 ? text.substring(0, 100) + '...' : text;
+                html += `<div class="prop-section">
+                    <div class="prop-section-title">Content</div>
+                    <pre style="background:#0f0f1a; padding:8px; border-radius:4px; font-size:9px; color:#6c7086; max-height:100px; overflow:auto; white-space:pre-wrap;">${escapeHtml(preview)}</pre>
+                </div>`;
+            }
+
+            container.innerHTML = html;
+        }
+
+        function escapeHtml(text) {
+            return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        function validateXML() {
+            const { doc, errors } = parseXML(editor.getValue());
+            const statusEl = document.getElementById('statusValid');
+
+            if (errors.length === 0) {
+                statusEl.className = 'valid';
+                statusEl.textContent = '\u2713 Valid XML';
+                document.getElementById('outputErrors').innerHTML = '<span class="success">No errors</span>';
+            } else {
+                statusEl.className = 'error';
+                statusEl.textContent = '\u2717 Invalid XML';
+                document.getElementById('outputErrors').innerHTML = errors.map(e => `<span class="error">${e.msg}</span>`).join('\n');
+                showOutput('errors');
+            }
+
+            buildTree(doc);
+            extractRefs(doc);
+        }
+
+        function extractRefs(doc) {
+            const refs = [];
+            doc.querySelectorAll('[src], [ref]').forEach(el => {
+                const src = el.getAttribute('src') || el.getAttribute('ref');
+                if (src) {
+                    refs.push({
+                        tag: el.tagName,
+                        attr: el.hasAttribute('src') ? 'src' : 'ref',
+                        value: src,
+                        isChp: src.startsWith('chp://')
+                    });
+                }
+            });
+
+            const output = refs.length > 0
+                ? refs.map(r => `<span class="${r.isChp ? 'info' : ''}">&lt;${r.tag}&gt; ${r.attr}="${r.value}"</span>`).join('\n')
+                : '<span class="info">No external references found</span>';
+
+            document.getElementById('outputRefs').innerHTML = output;
+        }
+
+        function formatXML() {
+            const text = editor.getValue();
+            try {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(text, 'application/xml');
+                const serializer = new XMLSerializer();
+                let formatted = serializer.serializeToString(doc);
+
+                // Basic formatting
+                formatted = formatted
+                    .replace(/></g, '>\n<')
+                    .replace(/(<[^\/][^>]*[^\/]>)\n/g, '$1\n')
+                    .split('\n')
+                    .map((line, i, arr) => {
+                        const indent = (line.match(/^<\//) ? -1 : 0) + (arr.slice(0, i).filter(l => l.match(/^<[^\/\?!]/) && !l.match(/\/>$/)).length) - (arr.slice(0, i).filter(l => l.match(/^<\//)).length);
+                        return '    '.repeat(Math.max(0, indent)) + line.trim();
+                    })
+                    .join('\n');
+
+                editor.setValue(formatted);
+            } catch (e) {
+                document.getElementById('outputErrors').innerHTML = `<span class="error">Format error: ${e.message}</span>`;
+                showOutput('errors');
+            }
+        }
+
+        function exportJSON() {
+            const { doc } = parseXML(editor.getValue());
+            function nodeToJson(el) {
+                const obj = { _tag: el.tagName };
+                Array.from(el.attributes).forEach(attr => {
+                    obj['@' + attr.name] = attr.value;
+                });
+                if (el.children.length > 0) {
+                    obj._children = Array.from(el.children).map(nodeToJson);
+                } else if (el.textContent.trim()) {
+                    obj._text = el.textContent.trim();
+                }
+                return obj;
+            }
+            const json = doc.documentElement ? nodeToJson(doc.documentElement) : {};
+            document.getElementById('outputParsed').textContent = JSON.stringify(json, null, 2);
+            showOutput('parsed');
+        }
+
+        function showOutput(tab) {
+            document.querySelectorAll('.output-tab').forEach(t => t.classList.remove('active'));
+            document.querySelector(`.output-tab[data-tab="${tab}"]`).classList.add('active');
+            ['parsed', 'refs', 'errors'].forEach(t => {
+                document.getElementById('output' + t.charAt(0).toUpperCase() + t.slice(1)).style.display = t === tab ? 'block' : 'none';
+            });
+        }
+
+        // Editor
+        const editor = CodeMirror.fromTextArea(document.getElementById('editor'), {
+            mode: 'synth-xml',
+            lineNumbers: true,
+            matchBrackets: true,
+            matchTags: { bothTags: true },
+            foldGutter: true,
+            gutters: ['CodeMirror-linenumbers', 'CodeMirror-foldgutter'],
+            indentUnit: 4,
+            tabSize: 4,
+            extraKeys: {
+                'Ctrl-Space': cm => cm.showHint({ hint: synthXMLHint, completeSingle: false }),
+                'Tab': cm => cm.replaceSelection('    ')
+            }
+        });
+
+        editor.on('cursorActivity', () => {
+            const pos = editor.getCursor();
+            document.getElementById('statusLine').textContent = `Line: ${pos.line + 1}`;
+        });
+
+        editor.on('change', () => {
+            clearTimeout(editor.validateTimeout);
+            editor.validateTimeout = setTimeout(validateXML, 600);
+        });
+
+        // Examples
+        const examples = {
+            project: `<?xml version="1.0" encoding="UTF-8"?>
+<synth version="1.0" xmlns="https://synth.dev/schema/1.0">
+    <meta>
+        <name>My Game Project</name>
+        <version>0.1.0</version>
+        <author>Game Studio</author>
+    </meta>
+
+    <project default-scene="chp://my-project/scenes/outdoor.synth">
+        <target-platforms>desktop, webgl</target-platforms>
+    </project>
+
+    <!-- Child entity folders -->
+    <children>
+        <folder type="scene" pattern="*.synth" ref="chp://my-project/scenes/" />
+        <folder type="model" pattern="*.gltf" ref="chp://my-project/models/" />
+        <folder type="shader" pattern="*.glsl" ref="chp://my-project/shaders/" />
+        <folder type="texture" pattern="*.png" ref="chp://my-project/textures/" />
+        <folder type="material" pattern="*.material.synth" ref="chp://my-project/materials/" />
+    </children>
+
+    <!-- MCP Server configuration -->
+    <mcp>
+        <server id="asset-pipeline" transport="stdio">
+            <command>synth-asset-server</command>
+        </server>
+    </mcp>
+</synth>`,
+            scene: `<?xml version="1.0" encoding="UTF-8"?>
+<synth version="1.0">
+    <scene id="outdoor_main" name="Outdoor Scene">
+
+        <!-- Player entity with external references -->
+        <node id="player" name="Player">
+            <transform position="0,0,0" rotation="0,0,0,1" scale="1,1,1" />
+            <model src="chp://my-project/models/player.gltf" />
+            <material ref="chp://my-project/materials/player.material.synth" />
+            <physics mass="80" collider="capsule" />
+        </node>
+
+        <!-- Tree with inline model reference -->
+        <node id="tree_01" name="Oak Tree">
+            <transform position="5,0,3" scale="1.5,1.5,1.5" />
+            <model src="chp://my-project/models/tree.gltf" />
+        </node>
+
+        <!-- Ground with embedded texture tiling -->
+        <node id="ground" name="Ground">
+            <transform position="0,-0.5,0" scale="100,1,100" />
+            <mesh primitive="plane" />
+            <material>
+                <texture type="albedo" src="chp://my-project/textures/grass.png" />
+                <json type="params">{"tiling": [10, 10], "roughness": 0.9}</json>
+            </material>
+        </node>
+
+        <!-- Light -->
+        <node id="sun" name="Sun Light">
+            <light type="directional" color="1,0.95,0.9" intensity="1" />
+            <transform rotation="-45,30,0" />
+        </node>
+
+    </scene>
+</synth>`,
+            material: `<?xml version="1.0" encoding="UTF-8"?>
+<synth version="1.0">
+    <material id="pbr_metal" name="PBR Metal Material" type="pbr">
+
+        <!-- Shader with external GLSL references -->
+        <shader stage="vertex" src="chp://my-project/shaders/pbr.vert.glsl" />
+        <shader stage="fragment" src="chp://my-project/shaders/pbr.frag.glsl" />
+
+        <!-- Texture references -->
+        <texture type="albedo" src="chp://my-project/textures/metal_albedo.png" />
+        <texture type="normal" src="chp://my-project/textures/metal_normal.png" />
+        <texture type="metallic-roughness" src="chp://my-project/textures/metal_mr.png" />
+
+        <!-- Material parameters as JSON -->
+        <json type="params">
+{
+    "metallic": 1.0,
+    "roughness": 0.3,
+    "emissive": [0, 0, 0],
+    "doubleSided": false
+}
+        </json>
+
+    </material>
+</synth>`,
+            embedded: `<?xml version="1.0" encoding="UTF-8"?>
+<synth version="1.0">
+    <scene id="demo" name="Embedded Content Demo">
+
+        <node id="cube" name="Colored Cube">
+            <transform position="0,0,0" />
+            <mesh primitive="cube" />
+
+            <!-- Material with EMBEDDED shader code -->
+            <material>
+                <!-- Embedded vertex shader -->
+                <glsl stage="vertex">
+precision mediump float;
+
+uniform mat4 u_MVP;
+attribute vec3 a_Position;
+attribute vec3 a_Normal;
+
+varying vec3 v_Normal;
+
+void main() {
+    v_Normal = a_Normal;
+    gl_Position = u_MVP * vec4(a_Position, 1.0);
+}
+                </glsl>
+
+                <!-- Embedded fragment shader -->
+                <glsl stage="fragment">
+precision mediump float;
+
+uniform vec3 u_Color;
+varying vec3 v_Normal;
+
+void main() {
+    vec3 light = normalize(vec3(1.0, 1.0, 1.0));
+    float diff = max(dot(normalize(v_Normal), light), 0.0);
+    gl_FragColor = vec4(u_Color * (0.3 + 0.7 * diff), 1.0);
+}
+                </glsl>
+
+                <!-- Material parameters -->
+                <json type="uniforms">
+{"u_Color": [0.8, 0.2, 0.2]}
+                </json>
+            </material>
+        </node>
+
+        <!-- Node with embedded script logic -->
+        <node id="rotating_cube" name="Rotating Cube">
+            <transform position="3,0,0" />
+            <mesh primitive="cube" />
+
+            <!-- Embedded behavior script -->
+            <script type="behavior" lang="javascript">
+// This script runs every frame
+function update(dt) {
+    const transform = this.getComponent('transform');
+    transform.rotation.y += dt * 45; // Rotate 45 degrees per second
+}
+
+function onCollision(other) {
+    console.log('Collision with:', other.name);
+}
+            </script>
+        </node>
+
+        <!-- Embedded JSON data for scene config -->
+        <data type="config">
+            <json>
+{
+    "ambient_light": [0.1, 0.1, 0.15],
+    "fog": {
+        "enabled": true,
+        "color": [0.5, 0.6, 0.7],
+        "density": 0.02
+    }
+}
+            </json>
+        </data>
+
+    </scene>
+</synth>`
+        };
+
+        function loadExample(name) {
+            editor.setValue(examples[name] || '');
+            validateXML();
+        }
+
+        // Events example
+        examples.events = `<?xml version="1.0" encoding="UTF-8"?>
+<synth version="1.0">
+    <!--
+        Events use the 5-slot grammar DSL:
+        domain [resource] action subject [modifier target] [- -args]
+
+        The <event> tag contains the CompactEvent DSL syntax
+    -->
+
+    <scene id="main" name="Scene with Event History">
+
+        <!-- Current state (result of applying events) -->
+        <node id="player" name="Player">
+            <transform position="10,0,5" rotation="0,45,0" />
+            <mesh ref="chp://assets/player.gltf" />
+        </node>
+
+        <node id="tree_01" name="Tree">
+            <transform position="5,0,3" />
+            <mesh ref="chp://assets/tree.gltf" />
+        </node>
+
+    </scene>
+
+    <!-- Event History Section -->
+    <history max-events="100" enabled="true">
+
+        <!-- Event DSL syntax inside <event> tags -->
+        <event id="evt_001" ts="1702468800000">cluster node create player in main</event>
+
+        <event id="evt_002" ts="1702468801000">component node create transform on player</event>
+
+        <event id="evt_003" ts="1702468802000">component node update transform on player --position="0,0,0"</event>
+
+        <event id="evt_004" ts="1702468803000">cluster node create tree_01 in main</event>
+
+        <event id="evt_005" ts="1702468804000">component node create transform on tree_01 --position="5,0,3"</event>
+
+        <event id="evt_006" ts="1702468805000">component node create mesh on tree_01 --ref="chp://assets/tree.gltf"</event>
+
+        <event id="evt_007" ts="1702468810000">component node update transform on player --position="10,0,5" --rotation="0,45,0"</event>
+
+        <event id="evt_008" ts="1702468815000">component node create mesh on player --ref="chp://assets/player.gltf"</event>
+
+    </history>
+
+    <!-- Event Subscriptions -->
+    <events>
+
+        <!-- Real-time event handlers -->
+        <on event="cluster node create *">
+            <script type="handler">
+function onNodeCreated(event) {
+    console.log('Node created:', event.subject);
+    // Update scene graph
+    sceneGraph.addNode(event.subject, event.target);
+}
+            </script>
+        </on>
+
+        <on event="component node update transform *">
+            <script type="handler">
+function onTransformUpdate(event) {
+    const node = sceneGraph.getNode(event.target);
+    if (node) {
+        node.setPosition(event.args.position);
+        node.setRotation(event.args.rotation);
+    }
+}
+            </script>
+        </on>
+
+    </events>
+
+    <!-- Undo/Redo Stack -->
+    <undo-stack current="evt_008">
+        <undo-pointer at="evt_008" />
+    </undo-stack>
+
+</synth>`;
+
+        // Initial load
+        loadExample('project');
+    </script>
+</body>
+</html>

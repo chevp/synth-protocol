@@ -1,0 +1,524 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SYNTH PROJECT FILE FORMAT (.synth)
+  Version 2.0 - Native Syntax Embedding
+
+  Key Principle: Each domain uses its NATIVE syntax inside XML tags.
+  - <dsl:commands> contains 5-Slot Grammar DSL
+  - <glsl:shader> contains actual GLSL code
+  - <gltf:gltf> contains actual glTF 2.0 structure
+
+  This is the defining feature of synth 2.0: Native syntax embedding.
+-->
+<synthProject xmlns="https://chevp.github.io/synth-protocol/schema/synth/project/2.0"
+              xmlns:core="https://chevp.github.io/synth-protocol/schema/synth/core/2.0"
+              xmlns:dsl="https://chevp.github.io/synth-protocol/schema/synth/dsl/2.0"
+              xmlns:glsl="https://chevp.github.io/synth-protocol/schema/synth/glsl/2.0"
+              xmlns:gltf="https://chevp.github.io/synth-protocol/schema/synth/gltf/2.0">
+
+    <!-- =================================================================== -->
+    <!-- FILE HEADER -->
+    <!-- =================================================================== -->
+    <header>
+        <magic>SYNTH</magic>
+        <formatVersion>2</formatVersion>
+        <schemaVersion>2.0.0</schemaVersion>
+        <createdAt>1733580000000</createdAt>
+        <modifiedAt>1733580000000</modifiedAt>
+    </header>
+
+    <!-- =================================================================== -->
+    <!-- PROJECT ROOT -->
+    <!-- =================================================================== -->
+    <project>
+        <core:entityId>
+            <uuid>proj_shader_demo</uuid>
+            <version>1</version>
+        </core:entityId>
+        <name>Shader Demo Project</name>
+        <description>Demonstrates native syntax embedding: DSL, GLSL, glTF</description>
+
+        <!-- Native DSL syntax -->
+        <dsl:commands>
+            project setting set name --value="Shader Demo"
+            project setting set version --value="1.0.0"
+        </dsl:commands>
+    </project>
+
+    <!-- =================================================================== -->
+    <!-- CLUSTER NODES -->
+    <!-- =================================================================== -->
+    <clusterNodes>
+        <node id="scene_main" type="CLUSTER_NODE_TYPE_SCENE">
+            <name>Main Scene</name>
+            <dsl:commands>
+                scene create main --name="Main Scene"
+            </dsl:commands>
+            <childIds>
+                <id>node_cube</id>
+                <id>node_camera</id>
+                <id>node_light</id>
+            </childIds>
+        </node>
+
+        <node id="node_cube" type="CLUSTER_NODE_TYPE_ASSET">
+            <name>Cube</name>
+            <parentId>scene_main</parentId>
+            <dsl:commands>
+                cluster node create cube in scene_main
+            </dsl:commands>
+        </node>
+
+        <node id="node_camera" type="CLUSTER_NODE_TYPE_CAMERA">
+            <name>Camera</name>
+            <parentId>scene_main</parentId>
+            <dsl:commands>
+                cluster node create camera in scene_main --type=camera
+            </dsl:commands>
+        </node>
+
+        <node id="node_light" type="CLUSTER_NODE_TYPE_LIGHT">
+            <name>Sun</name>
+            <parentId>scene_main</parentId>
+            <dsl:commands>
+                cluster node create sun in scene_main --type=light
+            </dsl:commands>
+        </node>
+    </clusterNodes>
+
+    <!-- =================================================================== -->
+    <!-- COMPONENTS -->
+    <!-- =================================================================== -->
+    <components>
+        <component id="comp_cube_transform" type="transform">
+            <clusterNodeId>node_cube</clusterNodeId>
+            <dsl:commands>
+                component create transform on cube --position=0,0,0 --scale=1,1,1
+            </dsl:commands>
+        </component>
+
+        <component id="comp_cube_mesh" type="mesh">
+            <clusterNodeId>node_cube</clusterNodeId>
+            <dsl:commands>
+                component create mesh on cube --primitive=cube
+            </dsl:commands>
+        </component>
+
+        <component id="comp_cube_material" type="material">
+            <clusterNodeId>node_cube</clusterNodeId>
+            <dsl:commands>
+                component create material on cube --shader=basic_pbr
+            </dsl:commands>
+        </component>
+
+        <component id="comp_camera_transform" type="transform">
+            <clusterNodeId>node_camera</clusterNodeId>
+            <dsl:commands>
+                component create transform on camera --position=0,2,-5
+            </dsl:commands>
+        </component>
+
+        <component id="comp_camera_camera" type="camera">
+            <clusterNodeId>node_camera</clusterNodeId>
+            <dsl:commands>
+                component create camera on camera --fov=60 --near=0.1 --far=1000
+            </dsl:commands>
+        </component>
+
+        <component id="comp_light_transform" type="transform">
+            <clusterNodeId>node_light</clusterNodeId>
+            <dsl:commands>
+                component create transform on sun --rotation=-45,30,0
+            </dsl:commands>
+        </component>
+
+        <component id="comp_light_light" type="light">
+            <clusterNodeId>node_light</clusterNodeId>
+            <dsl:commands>
+                component create light on sun --type=directional --color=1,1,1 --intensity=1.0
+            </dsl:commands>
+        </component>
+    </components>
+
+    <!-- =================================================================== -->
+    <!-- SHADERS - Native GLSL Embedding -->
+    <!-- The content inside <glsl:shader> is ACTUAL GLSL code -->
+    <!-- =================================================================== -->
+    <shaders>
+        <!-- Basic PBR Shader Program -->
+        <glsl:program id="basic_pbr" name="Basic PBR Shader">
+            <!-- Uniforms defined for the program -->
+            <glsl:uniform name="u_ModelMatrix" type="mat4"/>
+            <glsl:uniform name="u_ViewMatrix" type="mat4"/>
+            <glsl:uniform name="u_ProjectionMatrix" type="mat4"/>
+            <glsl:uniform name="u_NormalMatrix" type="mat3"/>
+            <glsl:uniform name="u_LightDirection" type="vec3" default="0,-1,0"/>
+            <glsl:uniform name="u_LightColor" type="vec3" default="1,1,1"/>
+            <glsl:uniform name="u_BaseColor" type="vec4" default="1,1,1,1"/>
+            <glsl:uniform name="u_Metallic" type="float" default="0.0"/>
+            <glsl:uniform name="u_Roughness" type="float" default="0.5"/>
+            <glsl:uniform name="u_BaseColorTexture" type="sampler2D" binding="0"/>
+
+            <!-- Vertex Shader - Native GLSL -->
+            <glsl:shader stage="vertex" version="330" profile="core">
+#version 330 core
+
+layout(location = 0) in vec3 a_Position;
+layout(location = 1) in vec3 a_Normal;
+layout(location = 2) in vec2 a_TexCoord;
+
+uniform mat4 u_ModelMatrix;
+uniform mat4 u_ViewMatrix;
+uniform mat4 u_ProjectionMatrix;
+uniform mat3 u_NormalMatrix;
+
+out vec3 v_WorldPosition;
+out vec3 v_Normal;
+out vec2 v_TexCoord;
+
+void main() {
+    vec4 worldPosition = u_ModelMatrix * vec4(a_Position, 1.0);
+    v_WorldPosition = worldPosition.xyz;
+    v_Normal = normalize(u_NormalMatrix * a_Normal);
+    v_TexCoord = a_TexCoord;
+
+    gl_Position = u_ProjectionMatrix * u_ViewMatrix * worldPosition;
+}
+            </glsl:shader>
+
+            <!-- Fragment Shader - Native GLSL -->
+            <glsl:shader stage="fragment" version="330" profile="core">
+#version 330 core
+
+in vec3 v_WorldPosition;
+in vec3 v_Normal;
+in vec2 v_TexCoord;
+
+uniform vec3 u_LightDirection;
+uniform vec3 u_LightColor;
+uniform vec4 u_BaseColor;
+uniform float u_Metallic;
+uniform float u_Roughness;
+uniform sampler2D u_BaseColorTexture;
+
+out vec4 FragColor;
+
+const float PI = 3.14159265359;
+
+// Normal Distribution Function (GGX/Trowbridge-Reitz)
+float DistributionGGX(vec3 N, vec3 H, float roughness) {
+    float a = roughness * roughness;
+    float a2 = a * a;
+    float NdotH = max(dot(N, H), 0.0);
+    float NdotH2 = NdotH * NdotH;
+
+    float nom = a2;
+    float denom = (NdotH2 * (a2 - 1.0) + 1.0);
+    denom = PI * denom * denom;
+
+    return nom / denom;
+}
+
+// Geometry Function (Schlick-GGX)
+float GeometrySchlickGGX(float NdotV, float roughness) {
+    float r = (roughness + 1.0);
+    float k = (r * r) / 8.0;
+
+    float nom = NdotV;
+    float denom = NdotV * (1.0 - k) + k;
+
+    return nom / denom;
+}
+
+float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness) {
+    float NdotV = max(dot(N, V), 0.0);
+    float NdotL = max(dot(N, L), 0.0);
+    float ggx2 = GeometrySchlickGGX(NdotV, roughness);
+    float ggx1 = GeometrySchlickGGX(NdotL, roughness);
+
+    return ggx1 * ggx2;
+}
+
+// Fresnel (Schlick approximation)
+vec3 FresnelSchlick(float cosTheta, vec3 F0) {
+    return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
+}
+
+void main() {
+    vec4 baseColor = texture(u_BaseColorTexture, v_TexCoord) * u_BaseColor;
+    vec3 albedo = baseColor.rgb;
+
+    vec3 N = normalize(v_Normal);
+    vec3 V = normalize(-v_WorldPosition); // Assuming camera at origin
+    vec3 L = normalize(-u_LightDirection);
+    vec3 H = normalize(V + L);
+
+    // Calculate reflectance at normal incidence (F0)
+    vec3 F0 = vec3(0.04);
+    F0 = mix(F0, albedo, u_Metallic);
+
+    // Cook-Torrance BRDF
+    float NDF = DistributionGGX(N, H, u_Roughness);
+    float G = GeometrySmith(N, V, L, u_Roughness);
+    vec3 F = FresnelSchlick(max(dot(H, V), 0.0), F0);
+
+    vec3 numerator = NDF * G * F;
+    float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.0001;
+    vec3 specular = numerator / denominator;
+
+    vec3 kS = F;
+    vec3 kD = vec3(1.0) - kS;
+    kD *= 1.0 - u_Metallic;
+
+    float NdotL = max(dot(N, L), 0.0);
+
+    vec3 Lo = (kD * albedo / PI + specular) * u_LightColor * NdotL;
+
+    // Ambient
+    vec3 ambient = vec3(0.03) * albedo;
+
+    vec3 color = ambient + Lo;
+
+    // HDR tonemapping
+    color = color / (color + vec3(1.0));
+    // Gamma correction
+    color = pow(color, vec3(1.0/2.2));
+
+    FragColor = vec4(color, baseColor.a);
+}
+            </glsl:shader>
+        </glsl:program>
+
+        <!-- Simple Unlit Shader -->
+        <glsl:program id="unlit" name="Unlit Shader">
+            <glsl:uniform name="u_MVP" type="mat4"/>
+            <glsl:uniform name="u_Color" type="vec4" default="1,1,1,1"/>
+
+            <glsl:shader stage="vertex" version="330" profile="core">
+#version 330 core
+
+layout(location = 0) in vec3 a_Position;
+
+uniform mat4 u_MVP;
+
+void main() {
+    gl_Position = u_MVP * vec4(a_Position, 1.0);
+}
+            </glsl:shader>
+
+            <glsl:shader stage="fragment" version="330" profile="core">
+#version 330 core
+
+uniform vec4 u_Color;
+
+out vec4 FragColor;
+
+void main() {
+    FragColor = u_Color;
+}
+            </glsl:shader>
+        </glsl:program>
+    </shaders>
+
+    <!-- =================================================================== -->
+    <!-- EMBEDDED GLTF - Native glTF 2.0 Embedding -->
+    <!-- The content inside <gltf:gltf> follows actual glTF 2.0 structure -->
+    <!-- =================================================================== -->
+    <embeddedGltf>
+        <gltf:gltf scene="0">
+            <asset>
+                <version>2.0</version>
+                <generator>synth-protocol-2.0</generator>
+            </asset>
+
+            <scenes>
+                <scene>
+                    <name>Embedded Scene</name>
+                    <nodes>
+                        <index>0</index>
+                    </nodes>
+                </scene>
+            </scenes>
+
+            <nodes>
+                <node>
+                    <name>Cube</name>
+                    <mesh>0</mesh>
+                    <translation>0.0 0.0 0.0</translation>
+                    <rotation>0.0 0.0 0.0 1.0</rotation>
+                    <scale>1.0 1.0 1.0</scale>
+                </node>
+            </nodes>
+
+            <meshes>
+                <mesh>
+                    <name>CubeMesh</name>
+                    <primitives>
+                        <primitive>
+                            <attributes>
+                                <POSITION>0</POSITION>
+                                <NORMAL>1</NORMAL>
+                                <TEXCOORD_0>2</TEXCOORD_0>
+                            </attributes>
+                            <indices>3</indices>
+                            <material>0</material>
+                            <mode>4</mode>
+                        </primitive>
+                    </primitives>
+                </mesh>
+            </meshes>
+
+            <materials>
+                <material>
+                    <name>CubeMaterial</name>
+                    <pbrMetallicRoughness>
+                        <baseColorFactor>1.0 0.5 0.2 1.0</baseColorFactor>
+                        <metallicFactor>0.0</metallicFactor>
+                        <roughnessFactor>0.5</roughnessFactor>
+                    </pbrMetallicRoughness>
+                    <doubleSided>false</doubleSided>
+                </material>
+            </materials>
+
+            <accessors>
+                <!-- Position accessor -->
+                <accessor>
+                    <bufferView>0</bufferView>
+                    <byteOffset>0</byteOffset>
+                    <componentType>5126</componentType>
+                    <count>24</count>
+                    <type>VEC3</type>
+                    <min>
+                        <value>-0.5</value>
+                        <value>-0.5</value>
+                        <value>-0.5</value>
+                    </min>
+                    <max>
+                        <value>0.5</value>
+                        <value>0.5</value>
+                        <value>0.5</value>
+                    </max>
+                </accessor>
+                <!-- Normal accessor -->
+                <accessor>
+                    <bufferView>1</bufferView>
+                    <byteOffset>0</byteOffset>
+                    <componentType>5126</componentType>
+                    <count>24</count>
+                    <type>VEC3</type>
+                </accessor>
+                <!-- TexCoord accessor -->
+                <accessor>
+                    <bufferView>2</bufferView>
+                    <byteOffset>0</byteOffset>
+                    <componentType>5126</componentType>
+                    <count>24</count>
+                    <type>VEC2</type>
+                </accessor>
+                <!-- Index accessor -->
+                <accessor>
+                    <bufferView>3</bufferView>
+                    <byteOffset>0</byteOffset>
+                    <componentType>5123</componentType>
+                    <count>36</count>
+                    <type>SCALAR</type>
+                </accessor>
+            </accessors>
+
+            <bufferViews>
+                <bufferView>
+                    <buffer>0</buffer>
+                    <byteOffset>0</byteOffset>
+                    <byteLength>288</byteLength>
+                    <target>34962</target>
+                </bufferView>
+                <bufferView>
+                    <buffer>0</buffer>
+                    <byteOffset>288</byteOffset>
+                    <byteLength>288</byteLength>
+                    <target>34962</target>
+                </bufferView>
+                <bufferView>
+                    <buffer>0</buffer>
+                    <byteOffset>576</byteOffset>
+                    <byteLength>192</byteLength>
+                    <target>34962</target>
+                </bufferView>
+                <bufferView>
+                    <buffer>0</buffer>
+                    <byteOffset>768</byteOffset>
+                    <byteLength>72</byteLength>
+                    <target>34963</target>
+                </bufferView>
+            </bufferViews>
+
+            <buffers>
+                <buffer>
+                    <uri>chp://meshes/cube.bin</uri>
+                    <byteLength>840</byteLength>
+                </buffer>
+            </buffers>
+        </gltf:gltf>
+    </embeddedGltf>
+
+    <!-- =================================================================== -->
+    <!-- ASSETS -->
+    <!-- =================================================================== -->
+    <assets>
+        <dsl:commands>
+            asset folder create meshes in proj_shader_demo --pattern="*.bin"
+            asset folder create shaders in proj_shader_demo --pattern="*.glsl"
+            asset folder create textures in proj_shader_demo --pattern="*.png"
+        </dsl:commands>
+
+        <asset id="asset_cube_mesh">
+            <name>cube.bin</name>
+            <type>ASSET_TYPE_MODEL_3D</type>
+            <uri>chp://meshes/cube.bin</uri>
+        </asset>
+    </assets>
+
+    <!-- =================================================================== -->
+    <!-- EVENT HISTORY -->
+    <!-- Uses DSL syntax for recorded events -->
+    <!-- =================================================================== -->
+    <history maxEvents="1000" enabled="true">
+        <event id="evt_001" ts="1733580000000">
+            scene create main --name="Main Scene"
+        </event>
+        <event id="evt_002" ts="1733580001000">
+            cluster node create cube in scene_main
+        </event>
+        <event id="evt_003" ts="1733580002000">
+            component create transform on cube --position=0,0,0
+        </event>
+        <event id="evt_004" ts="1733580003000">
+            shader program create basic_pbr --name="Basic PBR Shader"
+        </event>
+        <event id="evt_005" ts="1733580004000">
+            shader stage add vertex to basic_pbr --version=330
+        </event>
+        <event id="evt_006" ts="1733580005000">
+            shader stage add fragment to basic_pbr --version=330
+        </event>
+        <event id="evt_007" ts="1733580006000">
+            component create material on cube --shader=basic_pbr
+        </event>
+    </history>
+
+    <!-- =================================================================== -->
+    <!-- EVENT SUBSCRIPTIONS -->
+    <!-- =================================================================== -->
+    <events>
+        <dsl:commands>
+            event subscribe shader_compile on basic_pbr --handler=onShaderCompiled
+            event subscribe material_changed on cube --handler=onMaterialChanged
+        </dsl:commands>
+
+        <subscription id="sub_shader_compile">
+            <pattern>shader program compile *</pattern>
+            <handler>onShaderCompiled</handler>
+        </subscription>
+    </events>
+
+</synthProject>

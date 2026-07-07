@@ -1,0 +1,1207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Synth DSL Editor v2</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #1a1a2e;
+            color: #eee;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        header {
+            background: #0f0f1a;
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            border-bottom: 1px solid #2a2a4a;
+        }
+        header h1 {
+            font-size: 16px;
+            font-weight: 500;
+            color: #34d399;
+        }
+        .toolbar {
+            background: #16213e;
+            padding: 6px 20px;
+            display: flex;
+            gap: 8px;
+            border-bottom: 1px solid #2a2a4a;
+            align-items: center;
+        }
+        .toolbar button {
+            background: #0f3460;
+            border: none;
+            color: #eee;
+            padding: 5px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+        }
+        .toolbar button:hover { background: #34d399; color: #1a1a2e; }
+        .toolbar .separator { width: 1px; height: 20px; background: #2a2a4a; margin: 0 8px; }
+        .toolbar .hint { margin-left: auto; font-size: 10px; color: #666; }
+        .toolbar .hint kbd { background: #0f3460; padding: 2px 5px; border-radius: 3px; }
+
+        .main-container {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* Tree Panel */
+        .tree-panel {
+            width: 260px;
+            background: #16213e;
+            border-right: 1px solid #2a2a4a;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .tree-header {
+            padding: 10px 12px;
+            background: #0f3460;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #888;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .tree-header .icon { color: #34d399; }
+        .tree-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px 0;
+        }
+        .tree-node {
+            cursor: pointer;
+            user-select: none;
+        }
+        .tree-node-header {
+            display: flex;
+            align-items: center;
+            padding: 4px 8px;
+            gap: 6px;
+            font-size: 12px;
+            transition: background 0.1s;
+        }
+        .tree-node-header:hover { background: #0f3460; }
+        .tree-node-header.selected { background: #34d39930; color: #34d399; }
+        .tree-node-header.active { background: #0f3460; }
+        .tree-toggle {
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 8px;
+            color: #666;
+            transition: transform 0.15s;
+        }
+        .tree-toggle.expanded { transform: rotate(90deg); }
+        .tree-toggle.hidden { visibility: hidden; }
+        .tree-icon {
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            border-radius: 3px;
+        }
+        .tree-icon.project { background: #34d39930; color: #34d399; }
+        .tree-icon.scene { background: #60a5fa30; color: #60a5fa; }
+        .tree-icon.cluster { background: #fbbf2430; color: #fbbf24; }
+        .tree-icon.node { background: #c084fc30; color: #c084fc; }
+        .tree-icon.component { background: #f472b630; color: #f472b6; }
+        .tree-icon.mcp { background: #fb923c30; color: #fb923c; }
+        .tree-icon.agent { background: #22d3ee30; color: #22d3ee; }
+        .tree-icon.event { background: #a3e63530; color: #a3e635; }
+        .tree-label { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .tree-badge {
+            font-size: 9px;
+            padding: 1px 5px;
+            border-radius: 8px;
+            background: #0f3460;
+            color: #888;
+        }
+        .tree-children {
+            display: none;
+            padding-left: 16px;
+        }
+        .tree-children.expanded { display: block; }
+
+        /* Editor Panel */
+        .editor-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .editor-tabs {
+            display: flex;
+            background: #0f0f1a;
+            border-bottom: 1px solid #2a2a4a;
+        }
+        .editor-tab {
+            padding: 8px 16px;
+            font-size: 11px;
+            color: #888;
+            cursor: pointer;
+            border-right: 1px solid #2a2a4a;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .editor-tab:hover { color: #eee; }
+        .editor-tab.active { background: #1a1a2e; color: #34d399; border-bottom: 2px solid #34d399; margin-bottom: -1px; }
+        .editor-tab .close { opacity: 0.5; font-size: 14px; }
+        .editor-tab .close:hover { opacity: 1; }
+
+        .CodeMirror {
+            flex: 1;
+            height: auto;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            background: #1a1a2e;
+            color: #eee;
+        }
+        .CodeMirror-gutters { background: #16213e; border-right: 1px solid #2a2a4a; }
+        .CodeMirror-linenumber { color: #555; }
+        .CodeMirror-cursor { border-left: 2px solid #34d399; }
+        .CodeMirror-selected { background: #0f3460 !important; }
+
+        /* Syntax highlighting */
+        .cm-synth-comment { color: #5c6370; font-style: italic; }
+        .cm-synth-domain { color: #60a5fa; font-weight: bold; }
+        .cm-synth-resource { color: #c084fc; }
+        .cm-synth-action { color: #34d399; font-weight: bold; }
+        .cm-synth-subject { color: #fbbf24; }
+        .cm-synth-modifier { color: #f472b6; }
+        .cm-synth-target { color: #fb923c; }
+        .cm-synth-string { color: #98c379; }
+        .cm-synth-number { color: #d19a66; }
+        .cm-synth-arg { color: #56b6c2; }
+        .cm-synth-block { color: #e06c75; font-weight: bold; }
+        .cm-synth-brace { color: #888; }
+
+        /* Autocomplete */
+        .CodeMirror-hints {
+            background: #16213e;
+            border: 1px solid #2a2a4a;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            font-family: 'Consolas', monospace;
+            font-size: 12px;
+            max-height: 280px;
+            padding: 4px 0;
+        }
+        .CodeMirror-hint {
+            padding: 6px 12px;
+            color: #eee;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .CodeMirror-hint:hover { background: #0f3460; }
+        .CodeMirror-hint-active { background: #34d399 !important; color: #1a1a2e; }
+        .hint-keyword { font-weight: bold; min-width: 80px; }
+        .hint-type { font-size: 9px; padding: 2px 6px; border-radius: 8px; text-transform: uppercase; }
+        .hint-type.domain { background: #60a5fa30; color: #60a5fa; }
+        .hint-type.resource { background: #c084fc30; color: #c084fc; }
+        .hint-type.action { background: #34d39930; color: #34d399; }
+        .hint-type.modifier { background: #f472b630; color: #f472b6; }
+        .hint-type.block { background: #e06c7530; color: #e06c75; }
+        .hint-desc { color: #888; font-size: 10px; flex: 1; }
+
+        /* Output Panel */
+        .output-panel {
+            height: 180px;
+            background: #0f0f1a;
+            border-top: 1px solid #2a2a4a;
+            display: flex;
+            flex-direction: column;
+        }
+        .output-tabs {
+            display: flex;
+            background: #16213e;
+            border-bottom: 1px solid #2a2a4a;
+        }
+        .output-tab {
+            padding: 6px 14px;
+            font-size: 10px;
+            color: #888;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+        }
+        .output-tab:hover { color: #eee; }
+        .output-tab.active { color: #34d399; border-bottom-color: #34d399; }
+        .output-content {
+            flex: 1;
+            overflow: auto;
+            padding: 10px 12px;
+            font-family: 'Consolas', monospace;
+            font-size: 11px;
+        }
+        .output-content pre { white-space: pre-wrap; color: #888; }
+        .output-content .error { color: #ef4444; }
+        .output-content .success { color: #34d399; }
+
+        /* Properties Panel */
+        .properties-panel {
+            width: 280px;
+            background: #16213e;
+            border-left: 1px solid #2a2a4a;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .properties-header {
+            padding: 10px 12px;
+            background: #0f3460;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #888;
+        }
+        .properties-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+        }
+        .prop-section {
+            margin-bottom: 16px;
+        }
+        .prop-section-title {
+            font-size: 10px;
+            color: #666;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid #2a2a4a;
+        }
+        .prop-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 6px;
+            font-size: 11px;
+        }
+        .prop-label {
+            width: 80px;
+            color: #888;
+        }
+        .prop-value {
+            flex: 1;
+            background: #0f0f1a;
+            border: 1px solid #2a2a4a;
+            border-radius: 4px;
+            padding: 4px 8px;
+            color: #eee;
+            font-family: 'Consolas', monospace;
+            font-size: 11px;
+        }
+        .prop-value:focus {
+            outline: none;
+            border-color: #34d399;
+        }
+
+        .status-bar {
+            background: #0f3460;
+            padding: 4px 16px;
+            font-size: 10px;
+            color: #888;
+            display: flex;
+            gap: 20px;
+        }
+        .status-bar .valid { color: #34d399; }
+        .status-bar .errors { color: #ef4444; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Synth DSL Editor v2</h1>
+    </header>
+    <div class="toolbar">
+        <button onclick="parseAndValidate()">Validate</button>
+        <button onclick="generateXml()">Export XML</button>
+        <button onclick="generateProto()">Export Proto</button>
+        <div class="separator"></div>
+        <button onclick="loadExample('minimal')">Minimal</button>
+        <button onclick="loadExample('game')">Game</button>
+        <button onclick="loadExample('mcp')">MCP</button>
+        <div class="separator"></div>
+        <button onclick="expandAll()">Expand All</button>
+        <button onclick="collapseAll()">Collapse All</button>
+        <span class="hint"><kbd>Ctrl</kbd>+<kbd>Space</kbd> autocomplete</span>
+    </div>
+    <div class="main-container">
+        <!-- Tree Navigation -->
+        <div class="tree-panel">
+            <div class="tree-header">
+                <span class="icon">◆</span> Project Structure
+            </div>
+            <div class="tree-content" id="treeContent">
+                <!-- Tree will be generated here -->
+            </div>
+        </div>
+
+        <!-- Editor -->
+        <div class="editor-panel">
+            <div class="editor-tabs">
+                <div class="editor-tab active">
+                    <span>project.synth</span>
+                </div>
+            </div>
+            <textarea id="editor"></textarea>
+            <div class="output-panel">
+                <div class="output-tabs">
+                    <div class="output-tab active" data-tab="xml" onclick="switchOutput('xml')">XML</div>
+                    <div class="output-tab" data-tab="proto" onclick="switchOutput('proto')">Proto</div>
+                    <div class="output-tab" data-tab="errors" onclick="switchOutput('errors')">Errors</div>
+                </div>
+                <div class="output-content">
+                    <pre id="outputXml"></pre>
+                    <pre id="outputProto" style="display:none;"></pre>
+                    <pre id="outputErrors" style="display:none;"></pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- Properties -->
+        <div class="properties-panel">
+            <div class="properties-header">Properties</div>
+            <div class="properties-content" id="propertiesContent">
+                <div class="prop-section">
+                    <div class="prop-section-title">Selection</div>
+                    <div style="color:#666; font-size:11px;">Select an item in the tree</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="status-bar">
+        <span id="parseStatus">Ready</span>
+        <span id="lineCount">Lines: 0</span>
+        <span id="nodeCount">Nodes: 0</span>
+        <span style="margin-left: auto;">Synth DSL v2</span>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+    <script>
+        // Grammar
+        const GRAMMAR = {
+            domains: {
+                'scene': 'Scene management',
+                'cluster': 'Node hierarchy',
+                'component': 'Components',
+                'mcp': 'MCP servers/tools',
+                'agent': 'AI agents',
+                'project': 'Project level',
+                'asset': 'Assets',
+                'plugin': 'Plugins',
+                'system': 'System',
+                'script': 'Script management (Lua)'
+            },
+            resources: {
+                'node': 'Scene node',
+                'server': 'MCP server',
+                'tool': 'MCP tool',
+                'task': 'Agent task',
+                'selection': 'Selection',
+                'folder': 'Folder',
+                'file': 'File',
+                'setting': 'Setting',
+                'session': 'Session',
+                'module': 'Script module/file'
+            },
+            actions: {
+                'create': 'Create new',
+                'update': 'Modify',
+                'delete': 'Remove',
+                'start': 'Start',
+                'stop': 'Stop',
+                'enable': 'Enable',
+                'disable': 'Disable',
+                'move': 'Move',
+                'rename': 'Rename',
+                'select': 'Select',
+                'connect': 'Connect',
+                'disconnect': 'Disconnect',
+                'invoke': 'Invoke',
+                'complete': 'Complete',
+                'fail': 'Fail',
+                'register': 'Register',
+                'open': 'Open',
+                'save': 'Save',
+                'close': 'Close',
+                'require': 'Require/import module',
+                'reload': 'Hot-reload script'
+            },
+            modifiers: {
+                'to': 'destination',
+                'from': 'source',
+                'in': 'container',
+                'with': 'accompanying',
+                'by': 'actor',
+                'for': 'purpose',
+                'on': 'target',
+                'at': 'location'
+            },
+            blocks: {
+                'project': 'Project root',
+                'scenes': 'Scene definitions',
+                'cluster': 'Node hierarchy',
+                'components': 'Component definitions',
+                'mcp': 'MCP configuration',
+                'agents': 'AI agents',
+                'events': 'Event history',
+                'assets': 'Asset references',
+                'scripts': 'Lua script registration'
+            },
+            domainResources: {
+                'scene': ['node', 'folder', 'selection'],
+                'cluster': ['node', 'folder'],
+                'component': [],
+                'mcp': ['server', 'tool'],
+                'agent': ['task'],
+                'project': ['file', 'setting'],
+                'asset': ['file'],
+                'plugin': [],
+                'system': ['session', 'setting'],
+                'script': ['module']
+            }
+        };
+
+        // CodeMirror mode
+        CodeMirror.defineMode('synth-dsl', function() {
+            const blockRegex = new RegExp('^(' + Object.keys(GRAMMAR.blocks).join('|') + ')\\b');
+            const domainRegex = new RegExp('^(' + Object.keys(GRAMMAR.domains).join('|') + ')\\b');
+            const resourceRegex = new RegExp('^(' + Object.keys(GRAMMAR.resources).join('|') + ')\\b');
+            const actionRegex = new RegExp('^(' + Object.keys(GRAMMAR.actions).join('|') + ')\\b');
+            const modifierRegex = new RegExp('^(' + Object.keys(GRAMMAR.modifiers).join('|') + ')\\b');
+
+            return {
+                startState: () => ({ inStatement: false, foundAction: false }),
+                token: function(stream, state) {
+                    if (stream.sol()) {
+                        state.inStatement = false;
+                        state.foundAction = false;
+                    }
+                    if (stream.eatSpace()) return null;
+
+                    // Comments
+                    if (stream.match(/^\/\/.*/) || stream.match(/^#.*/)) return 'synth-comment';
+
+                    // Braces
+                    if (stream.match(/^[{}]/)) return 'synth-brace';
+
+                    // Strings
+                    if (stream.match(/^"[^"]*"/)) return 'synth-string';
+
+                    // Arguments
+                    if (stream.match(/^--[\w-]+=("[^"]*"|[^\s}]*)/)) return 'synth-arg';
+
+                    // Numbers
+                    if (stream.match(/^-?\d+\.?\d*/)) return 'synth-number';
+
+                    // Block keywords
+                    if (stream.match(blockRegex)) return 'synth-block';
+
+                    // Domain
+                    if (!state.inStatement && stream.match(domainRegex)) {
+                        state.inStatement = true;
+                        return 'synth-domain';
+                    }
+
+                    // Resource
+                    if (state.inStatement && !state.foundAction && stream.match(resourceRegex)) {
+                        return 'synth-resource';
+                    }
+
+                    // Action
+                    if (state.inStatement && stream.match(actionRegex)) {
+                        state.foundAction = true;
+                        return 'synth-action';
+                    }
+
+                    // Modifier
+                    if (state.foundAction && stream.match(modifierRegex)) {
+                        return 'synth-modifier';
+                    }
+
+                    // Identifiers
+                    if (stream.match(/^[\w_][\w_.-]*/)) {
+                        return state.foundAction ? 'synth-subject' : null;
+                    }
+
+                    stream.next();
+                    return null;
+                }
+            };
+        });
+
+        // Autocomplete
+        function synthHint(cm) {
+            const cursor = cm.getCursor();
+            const line = cm.getLine(cursor.line);
+            const beforeCursor = line.substring(0, cursor.ch);
+
+            const wordMatch = beforeCursor.match(/[\w-]*$/);
+            const prefix = wordMatch ? wordMatch[0].toLowerCase() : '';
+            const start = cursor.ch - prefix.length;
+
+            const trimmedBefore = beforeCursor.substring(0, start).trim();
+
+            // Check if inside a block or at root
+            const isAtLineStart = trimmedBefore === '' || trimmedBefore.endsWith('{');
+
+            let suggestions = [];
+
+            if (isAtLineStart) {
+                // Could be block keyword or domain
+                suggestions = [
+                    ...getSuggestions(GRAMMAR.blocks, prefix, 'block'),
+                    ...getSuggestions(GRAMMAR.domains, prefix, 'domain')
+                ];
+            } else {
+                // Parse tokens
+                const tokens = trimmedBefore.split(/\s+/).filter(t => t && !t.startsWith('--') && t !== '{');
+
+                if (tokens.length === 0) {
+                    suggestions = getSuggestions(GRAMMAR.domains, prefix, 'domain');
+                } else if (tokens.length === 1) {
+                    const domain = tokens[0].toLowerCase();
+                    const resources = GRAMMAR.domainResources[domain] || [];
+                    suggestions = [
+                        ...resources.filter(r => r.startsWith(prefix)).map(r => ({
+                            text: r, type: 'resource', desc: GRAMMAR.resources[r]
+                        })),
+                        ...getSuggestions(GRAMMAR.actions, prefix, 'action')
+                    ];
+                } else if (tokens.length === 2) {
+                    const isResource = Object.keys(GRAMMAR.resources).includes(tokens[1].toLowerCase());
+                    if (isResource) {
+                        suggestions = getSuggestions(GRAMMAR.actions, prefix, 'action');
+                    } else {
+                        // After action - no suggestion for subject
+                    }
+                } else {
+                    suggestions = getSuggestions(GRAMMAR.modifiers, prefix, 'modifier');
+                }
+            }
+
+            if (suggestions.length === 0) return null;
+
+            return {
+                list: suggestions.map(s => ({
+                    text: s.text + ' ',
+                    displayText: s.text,
+                    render: el => {
+                        el.innerHTML = `<span class="hint-keyword">${s.text}</span>
+                            <span class="hint-type ${s.type}">${s.type}</span>
+                            <span class="hint-desc">${s.desc}</span>`;
+                    }
+                })),
+                from: CodeMirror.Pos(cursor.line, start),
+                to: CodeMirror.Pos(cursor.line, cursor.ch)
+            };
+        }
+
+        function getSuggestions(obj, prefix, type) {
+            return Object.entries(obj)
+                .filter(([key]) => key.toLowerCase().startsWith(prefix))
+                .map(([key, desc]) => ({ text: key, type, desc }));
+        }
+
+        // Parse DSL to AST
+        function parseDSL(text) {
+            const lines = text.split('\n');
+            const root = { type: 'root', name: 'Project', children: [], statements: [] };
+            const stack = [root];
+            const errors = [];
+            let lineNum = 0;
+
+            for (const line of lines) {
+                lineNum++;
+                const trimmed = line.trim();
+                if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('#')) continue;
+
+                // Closing brace
+                if (trimmed === '}') {
+                    if (stack.length > 1) stack.pop();
+                    continue;
+                }
+
+                // Block with optional name: "block "name" {" or "block {"
+                const blockMatch = trimmed.match(/^(\w+)\s*(?:"([^"]*)")?\s*\{?\s*$/);
+                if (blockMatch && (GRAMMAR.blocks[blockMatch[1]] || trimmed.endsWith('{'))) {
+                    const block = {
+                        type: 'block',
+                        kind: blockMatch[1],
+                        name: blockMatch[2] || blockMatch[1],
+                        children: [],
+                        statements: [],
+                        line: lineNum
+                    };
+                    stack[stack.length - 1].children.push(block);
+                    if (trimmed.endsWith('{')) {
+                        stack.push(block);
+                    }
+                    continue;
+                }
+
+                // Statement: domain [resource] action subject [modifier target] [--args]
+                const stmt = parseStatement(trimmed, lineNum);
+                if (stmt) {
+                    if (stmt.error) {
+                        errors.push({ line: lineNum, msg: stmt.error });
+                    } else {
+                        stack[stack.length - 1].statements.push(stmt);
+                    }
+                }
+            }
+
+            return { ast: root, errors };
+        }
+
+        function parseStatement(line, lineNum) {
+            const args = {};
+            const argRegex = /--(\w+)=("[^"]*"|[^\s}]*)/g;
+            let match;
+            while ((match = argRegex.exec(line)) !== null) {
+                args[match[1]] = match[2].replace(/^"|"$/g, '');
+            }
+
+            const cleanLine = line.replace(/--[\w-]+=("[^"]*"|[^\s}]*)/g, '').trim();
+            const tokens = cleanLine.split(/\s+/);
+
+            if (tokens.length < 2) return null;
+
+            const stmt = { domain: null, resource: null, action: null, subject: null, modifier: null, target: null, args, line: lineNum };
+            let idx = 0;
+
+            if (GRAMMAR.domains[tokens[idx]]) {
+                stmt.domain = tokens[idx++];
+            } else {
+                return { error: `Unknown domain: ${tokens[0]}` };
+            }
+
+            if (idx < tokens.length && GRAMMAR.resources[tokens[idx]]) {
+                stmt.resource = tokens[idx++];
+            }
+
+            if (idx < tokens.length && GRAMMAR.actions[tokens[idx]]) {
+                stmt.action = tokens[idx++];
+            } else {
+                return { error: `Expected action at position ${idx + 1}` };
+            }
+
+            if (idx < tokens.length && !GRAMMAR.modifiers[tokens[idx]]) {
+                stmt.subject = tokens[idx++];
+            }
+
+            if (idx < tokens.length && GRAMMAR.modifiers[tokens[idx]]) {
+                stmt.modifier = tokens[idx++];
+                if (idx < tokens.length) stmt.target = tokens[idx++];
+            }
+
+            return stmt;
+        }
+
+        // Build tree from AST
+        function buildTree(ast) {
+            const container = document.getElementById('treeContent');
+            container.innerHTML = '';
+
+            function createNode(item, depth = 0) {
+                const node = document.createElement('div');
+                node.className = 'tree-node';
+
+                const hasChildren = (item.children && item.children.length > 0) || (item.statements && item.statements.length > 0);
+
+                const header = document.createElement('div');
+                header.className = 'tree-node-header';
+                header.style.paddingLeft = (depth * 16 + 8) + 'px';
+
+                // Toggle
+                const toggle = document.createElement('span');
+                toggle.className = 'tree-toggle' + (hasChildren ? '' : ' hidden');
+                toggle.textContent = '▶';
+                toggle.onclick = (e) => {
+                    e.stopPropagation();
+                    const children = node.querySelector('.tree-children');
+                    if (children) {
+                        children.classList.toggle('expanded');
+                        toggle.classList.toggle('expanded');
+                    }
+                };
+
+                // Icon
+                const icon = document.createElement('span');
+                icon.className = 'tree-icon ' + getIconClass(item);
+                icon.textContent = getIconChar(item);
+
+                // Label
+                const label = document.createElement('span');
+                label.className = 'tree-label';
+                label.textContent = item.name || item.kind || item.subject || 'Unknown';
+
+                // Badge
+                const childCount = (item.children?.length || 0) + (item.statements?.length || 0);
+                if (childCount > 0) {
+                    const badge = document.createElement('span');
+                    badge.className = 'tree-badge';
+                    badge.textContent = childCount;
+                    header.appendChild(toggle);
+                    header.appendChild(icon);
+                    header.appendChild(label);
+                    header.appendChild(badge);
+                } else {
+                    header.appendChild(toggle);
+                    header.appendChild(icon);
+                    header.appendChild(label);
+                }
+
+                header.onclick = () => selectTreeNode(header, item);
+                node.appendChild(header);
+
+                // Children
+                if (hasChildren) {
+                    const children = document.createElement('div');
+                    children.className = 'tree-children expanded';
+                    toggle.classList.add('expanded');
+
+                    if (item.children) {
+                        item.children.forEach(child => children.appendChild(createNode(child, depth + 1)));
+                    }
+                    if (item.statements) {
+                        item.statements.forEach(stmt => children.appendChild(createStatementNode(stmt, depth + 1)));
+                    }
+                    node.appendChild(children);
+                }
+
+                return node;
+            }
+
+            function createStatementNode(stmt, depth) {
+                const node = document.createElement('div');
+                node.className = 'tree-node';
+
+                const header = document.createElement('div');
+                header.className = 'tree-node-header';
+                header.style.paddingLeft = (depth * 16 + 8) + 'px';
+
+                const toggle = document.createElement('span');
+                toggle.className = 'tree-toggle hidden';
+
+                const icon = document.createElement('span');
+                icon.className = 'tree-icon ' + stmt.domain;
+                icon.textContent = stmt.domain[0].toUpperCase();
+
+                const label = document.createElement('span');
+                label.className = 'tree-label';
+                label.textContent = `${stmt.action} ${stmt.subject || ''}`.trim();
+
+                header.appendChild(toggle);
+                header.appendChild(icon);
+                header.appendChild(label);
+                header.onclick = () => selectTreeNode(header, stmt);
+                node.appendChild(header);
+
+                return node;
+            }
+
+            container.appendChild(createNode(ast));
+            updateNodeCount(ast);
+        }
+
+        function getIconClass(item) {
+            if (item.type === 'root') return 'project';
+            if (item.kind === 'scenes' || item.kind === 'scene') return 'scene';
+            if (item.kind === 'cluster') return 'cluster';
+            if (item.kind === 'components') return 'component';
+            if (item.kind === 'mcp') return 'mcp';
+            if (item.kind === 'agents') return 'agent';
+            if (item.kind === 'events') return 'event';
+            return 'node';
+        }
+
+        function getIconChar(item) {
+            if (item.type === 'root') return '◆';
+            if (item.kind === 'scenes' || item.kind === 'scene') return 'S';
+            if (item.kind === 'cluster') return 'C';
+            if (item.kind === 'components') return '⚙';
+            if (item.kind === 'mcp') return 'M';
+            if (item.kind === 'agents') return 'A';
+            if (item.kind === 'events') return 'E';
+            return '●';
+        }
+
+        let selectedHeader = null;
+        function selectTreeNode(header, item) {
+            if (selectedHeader) selectedHeader.classList.remove('selected');
+            header.classList.add('selected');
+            selectedHeader = header;
+            showProperties(item);
+        }
+
+        function showProperties(item) {
+            const container = document.getElementById('propertiesContent');
+
+            if (item.type === 'root' || item.type === 'block') {
+                container.innerHTML = `
+                    <div class="prop-section">
+                        <div class="prop-section-title">${item.type === 'root' ? 'Project' : 'Block'}</div>
+                        <div class="prop-row">
+                            <span class="prop-label">Name</span>
+                            <input class="prop-value" value="${item.name || ''}" readonly>
+                        </div>
+                        <div class="prop-row">
+                            <span class="prop-label">Type</span>
+                            <input class="prop-value" value="${item.kind || 'project'}" readonly>
+                        </div>
+                        <div class="prop-row">
+                            <span class="prop-label">Children</span>
+                            <input class="prop-value" value="${(item.children?.length || 0) + (item.statements?.length || 0)}" readonly>
+                        </div>
+                    </div>
+                `;
+            } else if (item.domain) {
+                // Statement
+                let html = `
+                    <div class="prop-section">
+                        <div class="prop-section-title">Statement</div>
+                        <div class="prop-row">
+                            <span class="prop-label">Domain</span>
+                            <input class="prop-value" value="${item.domain}" readonly>
+                        </div>
+                `;
+                if (item.resource) {
+                    html += `<div class="prop-row"><span class="prop-label">Resource</span><input class="prop-value" value="${item.resource}" readonly></div>`;
+                }
+                html += `<div class="prop-row"><span class="prop-label">Action</span><input class="prop-value" value="${item.action}" readonly></div>`;
+                if (item.subject) {
+                    html += `<div class="prop-row"><span class="prop-label">Subject</span><input class="prop-value" value="${item.subject}" readonly></div>`;
+                }
+                if (item.modifier) {
+                    html += `<div class="prop-row"><span class="prop-label">Modifier</span><input class="prop-value" value="${item.modifier} ${item.target || ''}" readonly></div>`;
+                }
+                html += '</div>';
+
+                if (Object.keys(item.args).length > 0) {
+                    html += '<div class="prop-section"><div class="prop-section-title">Arguments</div>';
+                    for (const [k, v] of Object.entries(item.args)) {
+                        html += `<div class="prop-row"><span class="prop-label">${k}</span><input class="prop-value" value="${v}" readonly></div>`;
+                    }
+                    html += '</div>';
+                }
+
+                container.innerHTML = html;
+            }
+        }
+
+        function updateNodeCount(ast) {
+            let count = 0;
+            function countNodes(node) {
+                count++;
+                if (node.children) node.children.forEach(countNodes);
+                if (node.statements) count += node.statements.length;
+            }
+            countNodes(ast);
+            document.getElementById('nodeCount').textContent = `Nodes: ${count}`;
+        }
+
+        // Generate outputs
+        function generateXml() {
+            const { ast, errors } = parseDSL(editor.getValue());
+            if (errors.length > 0) { showErrors(errors); return; }
+
+            let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+            xml += astToXml(ast, 0);
+            document.getElementById('outputXml').textContent = xml;
+            switchOutput('xml');
+        }
+
+        function astToXml(node, indent) {
+            const sp = '  '.repeat(indent);
+            let xml = '';
+
+            if (node.type === 'root') {
+                xml += `${sp}<synth>\n`;
+                node.children.forEach(c => xml += astToXml(c, indent + 1));
+                node.statements.forEach(s => xml += stmtToXml(s, indent + 1));
+                xml += `${sp}</synth>\n`;
+            } else if (node.type === 'block') {
+                const attrs = node.name && node.name !== node.kind ? ` name="${node.name}"` : '';
+                if (node.children.length === 0 && node.statements.length === 0) {
+                    xml += `${sp}<${node.kind}${attrs}/>\n`;
+                } else {
+                    xml += `${sp}<${node.kind}${attrs}>\n`;
+                    node.children.forEach(c => xml += astToXml(c, indent + 1));
+                    node.statements.forEach(s => xml += stmtToXml(s, indent + 1));
+                    xml += `${sp}</${node.kind}>\n`;
+                }
+            }
+
+            return xml;
+        }
+
+        function stmtToXml(stmt, indent) {
+            const sp = '  '.repeat(indent);
+            let xml = `${sp}<event domain="${stmt.domain}"`;
+            if (stmt.resource) xml += ` resource="${stmt.resource}"`;
+            xml += ` action="${stmt.action}"`;
+            if (stmt.subject) xml += ` subject="${stmt.subject}"`;
+            if (stmt.modifier) xml += ` modifier="${stmt.modifier}" target="${stmt.target || ''}"`;
+
+            if (Object.keys(stmt.args).length > 0) {
+                xml += '>\n';
+                for (const [k, v] of Object.entries(stmt.args)) {
+                    xml += `${sp}  <arg key="${k}" value="${v}"/>\n`;
+                }
+                xml += `${sp}</event>\n`;
+            } else {
+                xml += '/>\n';
+            }
+            return xml;
+        }
+
+        function generateProto() {
+            const { ast, errors } = parseDSL(editor.getValue());
+            if (errors.length > 0) { showErrors(errors); return; }
+
+            let proto = '// CompactEvent batch\n\n';
+            function collectStatements(node, stmts) {
+                if (node.statements) stmts.push(...node.statements);
+                if (node.children) node.children.forEach(c => collectStatements(c, stmts));
+            }
+            const stmts = [];
+            collectStatements(ast, stmts);
+
+            stmts.forEach(s => {
+                proto += `CompactEvent {\n`;
+                proto += `  domain: DOMAIN_${s.domain.toUpperCase()}\n`;
+                proto += `  resource: ${s.resource ? 'RESOURCE_' + s.resource.toUpperCase() : 'RESOURCE_NONE'}\n`;
+                proto += `  action: ACTION_${s.action.toUpperCase()}\n`;
+                if (s.subject) proto += `  subject_id: "${s.subject}"\n`;
+                if (s.modifier) {
+                    proto += `  modifier: MODIFIER_${s.modifier.toUpperCase()}\n`;
+                    if (s.target) proto += `  modifier_target: "${s.target}"\n`;
+                }
+                if (Object.keys(s.args).length > 0) {
+                    proto += '  args: {\n';
+                    for (const [k, v] of Object.entries(s.args)) proto += `    "${k}": "${v}"\n`;
+                    proto += '  }\n';
+                }
+                proto += '}\n\n';
+            });
+
+            document.getElementById('outputProto').textContent = proto;
+            switchOutput('proto');
+        }
+
+        function parseAndValidate() {
+            const { ast, errors } = parseDSL(editor.getValue());
+            const statusEl = document.getElementById('parseStatus');
+
+            if (errors.length === 0) {
+                statusEl.className = 'valid';
+                statusEl.textContent = '✓ Valid';
+                document.getElementById('outputErrors').innerHTML = '<span class="success">No errors</span>';
+            } else {
+                statusEl.className = 'errors';
+                statusEl.textContent = `✗ ${errors.length} error(s)`;
+                showErrors(errors);
+            }
+
+            buildTree(ast);
+            document.getElementById('lineCount').textContent = `Lines: ${editor.lineCount()}`;
+        }
+
+        function showErrors(errors) {
+            document.getElementById('outputErrors').innerHTML = errors.map(e =>
+                `<span class="error">Line ${e.line}: ${e.msg}</span>`
+            ).join('\n');
+            switchOutput('errors');
+        }
+
+        function switchOutput(tab) {
+            document.querySelectorAll('.output-tab').forEach(t => t.classList.remove('active'));
+            document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+            ['xml', 'proto', 'errors'].forEach(t => {
+                document.getElementById('output' + t.charAt(0).toUpperCase() + t.slice(1)).style.display = t === tab ? 'block' : 'none';
+            });
+        }
+
+        function expandAll() {
+            document.querySelectorAll('.tree-children').forEach(el => el.classList.add('expanded'));
+            document.querySelectorAll('.tree-toggle').forEach(el => el.classList.add('expanded'));
+        }
+
+        function collapseAll() {
+            document.querySelectorAll('.tree-children').forEach(el => el.classList.remove('expanded'));
+            document.querySelectorAll('.tree-toggle').forEach(el => el.classList.remove('expanded'));
+        }
+
+        // Initialize
+        const editor = CodeMirror.fromTextArea(document.getElementById('editor'), {
+            mode: 'synth-dsl',
+            lineNumbers: true,
+            matchBrackets: true,
+            indentUnit: 4,
+            tabSize: 4,
+            extraKeys: {
+                'Ctrl-Space': cm => cm.showHint({ hint: synthHint, completeSingle: false }),
+                'Tab': cm => cm.replaceSelection('    ')
+            }
+        });
+
+        editor.on('inputRead', (cm, change) => {
+            if (change.text[0] && /[a-zA-Z]/.test(change.text[0])) {
+                cm.showHint({ hint: synthHint, completeSingle: false });
+            }
+        });
+
+        editor.on('change', () => {
+            clearTimeout(editor.validateTimeout);
+            editor.validateTimeout = setTimeout(parseAndValidate, 600);
+        });
+
+        function loadExample(type) {
+            const examples = {
+                minimal: `project "my_game" {
+    scenes {
+        scene create main
+    }
+    cluster {
+        cluster node create player in main
+    }
+    components {
+        component create transform on player --position=0,0,0
+    }
+}`,
+                game: `project "adventure" {
+    // Lua Scripts (Global Registration)
+    scripts {
+        script module register player --src="chp://scripts/player.lua"
+        script module register enemies --src="chp://scripts/enemies.lua"
+        script module register inventory --src="chp://scripts/inventory.lua"
+        script module register game --src="chp://scripts/game.lua"
+    }
+
+    scenes {
+        scene create outdoor --state=active
+        scene create indoor
+    }
+
+    cluster {
+        // Environment
+        cluster folder create environment in outdoor
+        cluster node create terrain in environment --type=mesh
+        cluster node create tree_01 in environment --type=asset
+        cluster node create tree_02 in environment --type=asset
+
+        // Characters
+        cluster folder create characters in outdoor
+        cluster node create player in characters --type=prefab
+        cluster node create npc_merchant in characters --type=prefab
+
+        // Lighting
+        cluster node create sun in outdoor --type=light
+        cluster node create ambient in outdoor --type=light
+    }
+
+    components {
+        component create transform on terrain --position=0,0,0 --scale=100,1,100
+        component create mesh on terrain --ref=@assets/terrain.fbx
+        component create collider on terrain --type=mesh
+
+        component create transform on player --position=0,0,0
+        component create script on player --class=PlayerController
+        component create collider on player --type=capsule
+
+        component create light on sun --type=directional --intensity=1.5
+        component create transform on sun --rotation=-45,30,0
+    }
+
+    mcp {
+        mcp server create vision --transport=stdio --command="python -m mcp_vision"
+        mcp server start vision
+        mcp tool register analyze on vision
+    }
+
+    agents {
+        agent create scene_analyzer for vision --type=reactive
+        agent start scene_analyzer
+    }
+
+    events {
+        // Event bindings with handler format: script_id:function_name
+        event subscribe collision on player --handler=player:onCollision
+        event subscribe death on player --handler=player:onDeath
+        event subscribe detect on enemy_01 --handler=enemies:onDetect
+        event subscribe load on outdoor --handler=game:onSceneLoaded
+        event subscribe pause on system --handler=game:onPaused
+    }
+}`,
+                mcp: `project "ai_studio" {
+    mcp {
+        mcp server create vision --transport=stdio --command="python -m mcp_vision"
+        mcp server create audio --transport=stdio --command="node audio-server.js"
+        mcp server create code --transport=sse --url="http://localhost:3000/mcp"
+
+        mcp server start vision
+        mcp server start audio
+
+        mcp tool register analyze on vision
+        mcp tool register detect on vision
+        mcp tool register segment on vision
+
+        mcp tool register transcribe on audio
+        mcp tool register generate on audio
+    }
+
+    agents {
+        agent create image_analyzer for vision --type=reactive
+        agent create audio_processor for audio --type=reactive
+        agent create planner --type=deliberative
+
+        agent start image_analyzer
+        agent start audio_processor
+    }
+
+    events {
+        mcp server health vision --healthy=true
+        mcp tool invoke analyze on vision --input="scene.png"
+        mcp tool complete analyze by vision --duration=1200
+
+        agent task create process_image for image_analyzer --priority=high
+        agent task progress process_image by image_analyzer --percent=50
+        agent task complete process_image by image_analyzer
+    }
+}`
+            };
+
+            editor.setValue(examples[type] || '');
+            parseAndValidate();
+        }
+
+        loadExample('game');
+    </script>
+</body>
+</html>

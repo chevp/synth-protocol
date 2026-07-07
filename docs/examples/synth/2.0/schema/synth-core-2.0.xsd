@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SYNTH CORE XML SCHEMA
+  Version 2.0
+
+  Core types used across all synth schemas.
+  Defines entityId, base types, and common structures.
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:core="https://chevp.github.io/synth-protocol/schema/synth/core/2.0"
+           targetNamespace="https://chevp.github.io/synth-protocol/schema/synth/core/2.0"
+           elementFormDefault="qualified">
+
+    <!-- ================================================================= -->
+    <!-- ENTITY ID -->
+    <!-- ================================================================= -->
+    <xs:element name="entityId" type="core:EntityIdType"/>
+
+    <xs:complexType name="EntityIdType">
+        <xs:sequence>
+            <xs:element name="uuid" type="xs:string"/>
+            <xs:element name="version" type="xs:integer"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ================================================================= -->
+    <!-- VECTOR TYPES -->
+    <!-- ================================================================= -->
+    <xs:simpleType name="Vec2Type">
+        <xs:annotation>
+            <xs:documentation>2D vector as comma-separated values: x,y</xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:pattern value="-?[0-9]+\.?[0-9]*,-?[0-9]+\.?[0-9]*"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="Vec3Type">
+        <xs:annotation>
+            <xs:documentation>3D vector as comma-separated values: x,y,z</xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:pattern value="-?[0-9]+\.?[0-9]*,-?[0-9]+\.?[0-9]*,-?[0-9]+\.?[0-9]*"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="Vec4Type">
+        <xs:annotation>
+            <xs:documentation>4D vector/quaternion as comma-separated values: x,y,z,w</xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:pattern value="-?[0-9]+\.?[0-9]*,-?[0-9]+\.?[0-9]*,-?[0-9]+\.?[0-9]*,-?[0-9]+\.?[0-9]*"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ================================================================= -->
+    <!-- COLOR TYPES -->
+    <!-- ================================================================= -->
+    <xs:simpleType name="ColorRGBType">
+        <xs:annotation>
+            <xs:documentation>RGB color as comma-separated 0-1 values: r,g,b</xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[0-9]+\.?[0-9]*,[0-9]+\.?[0-9]*,[0-9]+\.?[0-9]*"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="ColorRGBAType">
+        <xs:annotation>
+            <xs:documentation>RGBA color as comma-separated 0-1 values: r,g,b,a</xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:pattern value="[0-9]+\.?[0-9]*,[0-9]+\.?[0-9]*,[0-9]+\.?[0-9]*,[0-9]+\.?[0-9]*"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="ColorHexType">
+        <xs:annotation>
+            <xs:documentation>Hex color: #RRGGBB or #RRGGBBAA</xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:pattern value="#[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ================================================================= -->
+    <!-- URI TYPES -->
+    <!-- ================================================================= -->
+    <xs:simpleType name="ChpUriType">
+        <xs:annotation>
+            <xs:documentation>chp:// protocol URI for asset references</xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:anyURI">
+            <xs:pattern value="chp://.*"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ================================================================= -->
+    <!-- TRANSFORM TYPE -->
+    <!-- ================================================================= -->
+    <xs:complexType name="TransformType">
+        <xs:sequence>
+            <xs:element name="position" type="core:Vec3Type" minOccurs="0"/>
+            <xs:element name="rotation" type="core:Vec4Type" minOccurs="0"/>
+            <xs:element name="scale" type="core:Vec3Type" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- ================================================================= -->
+    <!-- BOUNDS TYPE -->
+    <!-- ================================================================= -->
+    <xs:complexType name="BoundsType">
+        <xs:sequence>
+            <xs:element name="min" type="core:Vec3Type"/>
+            <xs:element name="max" type="core:Vec3Type"/>
+        </xs:sequence>
+    </xs:complexType>
+
+</xs:schema>

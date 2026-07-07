@@ -29,19 +29,6 @@ Protocol Buffer schemas for the **Synth AI-Native Content Creation Platform**.
 │   synth-wire/transport.proto  HTTP, WebSocket, gRPC, Kafka, TCP bindings    │
 │   synth-wire/service.proto    gRPC service definition                       │
 │                                                                             │
-│   ═══════════════════════════════════════════════════════════════════════   │
-│                                                                             │
-│   TRANSPORT (Client ↔ Server)                                               │
-│   ───────────────────────────                                               │
-│   HTTP/REST, WebSocket, gRPC, Kafka, TCP, UDP, QUIC                         │
-│                                                                             │
-│   ═══════════════════════════════════════════════════════════════════════   │
-│                                                                             │
-│   SERVER-INTERNAL (not part of protocol)                                    │
-│   ──────────────────────────────────────                                    │
-│   SQLite, MySQL, PostgreSQL, Redis, FTP, S3, etc.                           │
-│   (How server stores data is its own concern)                               │
-│                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 

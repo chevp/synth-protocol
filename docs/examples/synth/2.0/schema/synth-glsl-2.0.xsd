@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SYNTH GLSL XML SCHEMA
+  Version 2.0
+
+  Defines native GLSL shader embedding in XML.
+  Content inside <glsl> tags is actual GLSL code.
+
+  Key principle: Native syntax embedding - GLSL code stays GLSL.
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:glsl="https://chevp.github.io/synth-protocol/schema/synth/glsl/2.0"
+           targetNamespace="https://chevp.github.io/synth-protocol/schema/synth/glsl/2.0"
+           elementFormDefault="qualified">
+
+    <!-- ================================================================= -->
+    <!-- GLSL SHADER ELEMENT -->
+    <!-- Contains native GLSL code -->
+    <!-- ================================================================= -->
+    <xs:element name="shader" type="glsl:ShaderType"/>
+
+    <xs:complexType name="ShaderType" mixed="true">
+        <xs:annotation>
+            <xs:documentation>
+                Contains native GLSL shader code.
+                The content is actual GLSL syntax, not DSL.
+
+                Example:
+                &lt;glsl:shader stage="vertex"&gt;
+                    #version 330 core
+                    layout(location = 0) in vec3 aPos;
+                    void main() {
+                        gl_Position = vec4(aPos, 1.0);
+                    }
+                &lt;/glsl:shader&gt;
+            </xs:documentation>
+        </xs:annotation>
+        <xs:attribute name="stage" type="glsl:StageType" use="required"/>
+        <xs:attribute name="version" type="xs:string" default="330"/>
+        <xs:attribute name="profile" type="glsl:ProfileType" default="core"/>
+    </xs:complexType>
+
+    <!-- ================================================================= -->
+    <!-- GLSL STAGE ENUMERATION -->
+    <!-- ================================================================= -->
+    <xs:simpleType name="StageType">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="vertex"/>
+            <xs:enumeration value="fragment"/>
+            <xs:enumeration value="geometry"/>
+            <xs:enumeration value="tessellation_control"/>
+            <xs:enumeration value="tessellation_evaluation"/>
+            <xs:enumeration value="compute"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ================================================================= -->
+    <!-- GLSL PROFILE ENUMERATION -->
+    <!-- ================================================================= -->
+    <xs:simpleType name="ProfileType">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="core"/>
+            <xs:enumeration value="compatibility"/>
+            <xs:enumeration value="es"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ================================================================= -->
+    <!-- GLSL UNIFORM ELEMENT -->
+    <!-- Defines shader uniforms -->
+    <!-- ================================================================= -->
+    <xs:element name="uniform" type="glsl:UniformType"/>
+
+    <xs:complexType name="UniformType">
+        <xs:attribute name="name" type="xs:string" use="required"/>
+        <xs:attribute name="type" type="glsl:DataType" use="required"/>
+        <xs:attribute name="default" type="xs:string"/>
+        <xs:attribute name="binding" type="xs:integer"/>
+    </xs:complexType>
+
+    <!-- ================================================================= -->
+    <!-- GLSL DATA TYPES -->
+    <!-- ================================================================= -->
+    <xs:simpleType name="DataType">
+        <xs:restriction base="xs:string">
+            <!-- Scalars -->
+            <xs:enumeration value="float"/>
+            <xs:enumeration value="int"/>
+            <xs:enumeration value="uint"/>
+            <xs:enumeration value="bool"/>
+            <!-- Vectors -->
+            <xs:enumeration value="vec2"/>
+            <xs:enumeration value="vec3"/>
+            <xs:enumeration value="vec4"/>
+            <xs:enumeration value="ivec2"/>
+            <xs:enumeration value="ivec3"/>
+            <xs:enumeration value="ivec4"/>
+            <xs:enumeration value="uvec2"/>
+            <xs:enumeration value="uvec3"/>
+            <xs:enumeration value="uvec4"/>
+            <xs:enumeration value="bvec2"/>
+            <xs:enumeration value="bvec3"/>
+            <xs:enumeration value="bvec4"/>
+            <!-- Matrices -->
+            <xs:enumeration value="mat2"/>
+            <xs:enumeration value="mat3"/>
+            <xs:enumeration value="mat4"/>
+            <xs:enumeration value="mat2x3"/>
+            <xs:enumeration value="mat2x4"/>
+            <xs:enumeration value="mat3x2"/>
+            <xs:enumeration value="mat3x4"/>
+            <xs:enumeration value="mat4x2"/>
+            <xs:enumeration value="mat4x3"/>
+            <!-- Samplers -->
+            <xs:enumeration value="sampler2D"/>
+            <xs:enumeration value="sampler3D"/>
+            <xs:enumeration value="samplerCube"/>
+            <xs:enumeration value="sampler2DArray"/>
+            <xs:enumeration value="sampler2DShadow"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ================================================================= -->
+    <!-- GLSL PROGRAM ELEMENT -->
+    <!-- Groups multiple shader stages into a program -->
+    <!-- ================================================================= -->
+    <xs:element name="program" type="glsl:ProgramType"/>
+
+    <xs:complexType name="ProgramType">
+        <xs:sequence>
+            <xs:element ref="glsl:uniform" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element ref="glsl:shader" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required"/>
+        <xs:attribute name="name" type="xs:string"/>
+    </xs:complexType>
+
+</xs:schema>

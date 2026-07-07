@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Synth XML Editor - Simple</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #1e1e2e;
+            color: #cdd6f4;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        header {
+            background: #181825;
+            padding: 12px 20px;
+            border-bottom: 1px solid #313244;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        header h1 { font-size: 16px; color: #cba6f7; }
+        .toolbar {
+            background: #1e1e2e;
+            padding: 8px 16px;
+            border-bottom: 1px solid #313244;
+            display: flex;
+            gap: 8px;
+        }
+        .toolbar button {
+            background: #313244;
+            border: none;
+            color: #cdd6f4;
+            padding: 6px 14px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+        }
+        .toolbar button:hover { background: #cba6f7; color: #1e1e2e; }
+        .toolbar .sep { width: 1px; height: 20px; background: #313244; margin: 0 8px; }
+
+        .main { flex: 1; display: flex; overflow: hidden; }
+
+        .CodeMirror {
+            flex: 1; height: 100%;
+            font-family: 'JetBrains Mono', 'Consolas', monospace;
+            font-size: 13px; line-height: 1.6;
+            background: #1e1e2e; color: #cdd6f4;
+        }
+        .CodeMirror-gutters { background: #181825; border-right: 1px solid #313244; }
+        .CodeMirror-linenumber { color: #45475a; }
+        .CodeMirror-cursor { border-left: 2px solid #cba6f7; }
+
+        /* XML Syntax */
+        .cm-tag { color: #cba6f7; }
+        .cm-attribute { color: #89b4fa; }
+        .cm-string { color: #a6e3a1; }
+        .cm-comment { color: #6c7086; font-style: italic; }
+
+        /* Special: chp:// protocol */
+        .cm-chp-uri { color: #f38ba8 !important; text-decoration: underline; }
+
+        /* Special: event content (5-slot grammar) */
+        .cm-event-domain { color: #94e2d5; font-weight: bold; }
+        .cm-event-resource { color: #89b4fa; }
+        .cm-event-action { color: #f9e2af; }
+        .cm-event-modifier { color: #fab387; }
+        .cm-event-arg { color: #a6e3a1; }
+
+        .status-bar {
+            background: #181825;
+            padding: 6px 16px;
+            font-size: 10px;
+            color: #6c7086;
+            border-top: 1px solid #313244;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Synth XML</h1>
+    </header>
+    <div class="toolbar">
+        <button onclick="loadExample('index')">Project DSL</button>
+        <button onclick="loadExample('scene')">Scene DSL</button>
+        <button onclick="loadExample('material')">Shader DSL</button>
+        <div class="sep"></div>
+        <button onclick="loadExample('events')">All DSL Types</button>
+    </div>
+    <div class="main">
+        <textarea id="editor"></textarea>
+    </div>
+    <div class="status-bar">Synth XML Format - index.synth is ROOT, folders are child-entities, chp:// for references</div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/xml/xml.min.js"></script>
+    <script>
+        const examples = {
+
+// ============================================================
+// index.synth - ROOT mit Projekt-DSL
+// ============================================================
+index: `<?xml version="1.0" encoding="UTF-8"?>
+<synth version="1.0">
+
+    <!-- Project-Level DSL -->
+    <project>
+        project create my_game
+        project setting set name --value="My Game"
+        project setting set version --value="0.1.0"
+    </project>
+
+    <!-- Asset Folders mit Asset-DSL -->
+    <assets>
+        asset folder create scenes in my_game --pattern="*.synth"
+        asset folder create models in my_game --pattern="*.gltf"
+        asset folder create shaders in my_game --pattern="*.glsl"
+        asset folder create textures in my_game --pattern="*.png"
+    </assets>
+
+    <!-- MCP Server DSL -->
+    <mcp>
+        mcp server register asset_server --transport=stdio --command="synth-assets"
+        mcp server start asset_server
+    </mcp>
+
+</synth>`,
+
+// ============================================================
+// scene.synth - Scene mit Cluster/Component DSL
+// ============================================================
+scene: `<?xml version="1.0" encoding="UTF-8"?>
+<synth version="1.0">
+
+    <!-- Scene erstellen -->
+    <scene id="outdoor">
+        scene create outdoor --name="Outdoor Level"
+    </scene>
+
+    <!-- Player Entity mit Cluster + Component DSL -->
+    <player>
+        cluster folder create characters in outdoor
+        cluster node create player in characters --type=prefab
+
+        component create transform on player --position=0,0,0
+        component create mesh on player --ref="chp://models/player.gltf"
+        component create collider on player --type=capsule --height=1.8
+        component create physics on player --mass=80
+        component create controller on player --speed=5.0
+    </player>
+
+    <!-- Enemy mit AI Component -->
+    <enemy>
+        cluster node create enemy_01 in characters
+
+        component create transform on enemy_01 --position=10,0,5
+        component create mesh on enemy_01 --ref="chp://models/enemy.gltf"
+        component create collider on enemy_01 --type=capsule
+        component create ai on enemy_01 --behavior=patrol --target=player
+    </enemy>
+
+    <!-- Camera -->
+    <camera>
+        cluster node create main_camera in outdoor
+
+        component create transform on main_camera --position=0,5,-10
+        component create camera on main_camera --fov=60 --near=0.1 --far=1000
+        component create follow on main_camera --target=player --offset=0,3,5
+    </camera>
+
+    <!-- Light -->
+    <light>
+        cluster node create sun in outdoor
+
+        component create transform on sun --rotation=-45,30,0
+        component create light on sun --type=directional --color=1,0.95,0.9
+    </light>
+
+    <!-- Terrain -->
+    <terrain>
+        cluster node create terrain in outdoor
+
+        component create transform on terrain --scale=500,1,500
+        component create mesh on terrain --primitive=plane
+        component create material on terrain
+            --shader="chp://shaders/terrain.glsl"
+            --albedo="chp://textures/grass.png"
+    </terrain>
+
+</synth>`,
+
+// ============================================================
+// shader.synth - Shader mit GLSL DSL
+// ============================================================
+material: `<?xml version="1.0" encoding="UTF-8"?>
+<synth version="1.0">
+
+    <!-- Shader Definition mit Shader-DSL -->
+    <shader id="pbr_shader">
+        shader create pbr_shader --version="300 es"
+
+        shader uniform add u_MVP on pbr_shader --type=mat4
+        shader uniform add u_Model on pbr_shader --type=mat4
+        shader uniform add u_CameraPos on pbr_shader --type=vec3
+        shader uniform add u_Albedo on pbr_shader --type=sampler2D
+        shader uniform add u_Normal on pbr_shader --type=sampler2D
+
+        shader attribute add a_Position on pbr_shader --type=vec3 --location=0
+        shader attribute add a_Normal on pbr_shader --type=vec3 --location=1
+        shader attribute add a_TexCoord on pbr_shader --type=vec2 --location=2
+    </shader>
+
+    <!-- Vertex Shader Code -->
+    <glsl stage="vertex">
+        #version 300 es
+        precision highp float;
+
+        in vec3 a_Position;
+        in vec3 a_Normal;
+        in vec2 a_TexCoord;
+
+        uniform mat4 u_MVP;
+        uniform mat4 u_Model;
+
+        out vec3 v_Normal;
+        out vec2 v_TexCoord;
+        out vec3 v_WorldPos;
+
+        void main() {
+            v_Normal = mat3(u_Model) * a_Normal;
+            v_TexCoord = a_TexCoord;
+            v_WorldPos = (u_Model * vec4(a_Position, 1.0)).xyz;
+            gl_Position = u_MVP * vec4(a_Position, 1.0);
+        }
+    </glsl>
+
+    <!-- Fragment Shader Code -->
+    <glsl stage="fragment">
+        #version 300 es
+        precision highp float;
+
+        in vec3 v_Normal;
+        in vec2 v_TexCoord;
+        in vec3 v_WorldPos;
+
+        uniform vec3 u_CameraPos;
+        uniform sampler2D u_Albedo;
+
+        out vec4 fragColor;
+
+        void main() {
+            vec3 albedo = texture(u_Albedo, v_TexCoord).rgb;
+            vec3 normal = normalize(v_Normal);
+            vec3 lightDir = normalize(vec3(1, 1, 1));
+            float diff = max(dot(normal, lightDir), 0.0);
+            fragColor = vec4(albedo * (0.3 + 0.7 * diff), 1.0);
+        }
+    </glsl>
+
+</synth>`,
+
+// ============================================================
+// Alle DSL-Typen in einem Beispiel
+// ============================================================
+events: `<?xml version="1.0" encoding="UTF-8"?>
+<synth version="1.0">
+<!--
+    =============================================
+    SYNTH DSL - 5-Slot Grammar pro Entity-Type
+    =============================================
+
+    Format: domain [resource] action subject [modifier target] [--args]
+
+    DOMAINS:
+    - project  : Projekt-Verwaltung
+    - scene    : Szenen-Verwaltung
+    - cluster  : Entity-Hierarchie (node, folder)
+    - component: Komponenten (transform, mesh, material, etc.)
+    - asset    : Asset-Verwaltung (load, unload)
+    - shader   : Shader-Definition
+    - mcp      : MCP Server
+    - agent    : AI Agents
+    - system   : System-Events
+    - event    : Event-Handling
+-->
+
+    <!-- === PROJECT DSL === -->
+    <project>
+        project create my_game
+        project setting set name --value="My Game"
+        project setting set version --value="1.0.0"
+        project build start --target=webgl
+    </project>
+
+    <!-- === SCENE DSL === -->
+    <scene id="level_01">
+        scene create level_01 --name="First Level"
+        scene setting set gravity --value=0,-9.81,0
+        scene setting set ambient --value=0.1,0.1,0.15
+    </scene>
+
+    <!-- === CLUSTER DSL (Entity Hierarchy) === -->
+    <entities>
+        cluster folder create environment in level_01
+        cluster folder create characters in level_01
+        cluster folder create items in level_01
+
+        cluster node create player in characters --type=prefab
+        cluster node create enemy_01 in characters
+        cluster node create tree_01 in environment
+        cluster node create coin_01 in items
+    </entities>
+
+    <!-- === COMPONENT DSL === -->
+    <player>
+        component create transform on player
+            --position=0,0,0
+            --rotation=0,0,0,1
+            --scale=1,1,1
+
+        component create mesh on player
+            --ref="chp://models/player.gltf"
+
+        component create material on player
+            --shader="chp://shaders/pbr.glsl"
+            --albedo="chp://textures/player.png"
+
+        component create physics on player
+            --mass=80
+            --collider=capsule
+
+        component create controller on player
+            --type=character
+            --speed=5.0
+            --jump=8.0
+
+        component update transform on player --position=5,0,10
+    </player>
+
+    <!-- === ASSET DSL === -->
+    <assets>
+        asset load player_model from chp://models/player.gltf
+        asset load enemy_model from chp://models/enemy.gltf
+        asset load grass_tex from chp://textures/grass.png --format=compressed
+
+        asset unload unused_model
+        asset preload chp://models/boss.gltf
+    </assets>
+
+    <!-- === SHADER DSL === -->
+    <shader id="toon">
+        shader create toon_shader --version="300 es"
+        shader uniform add u_MVP on toon_shader --type=mat4
+        shader uniform add u_Color on toon_shader --type=vec3
+        shader uniform add u_Steps on toon_shader --type=float --default=4.0
+        shader compile toon_shader
+    </shader>
+
+    <!-- === MCP DSL === -->
+    <mcp>
+        mcp server register vision_ai --transport=stdio --command="python -m mcp_vision"
+        mcp server start vision_ai
+        mcp tool invoke analyze on vision_ai --input="chp://screenshots/current.png"
+    </mcp>
+
+    <!-- === AGENT DSL === -->
+    <agents>
+        agent create scene_helper --type=reactive --mcp=vision_ai
+        agent task assign analyze_scene to scene_helper
+        agent invoke scene_helper --action=optimize
+    </agents>
+
+    <!-- === EVENT DSL === -->
+    <events>
+        event subscribe collision on player --handler=onPlayerCollision
+        event subscribe trigger_enter on coin_01 --handler=onCoinCollect
+        event emit game_start --data='{"level": 1}'
+    </events>
+
+    <!-- === SYSTEM DSL === -->
+    <system>
+        system pause physics
+        system resume physics
+        system time set scale --value=0.5
+    </system>
+
+    <!-- === HISTORY (recorded events) === -->
+    <history>
+        <event ts="1000">cluster node create player in characters</event>
+        <event ts="1001">component create transform on player --position=0,0,0</event>
+        <event ts="1002">component update transform on player --position=5,0,10</event>
+        <event ts="1003">event emit player_spawn</event>
+    </history>
+
+</synth>`
+
+        };
+
+        const editor = CodeMirror.fromTextArea(document.getElementById('editor'), {
+            mode: 'xml',
+            lineNumbers: true,
+            indentUnit: 4,
+            tabSize: 4
+        });
+
+        function loadExample(name) {
+            editor.setValue(examples[name] || '');
+        }
+
+        loadExample('index');
+    </script>
+</body>
+</html>

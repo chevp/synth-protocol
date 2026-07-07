@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GLTF Model DSL Editor</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #1e1e2e;
+            color: #cdd6f4;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        header {
+            background: #181825;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            border-bottom: 1px solid #313244;
+        }
+        header h1 { font-size: 16px; font-weight: 500; color: #f9e2af; }
+        header .subtitle { font-size: 11px; color: #6c7086; }
+        .toolbar {
+            background: #1e1e2e;
+            padding: 8px 20px;
+            display: flex;
+            gap: 8px;
+            border-bottom: 1px solid #313244;
+            align-items: center;
+        }
+        .toolbar button {
+            background: #313244;
+            border: none;
+            color: #cdd6f4;
+            padding: 6px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 11px;
+            transition: all 0.2s;
+        }
+        .toolbar button:hover { background: #f9e2af; color: #1e1e2e; }
+        .toolbar .separator { width: 1px; height: 20px; background: #313244; margin: 0 8px; }
+        .toolbar .hint { margin-left: auto; font-size: 10px; color: #6c7086; }
+        .toolbar .hint kbd { background: #313244; padding: 2px 6px; border-radius: 4px; }
+
+        .main-container { flex: 1; display: flex; overflow: hidden; }
+
+        /* Tree Panel */
+        .tree-panel {
+            width: 280px;
+            background: #181825;
+            border-right: 1px solid #313244;
+            display: flex;
+            flex-direction: column;
+        }
+        .tree-header {
+            padding: 12px;
+            background: #11111b;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #6c7086;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 1px solid #313244;
+        }
+        .tree-header .icon { color: #f9e2af; font-size: 14px; }
+        .tree-content { flex: 1; overflow-y: auto; padding: 8px 0; }
+        .tree-node { cursor: pointer; }
+        .tree-node-header {
+            display: flex;
+            align-items: center;
+            padding: 6px 12px;
+            gap: 8px;
+            font-size: 12px;
+            transition: background 0.1s;
+        }
+        .tree-node-header:hover { background: #313244; }
+        .tree-node-header.selected { background: #f9e2af20; color: #f9e2af; }
+        .tree-toggle { width: 14px; font-size: 8px; color: #6c7086; transition: transform 0.15s; }
+        .tree-toggle.expanded { transform: rotate(90deg); }
+        .tree-toggle.hidden { visibility: hidden; }
+        .tree-icon {
+            width: 18px; height: 18px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 10px; border-radius: 4px;
+        }
+        .tree-icon.model { background: #f9e2af30; color: #f9e2af; }
+        .tree-icon.scene { background: #89b4fa30; color: #89b4fa; }
+        .tree-icon.node { background: #a6e3a130; color: #a6e3a1; }
+        .tree-icon.mesh { background: #cba6f730; color: #cba6f7; }
+        .tree-icon.material { background: #f38ba830; color: #f38ba8; }
+        .tree-icon.texture { background: #fab38730; color: #fab387; }
+        .tree-icon.animation { background: #94e2d530; color: #94e2d5; }
+        .tree-icon.accessor { background: #74c7ec30; color: #74c7ec; }
+        .tree-label { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .tree-badge { font-size: 9px; padding: 2px 6px; border-radius: 10px; background: #313244; color: #6c7086; }
+        .tree-children { display: none; padding-left: 16px; }
+        .tree-children.expanded { display: block; }
+
+        /* Editor */
+        .editor-panel { flex: 1; display: flex; flex-direction: column; }
+        .CodeMirror {
+            flex: 1; height: auto;
+            font-family: 'JetBrains Mono', 'Consolas', monospace;
+            font-size: 13px; line-height: 1.6;
+            background: #1e1e2e; color: #cdd6f4;
+        }
+        .CodeMirror-gutters { background: #181825; border-right: 1px solid #313244; }
+        .CodeMirror-linenumber { color: #45475a; }
+        .CodeMirror-cursor { border-left: 2px solid #f9e2af; }
+        .CodeMirror-selected { background: #31324480 !important; }
+
+        /* Syntax */
+        .cm-gltf-comment { color: #6c7086; font-style: italic; }
+        .cm-gltf-block { color: #f9e2af; font-weight: bold; }
+        .cm-gltf-keyword { color: #cba6f7; }
+        .cm-gltf-property { color: #89b4fa; }
+        .cm-gltf-string { color: #a6e3a1; }
+        .cm-gltf-number { color: #fab387; }
+        .cm-gltf-type { color: #f38ba8; }
+        .cm-gltf-ref { color: #94e2d5; }
+        .cm-gltf-brace { color: #6c7086; }
+
+        /* Autocomplete */
+        .CodeMirror-hints {
+            background: #181825; border: 1px solid #313244; border-radius: 8px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+            font-family: 'JetBrains Mono', monospace; font-size: 12px;
+            max-height: 300px; padding: 6px 0;
+        }
+        .CodeMirror-hint {
+            padding: 8px 14px; color: #cdd6f4; cursor: pointer;
+            display: flex; align-items: center; gap: 12px;
+        }
+        .CodeMirror-hint:hover { background: #313244; }
+        .CodeMirror-hint-active { background: #f9e2af !important; color: #1e1e2e; }
+        .hint-keyword { font-weight: bold; min-width: 100px; }
+        .hint-type { font-size: 9px; padding: 2px 8px; border-radius: 10px; text-transform: uppercase; }
+        .hint-type.block { background: #f9e2af30; color: #f9e2af; }
+        .hint-type.property { background: #89b4fa30; color: #89b4fa; }
+        .hint-type.type { background: #f38ba830; color: #f38ba8; }
+        .hint-desc { color: #6c7086; font-size: 10px; }
+
+        /* Output */
+        .output-panel {
+            height: 200px; background: #11111b;
+            border-top: 1px solid #313244;
+            display: flex; flex-direction: column;
+        }
+        .output-tabs { display: flex; background: #181825; border-bottom: 1px solid #313244; }
+        .output-tab {
+            padding: 8px 16px; font-size: 11px; color: #6c7086;
+            cursor: pointer; border-bottom: 2px solid transparent;
+        }
+        .output-tab:hover { color: #cdd6f4; }
+        .output-tab.active { color: #f9e2af; border-bottom-color: #f9e2af; }
+        .output-content { flex: 1; overflow: auto; padding: 12px; font-family: monospace; font-size: 11px; }
+        .output-content pre { white-space: pre-wrap; color: #6c7086; }
+        .output-content .error { color: #f38ba8; }
+        .output-content .success { color: #a6e3a1; }
+
+        /* Properties */
+        .properties-panel {
+            width: 300px; background: #181825;
+            border-left: 1px solid #313244;
+            display: flex; flex-direction: column;
+        }
+        .properties-header {
+            padding: 12px; background: #11111b;
+            font-size: 11px; font-weight: 600;
+            text-transform: uppercase; letter-spacing: 1px;
+            color: #6c7086; border-bottom: 1px solid #313244;
+        }
+        .properties-content { flex: 1; overflow-y: auto; padding: 12px; }
+        .prop-section { margin-bottom: 16px; }
+        .prop-section-title {
+            font-size: 10px; color: #6c7086; text-transform: uppercase;
+            margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid #313244;
+        }
+        .prop-row { display: flex; align-items: center; margin-bottom: 8px; font-size: 11px; }
+        .prop-label { width: 90px; color: #6c7086; }
+        .prop-value {
+            flex: 1; background: #1e1e2e; border: 1px solid #313244;
+            border-radius: 4px; padding: 6px 10px; color: #cdd6f4;
+            font-family: monospace; font-size: 11px;
+        }
+        .prop-value:focus { outline: none; border-color: #f9e2af; }
+
+        .status-bar {
+            background: #11111b; padding: 6px 16px;
+            font-size: 10px; color: #6c7086;
+            display: flex; gap: 20px; border-top: 1px solid #313244;
+        }
+        .status-bar .valid { color: #a6e3a1; }
+        .status-bar .errors { color: #f38ba8; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>GLTF Model DSL Editor</h1>
+        <span class="subtitle">Domain-Specific Language for 3D Models</span>
+    </header>
+    <div class="toolbar">
+        <button onclick="parseAndValidate()">Validate</button>
+        <button onclick="generateGltf()">Export GLTF</button>
+        <button onclick="generateJson()">Export JSON</button>
+        <div class="separator"></div>
+        <button onclick="loadExample('cube')">Cube</button>
+        <button onclick="loadExample('character')">Character</button>
+        <button onclick="loadExample('scene')">Scene</button>
+        <div class="separator"></div>
+        <button onclick="expandAll()">Expand</button>
+        <button onclick="collapseAll()">Collapse</button>
+        <span class="hint"><kbd>Ctrl</kbd>+<kbd>Space</kbd> autocomplete</span>
+    </div>
+    <div class="main-container">
+        <div class="tree-panel">
+            <div class="tree-header"><span class="icon">◆</span> Model Structure</div>
+            <div class="tree-content" id="treeContent"></div>
+        </div>
+        <div class="editor-panel">
+            <textarea id="editor"></textarea>
+            <div class="output-panel">
+                <div class="output-tabs">
+                    <div class="output-tab active" data-tab="gltf" onclick="switchOutput('gltf')">GLTF</div>
+                    <div class="output-tab" data-tab="json" onclick="switchOutput('json')">JSON</div>
+                    <div class="output-tab" data-tab="errors" onclick="switchOutput('errors')">Errors</div>
+                </div>
+                <div class="output-content">
+                    <pre id="outputGltf"></pre>
+                    <pre id="outputJson" style="display:none;"></pre>
+                    <pre id="outputErrors" style="display:none;"></pre>
+                </div>
+            </div>
+        </div>
+        <div class="properties-panel">
+            <div class="properties-header">Properties</div>
+            <div class="properties-content" id="propertiesContent">
+                <div class="prop-section">
+                    <div class="prop-section-title">Selection</div>
+                    <div style="color:#6c7086; font-size:11px;">Select an item in the tree</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="status-bar">
+        <span id="parseStatus">Ready</span>
+        <span id="lineCount">Lines: 0</span>
+        <span id="nodeCount">Nodes: 0</span>
+        <span style="margin-left: auto;">GLTF DSL v1.0</span>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+    <script>
+        // GLTF DSL Grammar
+        const GRAMMAR = {
+            blocks: {
+                'model': 'Root model definition',
+                'asset': 'Asset metadata',
+                'scene': 'Scene definition',
+                'scenes': 'Scene list',
+                'node': 'Node in scene graph',
+                'nodes': 'Node list',
+                'mesh': 'Mesh geometry',
+                'meshes': 'Mesh list',
+                'primitive': 'Mesh primitive',
+                'material': 'Material definition',
+                'materials': 'Material list',
+                'texture': 'Texture reference',
+                'textures': 'Texture list',
+                'image': 'Image source',
+                'images': 'Image list',
+                'sampler': 'Texture sampler',
+                'samplers': 'Sampler list',
+                'accessor': 'Data accessor',
+                'accessors': 'Accessor list',
+                'bufferView': 'Buffer view',
+                'bufferViews': 'Buffer view list',
+                'buffer': 'Data buffer',
+                'buffers': 'Buffer list',
+                'animation': 'Animation definition',
+                'animations': 'Animation list',
+                'channel': 'Animation channel',
+                'skin': 'Skeleton skin',
+                'skins': 'Skin list',
+                'camera': 'Camera definition',
+                'cameras': 'Camera list'
+            },
+            properties: {
+                // Asset
+                'version': 'GLTF version (2.0)',
+                'generator': 'Generator name',
+                'copyright': 'Copyright info',
+                // Node
+                'name': 'Element name',
+                'translation': 'Position [x, y, z]',
+                'rotation': 'Rotation quaternion [x, y, z, w]',
+                'scale': 'Scale [x, y, z]',
+                'matrix': '4x4 transform matrix',
+                'children': 'Child node references',
+                'mesh': 'Mesh reference',
+                'skin': 'Skin reference',
+                'camera': 'Camera reference',
+                // Mesh
+                'primitives': 'Primitive list',
+                // Primitive
+                'attributes': 'Vertex attributes',
+                'indices': 'Index accessor',
+                'material': 'Material reference',
+                'mode': 'Render mode (TRIANGLES, LINES, etc.)',
+                // Material
+                'pbrMetallicRoughness': 'PBR material properties',
+                'baseColorFactor': 'Base color [r, g, b, a]',
+                'baseColorTexture': 'Base color texture',
+                'metallicFactor': 'Metallic factor (0-1)',
+                'roughnessFactor': 'Roughness factor (0-1)',
+                'normalTexture': 'Normal map texture',
+                'emissiveFactor': 'Emissive color [r, g, b]',
+                'emissiveTexture': 'Emissive texture',
+                'alphaMode': 'Alpha mode (OPAQUE, MASK, BLEND)',
+                'alphaCutoff': 'Alpha cutoff for MASK mode',
+                'doubleSided': 'Render both sides',
+                // Texture
+                'source': 'Image index',
+                'sampler': 'Sampler index',
+                // Image
+                'uri': 'Image URI or data URI',
+                'mimeType': 'MIME type',
+                'bufferView': 'Buffer view for embedded',
+                // Sampler
+                'magFilter': 'Magnification filter',
+                'minFilter': 'Minification filter',
+                'wrapS': 'Wrap mode S',
+                'wrapT': 'Wrap mode T',
+                // Accessor
+                'bufferView': 'Buffer view index',
+                'byteOffset': 'Byte offset in buffer view',
+                'componentType': 'Component type (FLOAT, UNSIGNED_SHORT, etc.)',
+                'count': 'Element count',
+                'type': 'Element type (SCALAR, VEC2, VEC3, VEC4, MAT4)',
+                'min': 'Minimum values',
+                'max': 'Maximum values',
+                'normalized': 'Normalized integers',
+                // BufferView
+                'buffer': 'Buffer index',
+                'byteLength': 'Length in bytes',
+                'byteStride': 'Stride between elements',
+                'target': 'Target (ARRAY_BUFFER, ELEMENT_ARRAY_BUFFER)',
+                // Buffer
+                'byteLength': 'Total byte length',
+                'uri': 'Buffer URI',
+                // Animation
+                'channels': 'Animation channels',
+                'samplers': 'Animation samplers',
+                // Channel
+                'sampler': 'Sampler index',
+                'target': 'Animation target',
+                'path': 'Target property (translation, rotation, scale, weights)',
+                // Camera
+                'type': 'Camera type (perspective, orthographic)',
+                'perspective': 'Perspective params',
+                'orthographic': 'Orthographic params',
+                'aspectRatio': 'Aspect ratio',
+                'yfov': 'Vertical FOV',
+                'znear': 'Near plane',
+                'zfar': 'Far plane'
+            },
+            types: {
+                'TRIANGLES': 4,
+                'TRIANGLE_STRIP': 5,
+                'TRIANGLE_FAN': 6,
+                'LINES': 1,
+                'LINE_STRIP': 3,
+                'LINE_LOOP': 2,
+                'POINTS': 0,
+                'FLOAT': 5126,
+                'UNSIGNED_BYTE': 5121,
+                'UNSIGNED_SHORT': 5123,
+                'UNSIGNED_INT': 5125,
+                'SCALAR': 'SCALAR',
+                'VEC2': 'VEC2',
+                'VEC3': 'VEC3',
+                'VEC4': 'VEC4',
+                'MAT2': 'MAT2',
+                'MAT3': 'MAT3',
+                'MAT4': 'MAT4',
+                'OPAQUE': 'OPAQUE',
+                'MASK': 'MASK',
+                'BLEND': 'BLEND',
+                'NEAREST': 9728,
+                'LINEAR': 9729,
+                'REPEAT': 10497,
+                'CLAMP_TO_EDGE': 33071,
+                'MIRRORED_REPEAT': 33648
+            }
+        };
+
+        // CodeMirror mode
+        CodeMirror.defineMode('gltf-dsl', function() {
+            const blockRegex = new RegExp('^(' + Object.keys(GRAMMAR.blocks).join('|') + ')\\b');
+            const propRegex = new RegExp('^(' + Object.keys(GRAMMAR.properties).join('|') + ')\\b');
+            const typeRegex = new RegExp('^(' + Object.keys(GRAMMAR.types).join('|') + ')\\b');
+
+            return {
+                startState: () => ({ inBlock: false }),
+                token: function(stream, state) {
+                    if (stream.eatSpace()) return null;
+                    if (stream.match(/^\/\/.*/) || stream.match(/^#.*/)) return 'gltf-comment';
+                    if (stream.match(/^[{}]/)) return 'gltf-brace';
+                    if (stream.match(/^"[^"]*"/)) return 'gltf-string';
+                    if (stream.match(/^@[\w_]+/)) return 'gltf-ref';
+                    if (stream.match(/^-?\d+\.?\d*([eE][+-]?\d+)?/)) return 'gltf-number';
+                    if (stream.match(/^\[[\d.,\s-]+\]/)) return 'gltf-number';
+                    if (stream.match(blockRegex)) return 'gltf-block';
+                    if (stream.match(typeRegex)) return 'gltf-type';
+                    if (stream.match(propRegex)) return 'gltf-property';
+                    if (stream.match(/^[\w_]+(?=\s*[=:])/)) return 'gltf-property';
+                    if (stream.match(/^[=:]/)) return 'gltf-keyword';
+                    if (stream.match(/^[\w_][\w_-]*/)) return null;
+                    stream.next();
+                    return null;
+                }
+            };
+        });
+
+        // Autocomplete
+        function gltfHint(cm) {
+            const cursor = cm.getCursor();
+            const line = cm.getLine(cursor.line);
+            const beforeCursor = line.substring(0, cursor.ch);
+            const wordMatch = beforeCursor.match(/[\w-]*$/);
+            const prefix = wordMatch ? wordMatch[0].toLowerCase() : '';
+            const start = cursor.ch - prefix.length;
+            const trimmedBefore = beforeCursor.substring(0, start).trim();
+
+            let suggestions = [];
+
+            if (trimmedBefore === '' || trimmedBefore.endsWith('{')) {
+                suggestions = [
+                    ...getSuggestions(GRAMMAR.blocks, prefix, 'block'),
+                    ...getSuggestions(GRAMMAR.properties, prefix, 'property')
+                ];
+            } else if (trimmedBefore.endsWith('=') || trimmedBefore.endsWith(':')) {
+                suggestions = getSuggestions(GRAMMAR.types, prefix, 'type');
+            } else {
+                suggestions = getSuggestions(GRAMMAR.properties, prefix, 'property');
+            }
+
+            if (!suggestions.length) return null;
+
+            return {
+                list: suggestions.map(s => ({
+                    text: s.text + (s.type === 'block' ? ' {\n    \n}' : ' '),
+                    displayText: s.text,
+                    render: el => {
+                        el.innerHTML = `<span class="hint-keyword">${s.text}</span>
+                            <span class="hint-type ${s.type}">${s.type}</span>
+                            <span class="hint-desc">${s.desc}</span>`;
+                    }
+                })),
+                from: CodeMirror.Pos(cursor.line, start),
+                to: CodeMirror.Pos(cursor.line, cursor.ch)
+            };
+        }
+
+        function getSuggestions(obj, prefix, type) {
+            return Object.entries(obj)
+                .filter(([key]) => key.toLowerCase().startsWith(prefix))
+                .slice(0, 15)
+                .map(([key, desc]) => ({ text: key, type, desc: typeof desc === 'string' ? desc : String(desc) }));
+        }
+
+        // Parse DSL
+        function parseDSL(text) {
+            const lines = text.split('\n');
+            const root = { type: 'model', name: 'Model', children: [], properties: {} };
+            const stack = [root];
+            const errors = [];
+            let lineNum = 0;
+
+            for (const line of lines) {
+                lineNum++;
+                const trimmed = line.trim();
+                if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('#')) continue;
+
+                if (trimmed === '}') {
+                    if (stack.length > 1) stack.pop();
+                    continue;
+                }
+
+                // Block: "blockname "name" {" or "blockname {"
+                const blockMatch = trimmed.match(/^(\w+)\s*(?:"([^"]*)")?\s*\{?\s*$/);
+                if (blockMatch && GRAMMAR.blocks[blockMatch[1]]) {
+                    const block = {
+                        type: blockMatch[1],
+                        name: blockMatch[2] || blockMatch[1],
+                        children: [],
+                        properties: {},
+                        line: lineNum
+                    };
+                    stack[stack.length - 1].children.push(block);
+                    if (trimmed.endsWith('{')) stack.push(block);
+                    continue;
+                }
+
+                // Property: "name = value" or "name: value"
+                const propMatch = trimmed.match(/^(\w+)\s*[=:]\s*(.+)$/);
+                if (propMatch) {
+                    const parent = stack[stack.length - 1];
+                    let value = propMatch[2].trim();
+                    // Parse value
+                    if (value.startsWith('"') && value.endsWith('"')) {
+                        value = value.slice(1, -1);
+                    } else if (value.startsWith('[') && value.endsWith(']')) {
+                        try { value = JSON.parse(value); } catch(e) {}
+                    } else if (value === 'true') {
+                        value = true;
+                    } else if (value === 'false') {
+                        value = false;
+                    } else if (!isNaN(parseFloat(value))) {
+                        value = parseFloat(value);
+                    } else if (value.startsWith('@')) {
+                        value = { $ref: value.slice(1) };
+                    }
+                    parent.properties[propMatch[1]] = value;
+                    continue;
+                }
+
+                if (trimmed && !trimmed.endsWith('{')) {
+                    errors.push({ line: lineNum, msg: `Unknown syntax: ${trimmed}` });
+                }
+            }
+
+            return { ast: root, errors };
+        }
+
+        // Build tree
+        function buildTree(ast) {
+            const container = document.getElementById('treeContent');
+            container.innerHTML = '';
+
+            function createNode(item, depth = 0) {
+                const node = document.createElement('div');
+                node.className = 'tree-node';
+                const hasChildren = item.children && item.children.length > 0;
+
+                const header = document.createElement('div');
+                header.className = 'tree-node-header';
+                header.style.paddingLeft = (depth * 16 + 12) + 'px';
+
+                const toggle = document.createElement('span');
+                toggle.className = 'tree-toggle' + (hasChildren ? ' expanded' : ' hidden');
+                toggle.textContent = '▶';
+                toggle.onclick = e => {
+                    e.stopPropagation();
+                    const ch = node.querySelector('.tree-children');
+                    if (ch) { ch.classList.toggle('expanded'); toggle.classList.toggle('expanded'); }
+                };
+
+                const icon = document.createElement('span');
+                icon.className = 'tree-icon ' + getIconClass(item.type);
+                icon.textContent = item.type[0].toUpperCase();
+
+                const label = document.createElement('span');
+                label.className = 'tree-label';
+                label.textContent = item.name || item.type;
+
+                header.appendChild(toggle);
+                header.appendChild(icon);
+                header.appendChild(label);
+
+                if (hasChildren) {
+                    const badge = document.createElement('span');
+                    badge.className = 'tree-badge';
+                    badge.textContent = item.children.length;
+                    header.appendChild(badge);
+                }
+
+                header.onclick = () => selectNode(header, item);
+                node.appendChild(header);
+
+                if (hasChildren) {
+                    const children = document.createElement('div');
+                    children.className = 'tree-children expanded';
+                    item.children.forEach(c => children.appendChild(createNode(c, depth + 1)));
+                    node.appendChild(children);
+                }
+
+                return node;
+            }
+
+            function getIconClass(type) {
+                if (type === 'model') return 'model';
+                if (type === 'scene' || type === 'scenes') return 'scene';
+                if (type === 'node' || type === 'nodes') return 'node';
+                if (type === 'mesh' || type === 'meshes' || type === 'primitive') return 'mesh';
+                if (type === 'material' || type === 'materials') return 'material';
+                if (type === 'texture' || type === 'textures' || type === 'image' || type === 'images') return 'texture';
+                if (type === 'animation' || type === 'animations') return 'animation';
+                if (type === 'accessor' || type === 'accessors') return 'accessor';
+                return 'node';
+            }
+
+            container.appendChild(createNode(ast));
+            updateCounts(ast);
+        }
+
+        let selectedHeader = null;
+        function selectNode(header, item) {
+            if (selectedHeader) selectedHeader.classList.remove('selected');
+            header.classList.add('selected');
+            selectedHeader = header;
+            showProperties(item);
+        }
+
+        function showProperties(item) {
+            const container = document.getElementById('propertiesContent');
+            let html = `<div class="prop-section"><div class="prop-section-title">${item.type}</div>
+                <div class="prop-row"><span class="prop-label">Name</span><input class="prop-value" value="${item.name || ''}" readonly></div>
+                <div class="prop-row"><span class="prop-label">Type</span><input class="prop-value" value="${item.type}" readonly></div>
+                <div class="prop-row"><span class="prop-label">Children</span><input class="prop-value" value="${item.children?.length || 0}" readonly></div>
+            </div>`;
+
+            if (Object.keys(item.properties).length > 0) {
+                html += '<div class="prop-section"><div class="prop-section-title">Properties</div>';
+                for (const [k, v] of Object.entries(item.properties)) {
+                    const val = typeof v === 'object' ? JSON.stringify(v) : v;
+                    html += `<div class="prop-row"><span class="prop-label">${k}</span><input class="prop-value" value="${val}" readonly></div>`;
+                }
+                html += '</div>';
+            }
+            container.innerHTML = html;
+        }
+
+        function updateCounts(ast) {
+            let count = 0;
+            function countNodes(n) { count++; if (n.children) n.children.forEach(countNodes); }
+            countNodes(ast);
+            document.getElementById('nodeCount').textContent = `Nodes: ${count}`;
+        }
+
+        // Generate GLTF
+        function generateGltf() {
+            const { ast, errors } = parseDSL(editor.getValue());
+            if (errors.length > 0) { showErrors(errors); return; }
+
+            const gltf = { asset: { version: "2.0", generator: "Synth DSL" } };
+
+            function processNode(node, gltf) {
+                if (node.type === 'asset') {
+                    Object.assign(gltf.asset, node.properties);
+                } else if (['scenes', 'nodes', 'meshes', 'materials', 'textures', 'images', 'samplers', 'accessors', 'bufferViews', 'buffers', 'animations', 'skins', 'cameras'].includes(node.type)) {
+                    gltf[node.type] = node.children.map(c => {
+                        const obj = { ...c.properties };
+                        if (c.name && c.name !== c.type) obj.name = c.name;
+                        if (c.children && c.children.length > 0) {
+                            c.children.forEach(cc => {
+                                if (cc.type === 'primitive' || cc.type === 'primitives') {
+                                    obj.primitives = obj.primitives || [];
+                                    obj.primitives.push({ ...cc.properties });
+                                } else if (cc.type === 'pbrMetallicRoughness') {
+                                    obj.pbrMetallicRoughness = { ...cc.properties };
+                                } else if (cc.type === 'channel') {
+                                    obj.channels = obj.channels || [];
+                                    obj.channels.push({ ...cc.properties });
+                                }
+                            });
+                        }
+                        return obj;
+                    });
+                } else if (node.type === 'scene') {
+                    gltf.scene = 0;
+                }
+                if (node.children) node.children.forEach(c => processNode(c, gltf));
+            }
+
+            ast.children.forEach(c => processNode(c, gltf));
+
+            document.getElementById('outputGltf').textContent = JSON.stringify(gltf, null, 2);
+            switchOutput('gltf');
+        }
+
+        function generateJson() {
+            const { ast, errors } = parseDSL(editor.getValue());
+            if (errors.length > 0) { showErrors(errors); return; }
+            document.getElementById('outputJson').textContent = JSON.stringify(ast, null, 2);
+            switchOutput('json');
+        }
+
+        function parseAndValidate() {
+            const { ast, errors } = parseDSL(editor.getValue());
+            const statusEl = document.getElementById('parseStatus');
+            if (errors.length === 0) {
+                statusEl.className = 'valid';
+                statusEl.textContent = '✓ Valid';
+                document.getElementById('outputErrors').innerHTML = '<span class="success">No errors</span>';
+            } else {
+                statusEl.className = 'errors';
+                statusEl.textContent = `✗ ${errors.length} error(s)`;
+                showErrors(errors);
+            }
+            buildTree(ast);
+            document.getElementById('lineCount').textContent = `Lines: ${editor.lineCount()}`;
+        }
+
+        function showErrors(errors) {
+            document.getElementById('outputErrors').innerHTML = errors.map(e => `<span class="error">Line ${e.line}: ${e.msg}</span>`).join('\n');
+            switchOutput('errors');
+        }
+
+        function switchOutput(tab) {
+            document.querySelectorAll('.output-tab').forEach(t => t.classList.remove('active'));
+            document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+            ['gltf', 'json', 'errors'].forEach(t => {
+                document.getElementById('output' + t.charAt(0).toUpperCase() + t.slice(1)).style.display = t === tab ? 'block' : 'none';
+            });
+        }
+
+        function expandAll() {
+            document.querySelectorAll('.tree-children').forEach(el => el.classList.add('expanded'));
+            document.querySelectorAll('.tree-toggle').forEach(el => el.classList.add('expanded'));
+        }
+        function collapseAll() {
+            document.querySelectorAll('.tree-children').forEach(el => el.classList.remove('expanded'));
+            document.querySelectorAll('.tree-toggle').forEach(el => el.classList.remove('expanded'));
+        }
+
+        // Editor
+        const editor = CodeMirror.fromTextArea(document.getElementById('editor'), {
+            mode: 'gltf-dsl',
+            lineNumbers: true,
+            matchBrackets: true,
+            indentUnit: 4,
+            tabSize: 4,
+            extraKeys: {
+                'Ctrl-Space': cm => cm.showHint({ hint: gltfHint, completeSingle: false }),
+                'Tab': cm => cm.replaceSelection('    ')
+            }
+        });
+
+        editor.on('inputRead', (cm, change) => {
+            if (change.text[0] && /[a-zA-Z]/.test(change.text[0])) {
+                cm.showHint({ hint: gltfHint, completeSingle: false });
+            }
+        });
+
+        editor.on('change', () => {
+            clearTimeout(editor.validateTimeout);
+            editor.validateTimeout = setTimeout(parseAndValidate, 600);
+        });
+
+        function loadExample(type) {
+            const examples = {
+                cube: `model "SimpleCube" {
+    asset {
+        version = "2.0"
+        generator = "Synth DSL Editor"
+    }
+
+    scenes {
+        scene "MainScene" {
+            nodes = [0]
+        }
+    }
+
+    nodes {
+        node "Cube" {
+            mesh = 0
+            translation = [0, 0, 0]
+            rotation = [0, 0, 0, 1]
+            scale = [1, 1, 1]
+        }
+    }
+
+    meshes {
+        mesh "CubeMesh" {
+            primitive {
+                attributes = { "POSITION": 0, "NORMAL": 1 }
+                indices = 2
+                material = 0
+                mode = TRIANGLES
+            }
+        }
+    }
+
+    materials {
+        material "CubeMaterial" {
+            pbrMetallicRoughness {
+                baseColorFactor = [0.8, 0.2, 0.2, 1.0]
+                metallicFactor = 0.0
+                roughnessFactor = 0.5
+            }
+            doubleSided = false
+        }
+    }
+
+    accessors {
+        accessor "positions" {
+            bufferView = 0
+            componentType = FLOAT
+            count = 24
+            type = VEC3
+            min = [-0.5, -0.5, -0.5]
+            max = [0.5, 0.5, 0.5]
+        }
+        accessor "normals" {
+            bufferView = 1
+            componentType = FLOAT
+            count = 24
+            type = VEC3
+        }
+        accessor "indices" {
+            bufferView = 2
+            componentType = UNSIGNED_SHORT
+            count = 36
+            type = SCALAR
+        }
+    }
+
+    bufferViews {
+        bufferView "positionView" {
+            buffer = 0
+            byteOffset = 0
+            byteLength = 288
+            target = 34962
+        }
+        bufferView "normalView" {
+            buffer = 0
+            byteOffset = 288
+            byteLength = 288
+            target = 34962
+        }
+        bufferView "indexView" {
+            buffer = 0
+            byteOffset = 576
+            byteLength = 72
+            target = 34963
+        }
+    }
+
+    buffers {
+        buffer "mainBuffer" {
+            byteLength = 648
+            uri = "cube.bin"
+        }
+    }
+}`,
+                character: `model "Character" {
+    asset {
+        version = "2.0"
+        generator = "Synth DSL Editor"
+        copyright = "CC-BY 4.0"
+    }
+
+    scenes {
+        scene "CharacterScene" {
+            nodes = [0]
+        }
+    }
+
+    nodes {
+        node "Armature" {
+            children = [1, 2]
+            translation = [0, 0, 0]
+        }
+        node "Body" {
+            mesh = 0
+            skin = 0
+        }
+        node "RootBone" {
+            children = [3, 4]
+            rotation = [0, 0, 0, 1]
+        }
+        node "SpineBone" {
+            translation = [0, 1, 0]
+            children = [5]
+        }
+        node "HipBone" {
+            translation = [0, 0, 0]
+        }
+        node "HeadBone" {
+            translation = [0, 0.5, 0]
+        }
+    }
+
+    meshes {
+        mesh "BodyMesh" {
+            primitive {
+                attributes = { "POSITION": 0, "NORMAL": 1, "JOINTS_0": 2, "WEIGHTS_0": 3 }
+                indices = 4
+                material = 0
+            }
+        }
+    }
+
+    materials {
+        material "SkinMaterial" {
+            pbrMetallicRoughness {
+                baseColorFactor = [0.9, 0.7, 0.6, 1.0]
+                metallicFactor = 0.0
+                roughnessFactor = 0.8
+            }
+        }
+        material "ClothMaterial" {
+            pbrMetallicRoughness {
+                baseColorFactor = [0.2, 0.3, 0.8, 1.0]
+                metallicFactor = 0.0
+                roughnessFactor = 0.9
+            }
+        }
+    }
+
+    skins {
+        skin "CharacterSkin" {
+            joints = [2, 3, 4, 5]
+            skeleton = 2
+            inverseBindMatrices = 5
+        }
+    }
+
+    animations {
+        animation "Walk" {
+            channel {
+                sampler = 0
+                target = { node: 3, path: "rotation" }
+            }
+            channel {
+                sampler = 1
+                target = { node: 4, path: "rotation" }
+            }
+        }
+        animation "Idle" {
+            channel {
+                sampler = 0
+                target = { node: 2, path: "rotation" }
+            }
+        }
+    }
+}`,
+                scene: `model "GameScene" {
+    asset {
+        version = "2.0"
+        generator = "Synth DSL Editor"
+    }
+
+    scenes {
+        scene "MainLevel" {
+            nodes = [0, 1, 2, 3]
+        }
+    }
+
+    nodes {
+        // Environment
+        node "Ground" {
+            mesh = 0
+            translation = [0, 0, 0]
+            scale = [10, 1, 10]
+        }
+        node "Tree" {
+            mesh = 1
+            translation = [3, 0, 2]
+            scale = [1, 2, 1]
+        }
+        node "Rock" {
+            mesh = 2
+            translation = [-2, 0, -1]
+            rotation = [0, 0.3, 0, 0.95]
+        }
+
+        // Lighting camera
+        node "MainCamera" {
+            camera = 0
+            translation = [0, 5, 10]
+            rotation = [-0.2, 0, 0, 0.98]
+        }
+    }
+
+    meshes {
+        mesh "GroundMesh" {
+            primitive {
+                attributes = { "POSITION": 0, "NORMAL": 1, "TEXCOORD_0": 2 }
+                indices = 3
+                material = 0
+            }
+        }
+        mesh "TreeMesh" {
+            primitive {
+                attributes = { "POSITION": 4, "NORMAL": 5 }
+                indices = 6
+                material = 1
+            }
+        }
+        mesh "RockMesh" {
+            primitive {
+                attributes = { "POSITION": 7, "NORMAL": 8 }
+                indices = 9
+                material = 2
+            }
+        }
+    }
+
+    materials {
+        material "GrassMaterial" {
+            pbrMetallicRoughness {
+                baseColorFactor = [0.2, 0.6, 0.2, 1.0]
+                metallicFactor = 0.0
+                roughnessFactor = 0.9
+            }
+        }
+        material "BarkMaterial" {
+            pbrMetallicRoughness {
+                baseColorFactor = [0.4, 0.25, 0.1, 1.0]
+                metallicFactor = 0.0
+                roughnessFactor = 0.95
+            }
+        }
+        material "StoneMaterial" {
+            pbrMetallicRoughness {
+                baseColorFactor = [0.5, 0.5, 0.5, 1.0]
+                metallicFactor = 0.0
+                roughnessFactor = 0.7
+            }
+        }
+    }
+
+    textures {
+        texture "GrassTexture" {
+            source = 0
+            sampler = 0
+        }
+    }
+
+    images {
+        image "GrassImage" {
+            uri = "textures/grass.png"
+            mimeType = "image/png"
+        }
+    }
+
+    samplers {
+        sampler "RepeatSampler" {
+            magFilter = LINEAR
+            minFilter = LINEAR
+            wrapS = REPEAT
+            wrapT = REPEAT
+        }
+    }
+
+    cameras {
+        camera "MainCam" {
+            type = "perspective"
+            perspective {
+                aspectRatio = 1.777
+                yfov = 0.785
+                znear = 0.1
+                zfar = 1000
+            }
+        }
+    }
+}`
+            };
+            editor.setValue(examples[type] || '');
+            parseAndValidate();
+        }
+
+        loadExample('cube');
+    </script>
+</body>
+</html>

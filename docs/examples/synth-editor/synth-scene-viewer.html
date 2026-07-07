@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Synth Scene File Viewer</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0f0f1a;
+            color: #e0e0e0;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            min-height: 100vh;
+        }
+        header {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            padding: 16px 30px;
+            border-bottom: 1px solid #313244;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        header h1 { font-size: 18px; color: #94e2d5; }
+        header .subtitle { font-size: 11px; color: #6c7086; }
+        header .tabs { margin-left: auto; display: flex; gap: 4px; }
+        header .tab {
+            padding: 8px 16px;
+            background: transparent;
+            border: none;
+            color: #6c7086;
+            cursor: pointer;
+            border-radius: 6px;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+        header .tab:hover { background: #313244; color: #cdd6f4; }
+        header .tab.active { background: #94e2d530; color: #94e2d5; }
+
+        .container { display: flex; height: calc(100vh - 60px); }
+
+        /* File Tree */
+        .file-tree {
+            width: 280px;
+            background: #1a1a2e;
+            border-right: 1px solid #313244;
+            overflow-y: auto;
+            padding: 16px;
+        }
+        .file-tree-header {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #6c7086;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #313244;
+        }
+        .file-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+        .file-item:hover { background: #313244; }
+        .file-item.active { background: #94e2d520; color: #94e2d5; }
+        .file-item.folder { color: #f9e2af; }
+        .file-item .icon { width: 20px; text-align: center; }
+        .file-item.synth .icon { color: #cba6f7; }
+        .file-item.gltf .icon { color: #f9e2af; }
+        .file-item.glsl .icon { color: #94e2d5; }
+        .file-item.png .icon { color: #f38ba8; }
+        .file-children { padding-left: 16px; }
+
+        /* Main Content */
+        .main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+        /* URI Bar */
+        .uri-bar {
+            background: #16213e;
+            padding: 12px 20px;
+            border-bottom: 1px solid #313244;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .uri-protocol {
+            background: #cba6f730;
+            color: #cba6f7;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-family: monospace;
+            font-weight: bold;
+        }
+        .uri-path {
+            flex: 1;
+            background: #0f0f1a;
+            border: 1px solid #313244;
+            padding: 8px 14px;
+            border-radius: 6px;
+            color: #cdd6f4;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .uri-path:focus { outline: none; border-color: #94e2d5; }
+        .uri-btn {
+            background: #94e2d5;
+            color: #0f0f1a;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .uri-btn:hover { filter: brightness(1.1); }
+
+        /* Editor Area */
+        .editor-area { flex: 1; display: flex; overflow: hidden; }
+        .code-panel { flex: 1; display: flex; flex-direction: column; }
+        .code-header {
+            background: #16213e;
+            padding: 10px 16px;
+            border-bottom: 1px solid #313244;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+        }
+        .code-header .file-type {
+            padding: 3px 10px;
+            border-radius: 10px;
+            font-size: 10px;
+            text-transform: uppercase;
+        }
+        .code-header .file-type.synth { background: #cba6f730; color: #cba6f7; }
+        .code-header .file-type.gltf { background: #f9e2af30; color: #f9e2af; }
+        .code-header .file-type.glsl { background: #94e2d530; color: #94e2d5; }
+        .CodeMirror {
+            flex: 1; height: auto;
+            font-family: 'JetBrains Mono', 'Consolas', monospace;
+            font-size: 12px; line-height: 1.6;
+            background: #0f0f1a; color: #cdd6f4;
+        }
+        .CodeMirror-gutters { background: #1a1a2e; border-right: 1px solid #313244; }
+        .CodeMirror-linenumber { color: #45475a; }
+
+        /* Syntax Highlighting */
+        .cm-synth-block { color: #94e2d5; font-weight: bold; }
+        .cm-synth-property { color: #89b4fa; }
+        .cm-synth-string { color: #a6e3a1; }
+        .cm-synth-number { color: #fab387; }
+        .cm-synth-comment { color: #6c7086; font-style: italic; }
+        .cm-synth-uri { color: #cba6f7; text-decoration: underline; cursor: pointer; }
+        .cm-synth-keyword { color: #f9e2af; }
+
+        /* Reference Panel */
+        .ref-panel {
+            width: 360px;
+            background: #1a1a2e;
+            border-left: 1px solid #313244;
+            display: flex;
+            flex-direction: column;
+        }
+        .ref-header {
+            padding: 16px;
+            background: #16213e;
+            border-bottom: 1px solid #313244;
+        }
+        .ref-header h3 { font-size: 14px; color: #94e2d5; margin-bottom: 4px; }
+        .ref-header .desc { font-size: 11px; color: #6c7086; }
+        .ref-content { flex: 1; overflow-y: auto; padding: 16px; }
+        .ref-item {
+            background: #16213e;
+            border: 1px solid #313244;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+        .ref-item-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        .ref-item-icon {
+            width: 28px; height: 28px;
+            border-radius: 6px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 12px;
+        }
+        .ref-item-icon.gltf { background: #f9e2af30; color: #f9e2af; }
+        .ref-item-icon.glsl { background: #94e2d530; color: #94e2d5; }
+        .ref-item-icon.png { background: #f38ba830; color: #f38ba8; }
+        .ref-item-icon.synth { background: #cba6f730; color: #cba6f7; }
+        .ref-item-name { font-size: 12px; font-weight: 500; }
+        .ref-item-uri {
+            font-family: monospace;
+            font-size: 10px;
+            color: #cba6f7;
+            background: #0f0f1a;
+            padding: 6px 10px;
+            border-radius: 4px;
+            word-break: break-all;
+        }
+        .ref-item-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 8px;
+            font-size: 10px;
+        }
+        .ref-item-status .dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+        }
+        .ref-item-status .dot.loaded { background: #a6e3a1; }
+        .ref-item-status .dot.pending { background: #f9e2af; }
+        .ref-item-status .dot.error { background: #f38ba8; }
+
+        /* Architecture Diagram */
+        .arch-diagram {
+            background: #0f0f1a;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .arch-box {
+            border: 2px solid;
+            border-radius: 12px;
+            padding: 16px 24px;
+            text-align: center;
+            margin: 8px 0;
+            min-width: 200px;
+        }
+        .arch-box.client { border-color: #89b4fa; background: #89b4fa15; }
+        .arch-box.synth { border-color: #cba6f7; background: #cba6f715; }
+        .arch-box.server { border-color: #f9e2af; background: #f9e2af15; }
+        .arch-box.asset { border-color: #a6e3a1; background: #a6e3a115; }
+        .arch-box-title { font-size: 14px; font-weight: bold; margin-bottom: 4px; }
+        .arch-box-desc { font-size: 10px; color: #6c7086; }
+        .arch-arrow {
+            color: #94e2d5;
+            font-size: 20px;
+            margin: 4px 0;
+        }
+        .arch-label {
+            font-size: 10px;
+            color: #6c7086;
+            margin: 4px 0;
+        }
+
+        /* Status Bar */
+        .status-bar {
+            background: #16213e;
+            padding: 8px 20px;
+            border-top: 1px solid #313244;
+            display: flex;
+            gap: 24px;
+            font-size: 10px;
+            color: #6c7086;
+        }
+        .status-bar .protocol { color: #cba6f7; }
+        .status-bar .loaded { color: #a6e3a1; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Synth Scene File</h1>
+        <div class="subtitle">Each scene is a .synth file with chp:// asset references</div>
+        <div class="tabs">
+            <button class="tab active" data-tab="editor" onclick="showTab('editor')">Editor</button>
+            <button class="tab" data-tab="architecture" onclick="showTab('architecture')">Architecture</button>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="file-tree">
+            <div class="file-tree-header">Synth Project Structure</div>
+
+            <!-- Root index.synth -->
+            <div class="file-item synth active" data-file="index" style="background:#cba6f715; border-left:3px solid #cba6f7;">
+                <span class="icon">&#9830;</span> index.synth
+                <span style="font-size:9px; color:#cba6f7; margin-left:auto;">ROOT</span>
+            </div>
+
+            <!-- Scenes folder (child entities) -->
+            <div class="file-item folder" onclick="toggleFolder(this)">
+                <span class="icon">&#128193;</span> scenes/
+                <span style="font-size:9px; color:#6c7086; margin-left:auto;">entities</span>
+            </div>
+            <div class="file-children">
+                <div class="file-item synth" data-file="outdoor">
+                    <span class="icon">&#9830;</span> outdoor.synth
+                </div>
+                <div class="file-item synth" data-file="indoor">
+                    <span class="icon">&#9830;</span> indoor.synth
+                </div>
+                <div class="file-item synth" data-file="menu">
+                    <span class="icon">&#9830;</span> menu.synth
+                </div>
+            </div>
+
+            <!-- Models folder (child entities) -->
+            <div class="file-item folder" onclick="toggleFolder(this)">
+                <span class="icon">&#128193;</span> models/
+                <span style="font-size:9px; color:#6c7086; margin-left:auto;">entities</span>
+            </div>
+            <div class="file-children">
+                <div class="file-item gltf" data-file="player">
+                    <span class="icon">&#9632;</span> player.gltf
+                </div>
+                <div class="file-item gltf" data-file="tree">
+                    <span class="icon">&#9632;</span> tree.gltf
+                </div>
+            </div>
+
+            <!-- Shaders folder (child entities) -->
+            <div class="file-item folder" onclick="toggleFolder(this)">
+                <span class="icon">&#128193;</span> shaders/
+                <span style="font-size:9px; color:#6c7086; margin-left:auto;">entities</span>
+            </div>
+            <div class="file-children">
+                <div class="file-item glsl" data-file="pbr-vert">
+                    <span class="icon">&#9651;</span> pbr.vert.glsl
+                </div>
+                <div class="file-item glsl" data-file="pbr-frag">
+                    <span class="icon">&#9651;</span> pbr.frag.glsl
+                </div>
+            </div>
+
+            <!-- Textures folder (child entities) -->
+            <div class="file-item folder" onclick="toggleFolder(this)">
+                <span class="icon">&#128193;</span> textures/
+                <span style="font-size:9px; color:#6c7086; margin-left:auto;">entities</span>
+            </div>
+            <div class="file-children">
+                <div class="file-item png" data-file="grass">
+                    <span class="icon">&#128444;</span> grass.png
+                </div>
+                <div class="file-item png" data-file="bark">
+                    <span class="icon">&#128444;</span> bark.png
+                </div>
+            </div>
+
+            <!-- Materials folder (child entities) -->
+            <div class="file-item folder" onclick="toggleFolder(this)">
+                <span class="icon">&#128193;</span> materials/
+                <span style="font-size:9px; color:#6c7086; margin-left:auto;">entities</span>
+            </div>
+            <div class="file-children">
+                <div class="file-item synth" data-file="pbr-material">
+                    <span class="icon">&#9830;</span> pbr.material.synth
+                </div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="uri-bar">
+                <span class="uri-protocol">chp://</span>
+                <input class="uri-path" id="uriPath" value="my-project/scenes/outdoor.synth" />
+                <button class="uri-btn" onclick="loadUri()">Load</button>
+            </div>
+
+            <div class="editor-area" id="editorTab">
+                <div class="code-panel">
+                    <div class="code-header">
+                        <span id="fileName">outdoor.synth</span>
+                        <span class="file-type synth" id="fileType">SYNTH</span>
+                    </div>
+                    <textarea id="editor"></textarea>
+                </div>
+
+                <div class="ref-panel">
+                    <div class="ref-header">
+                        <h3>Asset References</h3>
+                        <div class="desc">External files loaded via chp:// protocol</div>
+                    </div>
+                    <div class="ref-content" id="refContent">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="arch-diagram" id="architectureTab" style="display:none;">
+                <div class="arch-box client">
+                    <div class="arch-box-title" style="color:#89b4fa;">Java Client</div>
+                    <div class="arch-box-desc">Game Runtime / Editor</div>
+                </div>
+                <div class="arch-arrow">&#8595;</div>
+                <div class="arch-label">1. Request scene</div>
+
+                <div class="arch-box synth">
+                    <div class="arch-box-title" style="color:#cba6f7;">Synth Protocol</div>
+                    <div class="arch-box-desc">chp://my-project/scenes/outdoor.synth</div>
+                </div>
+                <div class="arch-arrow">&#8595;</div>
+                <div class="arch-label">2. Load .synth file</div>
+
+                <div class="arch-box server">
+                    <div class="arch-box-title" style="color:#f9e2af;">Static File Server</div>
+                    <div class="arch-box-desc">outdoor.synth (scene definition)</div>
+                </div>
+                <div class="arch-arrow">&#8595;</div>
+                <div class="arch-label">3. Parse references</div>
+
+                <div class="arch-box synth">
+                    <div class="arch-box-title" style="color:#cba6f7;">Reference Resolution</div>
+                    <div class="arch-box-desc">chp://my-project/assets/models/player.gltf</div>
+                </div>
+                <div class="arch-arrow">&#8595;</div>
+                <div class="arch-label">4. Load assets</div>
+
+                <div style="display:flex; gap:16px;">
+                    <div class="arch-box asset" style="min-width:120px;">
+                        <div class="arch-box-title" style="color:#a6e3a1; font-size:12px;">GLTF</div>
+                        <div class="arch-box-desc">3D Models</div>
+                    </div>
+                    <div class="arch-box asset" style="min-width:120px;">
+                        <div class="arch-box-title" style="color:#a6e3a1; font-size:12px;">GLSL</div>
+                        <div class="arch-box-desc">Shaders</div>
+                    </div>
+                    <div class="arch-box asset" style="min-width:120px;">
+                        <div class="arch-box-title" style="color:#a6e3a1; font-size:12px;">PNG/KTX</div>
+                        <div class="arch-box-desc">Textures</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="status-bar">
+        <span>Protocol: <span class="protocol">chp://</span></span>
+        <span>Server: localhost:8080</span>
+        <span>Assets: <span class="loaded">4 loaded</span></span>
+        <span style="margin-left:auto;">Synth Protocol v1.0</span>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+    <script>
+        // File contents
+        const files = {
+            'index': {
+                name: 'index.synth',
+                type: 'synth',
+                uri: 'chp://my-project/index.synth',
+                content: `// index.synth - Root Project File
+// This is the entry point for the Synth project
+// Folders represent child-entity collections
+
+synth version="1.0" {
+    meta {
+        name = "My Game Project"
+        version = "0.1.0"
+        author = "Game Studio"
+        created = "2024-12-13"
+    }
+
+    // Project configuration
+    project {
+        default_scene = "chp://my-project/scenes/outdoor.synth"
+        target_platform = ["desktop", "webgl"]
+    }
+
+    // Child-entity folders (each folder type = entity collection)
+    children {
+        // Scene entities
+        folder "scenes" {
+            type = "scene"
+            pattern = "*.synth"
+            ref = "chp://my-project/scenes/"
+        }
+
+        // Model entities (GLTF files)
+        folder "models" {
+            type = "mesh"
+            pattern = "*.gltf"
+            ref = "chp://my-project/models/"
+        }
+
+        // Shader entities (GLSL files)
+        folder "shaders" {
+            type = "shader"
+            pattern = "*.glsl"
+            ref = "chp://my-project/shaders/"
+        }
+
+        // Texture entities (image files)
+        folder "textures" {
+            type = "texture"
+            pattern = "*.png;*.jpg;*.ktx2"
+            ref = "chp://my-project/textures/"
+        }
+
+        // Material entities (.material.synth files)
+        folder "materials" {
+            type = "material"
+            pattern = "*.material.synth"
+            ref = "chp://my-project/materials/"
+        }
+    }
+
+    // MCP Server configuration (project-level)
+    mcp {
+        server "asset_pipeline" {
+            transport = "stdio"
+            command = "synth-asset-server"
+            auto_start = true
+        }
+
+        server "ai_assistant" {
+            transport = "websocket"
+            url = "ws://localhost:8081"
+        }
+    }
+
+    // Build configuration
+    build {
+        output_dir = "dist/"
+        compress_textures = true
+        minify_shaders = true
+    }
+}`,
+                refs: [
+                    { name: 'scenes/', uri: 'chp://my-project/scenes/', type: 'synth', status: 'loaded' },
+                    { name: 'models/', uri: 'chp://my-project/models/', type: 'gltf', status: 'loaded' },
+                    { name: 'shaders/', uri: 'chp://my-project/shaders/', type: 'glsl', status: 'loaded' },
+                    { name: 'textures/', uri: 'chp://my-project/textures/', type: 'png', status: 'loaded' },
+                    { name: 'materials/', uri: 'chp://my-project/materials/', type: 'synth', status: 'loaded' }
+                ]
+            },
+            'outdoor': {
+                name: 'outdoor.synth',
+                type: 'synth',
+                uri: 'chp://my-project/scenes/outdoor.synth',
+                content: `// outdoor.synth - Outdoor Scene Definition
+// Each scene is a standalone .synth file
+
+synth version="1.0" {
+    meta {
+        name = "Outdoor Scene"
+        author = "Game Studio"
+        created = "2024-12-13"
+    }
+
+    // Scene configuration
+    scene "outdoor_main" {
+        // Player entity with chp:// references
+        node "player" {
+            transform {
+                position = [0, 0, 0]
+                rotation = [0, 0, 0, 1]
+                scale = [1, 1, 1]
+            }
+            mesh {
+                ref = "chp://my-project/assets/models/player.gltf"
+            }
+            material {
+                shader {
+                    vertex = "chp://my-project/assets/shaders/pbr.vert.glsl"
+                    fragment = "chp://my-project/assets/shaders/pbr.frag.glsl"
+                }
+                textures {
+                    albedo = "chp://my-project/assets/textures/player_albedo.png"
+                    normal = "chp://my-project/assets/textures/player_normal.png"
+                }
+            }
+            physics {
+                mass = 80.0
+                collider = "capsule"
+            }
+        }
+
+        // Environment - Tree
+        node "tree_01" {
+            transform {
+                position = [5, 0, 3]
+                scale = [1.5, 1.5, 1.5]
+            }
+            mesh {
+                ref = "chp://my-project/assets/models/tree.gltf"
+            }
+            material {
+                textures {
+                    albedo = "chp://my-project/assets/textures/bark.png"
+                }
+            }
+        }
+
+        // Ground plane
+        node "ground" {
+            transform {
+                position = [0, -0.5, 0]
+                scale = [100, 1, 100]
+            }
+            mesh {
+                primitive = "plane"
+            }
+            material {
+                textures {
+                    albedo = "chp://my-project/assets/textures/grass.png"
+                    tiling = [10, 10]
+                }
+            }
+        }
+    }
+
+    // MCP Server connections
+    mcp {
+        server "vision" {
+            transport = "stdio"
+            command = "python -m mcp_vision"
+        }
+    }
+
+    // Agent definitions
+    agents {
+        agent "scene_analyzer" {
+            type = "reactive"
+            mcp_server = "vision"
+        }
+    }
+}`,
+                refs: [
+                    { name: 'player.gltf', uri: 'chp://my-project/assets/models/player.gltf', type: 'gltf', status: 'loaded' },
+                    { name: 'tree.gltf', uri: 'chp://my-project/assets/models/tree.gltf', type: 'gltf', status: 'loaded' },
+                    { name: 'pbr.vert.glsl', uri: 'chp://my-project/assets/shaders/pbr.vert.glsl', type: 'glsl', status: 'loaded' },
+                    { name: 'pbr.frag.glsl', uri: 'chp://my-project/assets/shaders/pbr.frag.glsl', type: 'glsl', status: 'loaded' },
+                    { name: 'grass.png', uri: 'chp://my-project/assets/textures/grass.png', type: 'png', status: 'loaded' },
+                    { name: 'bark.png', uri: 'chp://my-project/assets/textures/bark.png', type: 'png', status: 'pending' }
+                ]
+            },
+            'indoor': {
+                name: 'indoor.synth',
+                type: 'synth',
+                uri: 'chp://my-project/scenes/indoor.synth',
+                content: `// indoor.synth - Indoor Scene Definition
+
+synth version="1.0" {
+    meta {
+        name = "Indoor Scene"
+    }
+
+    scene "indoor_main" {
+        node "room" {
+            mesh {
+                ref = "chp://my-project/assets/models/room.gltf"
+            }
+        }
+
+        // Lighting setup
+        node "light_main" {
+            light {
+                type = "point"
+                color = [1.0, 0.95, 0.9]
+                intensity = 100
+            }
+            transform {
+                position = [0, 3, 0]
+            }
+        }
+    }
+}`,
+                refs: [
+                    { name: 'room.gltf', uri: 'chp://my-project/assets/models/room.gltf', type: 'gltf', status: 'pending' }
+                ]
+            },
+            'menu': {
+                name: 'menu.synth',
+                type: 'synth',
+                uri: 'chp://my-project/scenes/menu.synth',
+                content: `// menu.synth - UI Menu Scene
+
+synth version="1.0" {
+    meta {
+        name = "Main Menu"
+    }
+
+    scene "menu_main" {
+        // UI-only scene, no 3D assets
+        ui {
+            canvas "main_canvas" {
+                panel "menu_panel" {
+                    button "start_btn" {
+                        text = "Start Game"
+                        onclick = "scene load outdoor"
+                    }
+                    button "options_btn" {
+                        text = "Options"
+                    }
+                    button "quit_btn" {
+                        text = "Quit"
+                    }
+                }
+            }
+        }
+    }
+}`,
+                refs: []
+            },
+            'player': {
+                name: 'player.gltf',
+                type: 'gltf',
+                uri: 'chp://my-project/assets/models/player.gltf',
+                content: `{
+    "asset": {
+        "version": "2.0",
+        "generator": "Synth Asset Pipeline"
+    },
+    "scene": 0,
+    "scenes": [
+        {
+            "name": "Player",
+            "nodes": [0]
+        }
+    ],
+    "nodes": [
+        {
+            "name": "PlayerMesh",
+            "mesh": 0,
+            "skin": 0
+        }
+    ],
+    "meshes": [
+        {
+            "name": "PlayerBody",
+            "primitives": [
+                {
+                    "attributes": {
+                        "POSITION": 0,
+                        "NORMAL": 1,
+                        "TEXCOORD_0": 2,
+                        "JOINTS_0": 3,
+                        "WEIGHTS_0": 4
+                    },
+                    "indices": 5,
+                    "material": 0
+                }
+            ]
+        }
+    ]
+}`,
+                refs: []
+            },
+            'pbr-vert': {
+                name: 'pbr.vert.glsl',
+                type: 'glsl',
+                uri: 'chp://my-project/assets/shaders/pbr.vert.glsl',
+                content: `#version 300 es
+precision highp float;
+
+// Uniforms
+uniform mat4 u_ModelMatrix;
+uniform mat4 u_ViewMatrix;
+uniform mat4 u_ProjectionMatrix;
+uniform mat3 u_NormalMatrix;
+
+// Attributes
+in vec3 a_Position;
+in vec3 a_Normal;
+in vec2 a_TexCoord;
+in vec4 a_Tangent;
+
+// Varyings
+out vec3 v_WorldPos;
+out vec3 v_Normal;
+out vec2 v_TexCoord;
+out mat3 v_TBN;
+
+void main() {
+    vec4 worldPos = u_ModelMatrix * vec4(a_Position, 1.0);
+    v_WorldPos = worldPos.xyz;
+
+    v_Normal = u_NormalMatrix * a_Normal;
+    v_TexCoord = a_TexCoord;
+
+    // TBN matrix for normal mapping
+    vec3 T = normalize(u_NormalMatrix * a_Tangent.xyz);
+    vec3 N = normalize(v_Normal);
+    vec3 B = cross(N, T) * a_Tangent.w;
+    v_TBN = mat3(T, B, N);
+
+    gl_Position = u_ProjectionMatrix * u_ViewMatrix * worldPos;
+}`,
+                refs: []
+            },
+            'pbr-frag': {
+                name: 'pbr.frag.glsl',
+                type: 'glsl',
+                uri: 'chp://my-project/assets/shaders/pbr.frag.glsl',
+                content: `#version 300 es
+precision highp float;
+
+// Uniforms
+uniform vec3 u_CameraPos;
+uniform vec3 u_LightPosition;
+uniform vec3 u_LightColor;
+
+uniform sampler2D u_AlbedoMap;
+uniform sampler2D u_NormalMap;
+uniform sampler2D u_MetallicRoughnessMap;
+
+// Varyings
+in vec3 v_WorldPos;
+in vec3 v_Normal;
+in vec2 v_TexCoord;
+in mat3 v_TBN;
+
+// Output
+out vec4 fragColor;
+
+const float PI = 3.14159265359;
+
+void main() {
+    // Sample textures
+    vec3 albedo = texture(u_AlbedoMap, v_TexCoord).rgb;
+    vec3 normalMap = texture(u_NormalMap, v_TexCoord).rgb * 2.0 - 1.0;
+    vec3 N = normalize(v_TBN * normalMap);
+
+    vec2 mr = texture(u_MetallicRoughnessMap, v_TexCoord).bg;
+    float metallic = mr.x;
+    float roughness = mr.y;
+
+    // Lighting
+    vec3 V = normalize(u_CameraPos - v_WorldPos);
+    vec3 L = normalize(u_LightPosition - v_WorldPos);
+    vec3 H = normalize(V + L);
+
+    float NdotL = max(dot(N, L), 0.0);
+    float NdotV = max(dot(N, V), 0.0);
+    float NdotH = max(dot(N, H), 0.0);
+
+    // Simple PBR approximation
+    vec3 F0 = mix(vec3(0.04), albedo, metallic);
+    vec3 diffuse = albedo * (1.0 - metallic) * NdotL;
+    vec3 specular = F0 * pow(NdotH, (1.0 - roughness) * 256.0);
+
+    vec3 color = (diffuse + specular) * u_LightColor;
+
+    // Ambient
+    color += albedo * 0.03;
+
+    // Gamma correction
+    color = pow(color, vec3(1.0/2.2));
+
+    fragColor = vec4(color, 1.0);
+}`,
+                refs: []
+            }
+        };
+
+        // CodeMirror mode for synth files
+        CodeMirror.defineMode('synth', function() {
+            const blocks = ['synth', 'meta', 'scene', 'node', 'transform', 'mesh', 'material', 'shader', 'textures', 'physics', 'light', 'mcp', 'server', 'agents', 'agent', 'ui', 'canvas', 'panel', 'button'];
+            const keywords = ['version', 'ref', 'vertex', 'fragment', 'type', 'position', 'rotation', 'scale', 'name', 'author', 'created', 'albedo', 'normal', 'tiling', 'mass', 'collider', 'color', 'intensity', 'transport', 'command', 'mcp_server', 'text', 'onclick', 'primitive'];
+
+            return {
+                token: function(stream) {
+                    if (stream.match(/^\/\/.*/)) return 'synth-comment';
+                    if (stream.match(/^"chp:\/\/[^"]*"/)) return 'synth-uri';
+                    if (stream.match(/^"[^"]*"/)) return 'synth-string';
+                    if (stream.match(/^-?\d+\.?\d*/)) return 'synth-number';
+                    if (stream.match(/^[{}\[\]]/)) return 'synth-keyword';
+                    if (stream.match(/^=/)) return null;
+
+                    const word = stream.match(/^[\w_]+/);
+                    if (word) {
+                        if (blocks.includes(word[0])) return 'synth-block';
+                        if (keywords.includes(word[0])) return 'synth-property';
+                    }
+
+                    stream.next();
+                    return null;
+                }
+            };
+        });
+
+        // Initialize editor
+        const editor = CodeMirror.fromTextArea(document.getElementById('editor'), {
+            mode: 'synth',
+            lineNumbers: true,
+            indentUnit: 4,
+            tabSize: 4
+        });
+
+        function loadFile(fileId) {
+            const file = files[fileId];
+            if (!file) return;
+
+            // Update UI
+            document.querySelectorAll('.file-item').forEach(el => el.classList.remove('active'));
+            document.querySelector(`.file-item[data-file="${fileId}"]`)?.classList.add('active');
+
+            document.getElementById('fileName').textContent = file.name;
+            document.getElementById('fileType').textContent = file.type.toUpperCase();
+            document.getElementById('fileType').className = 'file-type ' + file.type;
+            document.getElementById('uriPath').value = file.uri.replace('chp://', '');
+
+            // Set editor mode
+            if (file.type === 'synth') {
+                editor.setOption('mode', 'synth');
+            } else if (file.type === 'glsl') {
+                editor.setOption('mode', 'clike');
+            } else {
+                editor.setOption('mode', 'javascript');
+            }
+
+            editor.setValue(file.content);
+
+            // Update references panel
+            updateRefs(file.refs);
+        }
+
+        function updateRefs(refs) {
+            const container = document.getElementById('refContent');
+            if (refs.length === 0) {
+                container.innerHTML = '<div style="color:#6c7086; font-size:12px;">No external references</div>';
+                return;
+            }
+
+            container.innerHTML = refs.map(ref => `
+                <div class="ref-item">
+                    <div class="ref-item-header">
+                        <div class="ref-item-icon ${ref.type}">${getIcon(ref.type)}</div>
+                        <div class="ref-item-name">${ref.name}</div>
+                    </div>
+                    <div class="ref-item-uri">${ref.uri}</div>
+                    <div class="ref-item-status">
+                        <div class="dot ${ref.status}"></div>
+                        <span>${ref.status}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function getIcon(type) {
+            switch(type) {
+                case 'gltf': return '&#9632;';
+                case 'glsl': return '&#9651;';
+                case 'png': return '&#128444;';
+                case 'synth': return '&#9830;';
+                default: return '&#8226;';
+            }
+        }
+
+        function toggleFolder(el) {
+            const children = el.nextElementSibling;
+            if (children && children.classList.contains('file-children')) {
+                children.style.display = children.style.display === 'none' ? 'block' : 'none';
+            }
+        }
+
+        function showTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelector(`.tab[data-tab="${tab}"]`).classList.add('active');
+
+            document.getElementById('editorTab').style.display = tab === 'editor' ? 'flex' : 'none';
+            document.getElementById('architectureTab').style.display = tab === 'architecture' ? 'flex' : 'none';
+        }
+
+        function loadUri() {
+            const uri = document.getElementById('uriPath').value;
+            // Find matching file
+            for (const [id, file] of Object.entries(files)) {
+                if (file.uri === 'chp://' + uri) {
+                    loadFile(id);
+                    return;
+                }
+            }
+            alert('File not found: chp://' + uri);
+        }
+
+        // Event listeners
+        document.querySelectorAll('.file-item[data-file]').forEach(el => {
+            el.addEventListener('click', () => loadFile(el.dataset.file));
+        });
+
+        // Initial load
+        loadFile('outdoor');
+    </script>
+</body>
+</html>

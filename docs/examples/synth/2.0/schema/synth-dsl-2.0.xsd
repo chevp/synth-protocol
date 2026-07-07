@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SYNTH DSL XML SCHEMA
+  Version 2.0
+
+  Defines the 5-Slot Grammar DSL syntax embedding in XML.
+  DSL Format: domain [resource] action subject [modifier target] [- -args]
+
+  Domains: project, scene, cluster, component, asset, shader, mcp, agent, event, system
+  Resources: node, folder, server, tool, task, setting, uniform, attribute
+  Modifiers: in, on, from, to, by, for, with
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:dsl="https://chevp.github.io/synth-protocol/schema/synth/dsl/2.0"
+           targetNamespace="https://chevp.github.io/synth-protocol/schema/synth/dsl/2.0"
+           elementFormDefault="qualified">
+
+    <!-- ================================================================= -->
+    <!-- DSL COMMANDS ELEMENT -->
+    <!-- Container for 5-Slot Grammar DSL commands -->
+    <!-- ================================================================= -->
+    <xs:element name="commands" type="dsl:CommandsType"/>
+
+    <xs:complexType name="CommandsType" mixed="true">
+        <xs:annotation>
+            <xs:documentation>
+                Contains one or more DSL commands in 5-Slot Grammar format.
+                Each command follows: domain [resource] action subject [modifier target] [--args]
+
+                Example commands:
+                - project setting set name --value="My Project"
+                - cluster folder create characters in scene_main
+                - component create transform on player --position=0,0,0
+                - asset load model from chp://models/player.gltf
+                - mcp server register my-server --transport=stdio
+            </xs:documentation>
+        </xs:annotation>
+    </xs:complexType>
+
+    <!-- ================================================================= -->
+    <!-- DSL DOMAIN ENUMERATION -->
+    <!-- ================================================================= -->
+    <xs:simpleType name="DomainType">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="project"/>
+            <xs:enumeration value="scene"/>
+            <xs:enumeration value="cluster"/>
+            <xs:enumeration value="component"/>
+            <xs:enumeration value="asset"/>
+            <xs:enumeration value="shader"/>
+            <xs:enumeration value="mcp"/>
+            <xs:enumeration value="agent"/>
+            <xs:enumeration value="event"/>
+            <xs:enumeration value="system"/>
+            <xs:enumeration value="plugin"/>
+            <xs:enumeration value="tag"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ================================================================= -->
+    <!-- DSL RESOURCE ENUMERATION -->
+    <!-- ================================================================= -->
+    <xs:simpleType name="ResourceType">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="node"/>
+            <xs:enumeration value="folder"/>
+            <xs:enumeration value="server"/>
+            <xs:enumeration value="tool"/>
+            <xs:enumeration value="task"/>
+            <xs:enumeration value="setting"/>
+            <xs:enumeration value="uniform"/>
+            <xs:enumeration value="attribute"/>
+            <xs:enumeration value="capability"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ================================================================= -->
+    <!-- DSL ACTION ENUMERATION -->
+    <!-- ================================================================= -->
+    <xs:simpleType name="ActionType">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="create"/>
+            <xs:enumeration value="update"/>
+            <xs:enumeration value="delete"/>
+            <xs:enumeration value="load"/>
+            <xs:enumeration value="save"/>
+            <xs:enumeration value="set"/>
+            <xs:enumeration value="get"/>
+            <xs:enumeration value="add"/>
+            <xs:enumeration value="remove"/>
+            <xs:enumeration value="move"/>
+            <xs:enumeration value="copy"/>
+            <xs:enumeration value="rename"/>
+            <xs:enumeration value="register"/>
+            <xs:enumeration value="unregister"/>
+            <xs:enumeration value="subscribe"/>
+            <xs:enumeration value="unsubscribe"/>
+            <xs:enumeration value="emit"/>
+            <xs:enumeration value="invoke"/>
+            <xs:enumeration value="query"/>
+            <xs:enumeration value="start"/>
+            <xs:enumeration value="stop"/>
+            <xs:enumeration value="enter"/>
+            <xs:enumeration value="exit"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- ================================================================= -->
+    <!-- DSL MODIFIER ENUMERATION -->
+    <!-- ================================================================= -->
+    <xs:simpleType name="ModifierType">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="in"/>
+            <xs:enumeration value="on"/>
+            <xs:enumeration value="from"/>
+            <xs:enumeration value="to"/>
+            <xs:enumeration value="by"/>
+            <xs:enumeration value="for"/>
+            <xs:enumeration value="with"/>
+            <xs:enumeration value="as"/>
+            <xs:enumeration value="at"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+</xs:schema>

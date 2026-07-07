@@ -1,0 +1,1338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shader DSL Editor</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #1e1e2e;
+            color: #cdd6f4;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        header {
+            background: #181825;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            border-bottom: 1px solid #313244;
+        }
+        header h1 { font-size: 16px; font-weight: 500; color: #94e2d5; }
+        header .subtitle { font-size: 11px; color: #6c7086; }
+        .toolbar {
+            background: #1e1e2e;
+            padding: 8px 20px;
+            display: flex;
+            gap: 8px;
+            border-bottom: 1px solid #313244;
+            align-items: center;
+        }
+        .toolbar button {
+            background: #313244;
+            border: none;
+            color: #cdd6f4;
+            padding: 6px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 11px;
+            transition: all 0.2s;
+        }
+        .toolbar button:hover { background: #94e2d5; color: #1e1e2e; }
+        .toolbar .separator { width: 1px; height: 20px; background: #313244; margin: 0 8px; }
+        .toolbar .hint { margin-left: auto; font-size: 10px; color: #6c7086; }
+        .toolbar .hint kbd { background: #313244; padding: 2px 6px; border-radius: 4px; }
+
+        .main-container { flex: 1; display: flex; overflow: hidden; }
+
+        /* Tree Panel */
+        .tree-panel {
+            width: 280px;
+            background: #181825;
+            border-right: 1px solid #313244;
+            display: flex;
+            flex-direction: column;
+        }
+        .tree-header {
+            padding: 12px;
+            background: #11111b;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #6c7086;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 1px solid #313244;
+        }
+        .tree-header .icon { color: #94e2d5; font-size: 14px; }
+        .tree-content { flex: 1; overflow-y: auto; padding: 8px 0; }
+        .tree-node { cursor: pointer; }
+        .tree-node-header {
+            display: flex;
+            align-items: center;
+            padding: 6px 12px;
+            gap: 8px;
+            font-size: 12px;
+            transition: background 0.1s;
+        }
+        .tree-node-header:hover { background: #313244; }
+        .tree-node-header.selected { background: #94e2d520; color: #94e2d5; }
+        .tree-toggle { width: 14px; font-size: 8px; color: #6c7086; transition: transform 0.15s; }
+        .tree-toggle.expanded { transform: rotate(90deg); }
+        .tree-toggle.hidden { visibility: hidden; }
+        .tree-icon {
+            width: 18px; height: 18px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 10px; border-radius: 4px;
+        }
+        .tree-icon.shader { background: #94e2d530; color: #94e2d5; }
+        .tree-icon.vertex { background: #89b4fa30; color: #89b4fa; }
+        .tree-icon.fragment { background: #f38ba830; color: #f38ba8; }
+        .tree-icon.uniform { background: #fab38730; color: #fab387; }
+        .tree-icon.attribute { background: #a6e3a130; color: #a6e3a1; }
+        .tree-icon.varying { background: #cba6f730; color: #cba6f7; }
+        .tree-icon.glsl { background: #f9e2af30; color: #f9e2af; }
+        .tree-icon.input { background: #74c7ec30; color: #74c7ec; }
+        .tree-icon.output { background: #eba0ac30; color: #eba0ac; }
+        .tree-label { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .tree-badge { font-size: 9px; padding: 2px 6px; border-radius: 10px; background: #313244; color: #6c7086; }
+        .tree-children { display: none; padding-left: 16px; }
+        .tree-children.expanded { display: block; }
+
+        /* Editor */
+        .editor-panel { flex: 1; display: flex; flex-direction: column; }
+        .CodeMirror {
+            flex: 1; height: auto;
+            font-family: 'JetBrains Mono', 'Consolas', monospace;
+            font-size: 13px; line-height: 1.6;
+            background: #1e1e2e; color: #cdd6f4;
+        }
+        .CodeMirror-gutters { background: #181825; border-right: 1px solid #313244; }
+        .CodeMirror-linenumber { color: #45475a; }
+        .CodeMirror-cursor { border-left: 2px solid #94e2d5; }
+        .CodeMirror-selected { background: #31324480 !important; }
+
+        /* Syntax - Shader DSL */
+        .cm-shader-comment { color: #6c7086; font-style: italic; }
+        .cm-shader-block { color: #94e2d5; font-weight: bold; }
+        .cm-shader-keyword { color: #cba6f7; }
+        .cm-shader-property { color: #89b4fa; }
+        .cm-shader-string { color: #a6e3a1; }
+        .cm-shader-number { color: #fab387; }
+        .cm-shader-type { color: #f38ba8; }
+        .cm-shader-glsl-marker { color: #f9e2af; font-weight: bold; background: #f9e2af15; }
+        .cm-shader-brace { color: #6c7086; }
+
+        /* GLSL Syntax */
+        .cm-glsl-keyword { color: #cba6f7; font-weight: bold; }
+        .cm-glsl-type { color: #f38ba8; }
+        .cm-glsl-builtin { color: #89b4fa; }
+        .cm-glsl-function { color: #a6e3a1; }
+        .cm-glsl-number { color: #fab387; }
+        .cm-glsl-operator { color: #89dceb; }
+        .cm-glsl-comment { color: #6c7086; font-style: italic; }
+        .cm-glsl-string { color: #a6e3a1; }
+        .cm-glsl-variable { color: #cdd6f4; }
+        .cm-glsl-qualifier { color: #f9e2af; }
+
+        /* Autocomplete */
+        .CodeMirror-hints {
+            background: #181825; border: 1px solid #313244; border-radius: 8px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+            font-family: 'JetBrains Mono', monospace; font-size: 12px;
+            max-height: 300px; padding: 6px 0;
+        }
+        .CodeMirror-hint {
+            padding: 8px 14px; color: #cdd6f4; cursor: pointer;
+            display: flex; align-items: center; gap: 12px;
+        }
+        .CodeMirror-hint:hover { background: #313244; }
+        .CodeMirror-hint-active { background: #94e2d5 !important; color: #1e1e2e; }
+        .hint-keyword { font-weight: bold; min-width: 100px; }
+        .hint-type { font-size: 9px; padding: 2px 8px; border-radius: 10px; text-transform: uppercase; }
+        .hint-type.block { background: #94e2d530; color: #94e2d5; }
+        .hint-type.property { background: #89b4fa30; color: #89b4fa; }
+        .hint-type.type { background: #f38ba830; color: #f38ba8; }
+        .hint-type.glsl { background: #f9e2af30; color: #f9e2af; }
+        .hint-desc { color: #6c7086; font-size: 10px; }
+
+        /* Output */
+        .output-panel {
+            height: 220px; background: #11111b;
+            border-top: 1px solid #313244;
+            display: flex; flex-direction: column;
+        }
+        .output-tabs { display: flex; background: #181825; border-bottom: 1px solid #313244; }
+        .output-tab {
+            padding: 8px 16px; font-size: 11px; color: #6c7086;
+            cursor: pointer; border-bottom: 2px solid transparent;
+        }
+        .output-tab:hover { color: #cdd6f4; }
+        .output-tab.active { color: #94e2d5; border-bottom-color: #94e2d5; }
+        .output-content { flex: 1; overflow: auto; padding: 12px; font-family: monospace; font-size: 11px; }
+        .output-content pre { white-space: pre-wrap; color: #6c7086; }
+        .output-content .error { color: #f38ba8; }
+        .output-content .success { color: #a6e3a1; }
+        .output-content .glsl-code { color: #cdd6f4; background: #1e1e2e; padding: 12px; border-radius: 6px; }
+
+        /* Properties */
+        .properties-panel {
+            width: 300px; background: #181825;
+            border-left: 1px solid #313244;
+            display: flex; flex-direction: column;
+        }
+        .properties-header {
+            padding: 12px; background: #11111b;
+            font-size: 11px; font-weight: 600;
+            text-transform: uppercase; letter-spacing: 1px;
+            color: #6c7086; border-bottom: 1px solid #313244;
+        }
+        .properties-content { flex: 1; overflow-y: auto; padding: 12px; }
+        .prop-section { margin-bottom: 16px; }
+        .prop-section-title {
+            font-size: 10px; color: #6c7086; text-transform: uppercase;
+            margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid #313244;
+        }
+        .prop-row { display: flex; align-items: center; margin-bottom: 8px; font-size: 11px; }
+        .prop-label { width: 90px; color: #6c7086; }
+        .prop-value {
+            flex: 1; background: #1e1e2e; border: 1px solid #313244;
+            border-radius: 4px; padding: 6px 10px; color: #cdd6f4;
+            font-family: monospace; font-size: 11px;
+        }
+        .prop-value:focus { outline: none; border-color: #94e2d5; }
+
+        .status-bar {
+            background: #11111b; padding: 6px 16px;
+            font-size: 10px; color: #6c7086;
+            display: flex; gap: 20px; border-top: 1px solid #313244;
+        }
+        .status-bar .valid { color: #a6e3a1; }
+        .status-bar .errors { color: #f38ba8; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Shader DSL Editor</h1>
+        <span class="subtitle">GLSL Vertex & Fragment Shaders with DSL Wrapper</span>
+    </header>
+    <div class="toolbar">
+        <button onclick="parseAndValidate()">Validate</button>
+        <button onclick="generateGLSL()">Export GLSL</button>
+        <button onclick="generateJSON()">Export JSON</button>
+        <div class="separator"></div>
+        <button onclick="loadExample('basic')">Basic</button>
+        <button onclick="loadExample('pbr')">PBR</button>
+        <button onclick="loadExample('toon')">Toon</button>
+        <button onclick="loadExample('postfx')">Post-FX</button>
+        <button onclick="loadExample('fileref')">File Ref</button>
+        <div class="separator"></div>
+        <button onclick="expandAll()">Expand</button>
+        <button onclick="collapseAll()">Collapse</button>
+        <span class="hint"><kbd>Ctrl</kbd>+<kbd>Space</kbd> autocomplete</span>
+    </div>
+    <div class="main-container">
+        <div class="tree-panel">
+            <div class="tree-header"><span class="icon">&#9674;</span> Shader Structure</div>
+            <div class="tree-content" id="treeContent"></div>
+        </div>
+        <div class="editor-panel">
+            <textarea id="editor"></textarea>
+            <div class="output-panel">
+                <div class="output-tabs">
+                    <div class="output-tab active" data-tab="vertex" onclick="switchOutput('vertex')">Vertex GLSL</div>
+                    <div class="output-tab" data-tab="fragment" onclick="switchOutput('fragment')">Fragment GLSL</div>
+                    <div class="output-tab" data-tab="json" onclick="switchOutput('json')">JSON</div>
+                    <div class="output-tab" data-tab="errors" onclick="switchOutput('errors')">Errors</div>
+                </div>
+                <div class="output-content">
+                    <pre id="outputVertex" class="glsl-code"></pre>
+                    <pre id="outputFragment" class="glsl-code" style="display:none;"></pre>
+                    <pre id="outputJson" style="display:none;"></pre>
+                    <pre id="outputErrors" style="display:none;"></pre>
+                </div>
+            </div>
+        </div>
+        <div class="properties-panel">
+            <div class="properties-header">Properties</div>
+            <div class="properties-content" id="propertiesContent">
+                <div class="prop-section">
+                    <div class="prop-section-title">Selection</div>
+                    <div style="color:#6c7086; font-size:11px;">Select an item in the tree</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="status-bar">
+        <span id="parseStatus">Ready</span>
+        <span id="lineCount">Lines: 0</span>
+        <span id="uniformCount">Uniforms: 0</span>
+        <span style="margin-left: auto;">Shader DSL v1.0</span>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+    <script>
+        // Shader DSL Grammar
+        const GRAMMAR = {
+            blocks: {
+                'shader': 'Shader program definition',
+                'vertex': 'Vertex shader stage',
+                'fragment': 'Fragment shader stage',
+                'compute': 'Compute shader stage',
+                'geometry': 'Geometry shader stage',
+                'uniforms': 'Uniform variable declarations',
+                'attributes': 'Vertex attribute declarations',
+                'varyings': 'Varying variable declarations',
+                'inputs': 'Shader inputs',
+                'outputs': 'Shader outputs',
+                'functions': 'Helper function declarations',
+                'main': 'Main shader code block'
+            },
+            properties: {
+                'name': 'Shader name',
+                'version': 'GLSL version (e.g., 300 es, 330 core)',
+                'precision': 'Default precision (highp, mediump, lowp)',
+                'type': 'Variable type',
+                'location': 'Layout location',
+                'binding': 'Binding point',
+                'default': 'Default value',
+                'description': 'Description text',
+                'ref': 'External file reference (e.g., "shaders/vertex.glsl")',
+                'include': 'Include external GLSL file'
+            },
+            types: {
+                'float': 'Single float',
+                'int': 'Integer',
+                'uint': 'Unsigned integer',
+                'bool': 'Boolean',
+                'vec2': '2D vector',
+                'vec3': '3D vector',
+                'vec4': '4D vector',
+                'ivec2': '2D integer vector',
+                'ivec3': '3D integer vector',
+                'ivec4': '4D integer vector',
+                'mat2': '2x2 matrix',
+                'mat3': '3x3 matrix',
+                'mat4': '4x4 matrix',
+                'sampler2D': '2D texture sampler',
+                'samplerCube': 'Cube texture sampler',
+                'sampler3D': '3D texture sampler'
+            },
+            glslKeywords: [
+                'void', 'return', 'if', 'else', 'for', 'while', 'do', 'break', 'continue',
+                'in', 'out', 'inout', 'uniform', 'attribute', 'varying', 'const',
+                'layout', 'location', 'binding', 'precision', 'highp', 'mediump', 'lowp',
+                'struct', 'discard', 'flat', 'smooth', 'centroid'
+            ],
+            glslBuiltins: [
+                'gl_Position', 'gl_FragCoord', 'gl_FragColor', 'gl_FragData', 'gl_PointSize',
+                'gl_VertexID', 'gl_InstanceID', 'gl_FrontFacing', 'gl_PointCoord'
+            ],
+            glslFunctions: [
+                'texture', 'texture2D', 'textureCube', 'textureLod', 'textureProj',
+                'normalize', 'length', 'distance', 'dot', 'cross', 'reflect', 'refract',
+                'min', 'max', 'clamp', 'mix', 'step', 'smoothstep', 'fract', 'mod', 'floor', 'ceil', 'round',
+                'abs', 'sign', 'sin', 'cos', 'tan', 'asin', 'acos', 'atan', 'pow', 'exp', 'log', 'sqrt', 'inversesqrt',
+                'transpose', 'inverse', 'determinant', 'matrixCompMult',
+                'lessThan', 'lessThanEqual', 'greaterThan', 'greaterThanEqual', 'equal', 'notEqual',
+                'any', 'all', 'not', 'dFdx', 'dFdy', 'fwidth'
+            ]
+        };
+
+        // CodeMirror mode - Shader DSL with embedded GLSL
+        CodeMirror.defineMode('shader-dsl', function() {
+            const blockRegex = new RegExp('^(' + Object.keys(GRAMMAR.blocks).join('|') + ')\\b');
+            const propRegex = new RegExp('^(' + Object.keys(GRAMMAR.properties).join('|') + ')\\b');
+            const typeRegex = new RegExp('^(' + Object.keys(GRAMMAR.types).join('|') + ')\\b');
+            const glslKeywordRegex = new RegExp('^(' + GRAMMAR.glslKeywords.join('|') + ')\\b');
+            const glslBuiltinRegex = new RegExp('^(' + GRAMMAR.glslBuiltins.join('|') + ')\\b');
+            const glslFunctionRegex = new RegExp('^(' + GRAMMAR.glslFunctions.join('|') + ')(?=\\s*\\()');
+
+            return {
+                startState: () => ({
+                    inGLSL: false,
+                    braceDepth: 0,
+                    glslBraceStart: 0
+                }),
+                token: function(stream, state) {
+                    // Check for GLSL block marker
+                    if (stream.match(/^type\s*=\s*glsl\s*\{/)) {
+                        state.inGLSL = true;
+                        state.glslBraceStart = 1;
+                        return 'shader-glsl-marker';
+                    }
+
+                    // Inside GLSL block
+                    if (state.inGLSL) {
+                        if (stream.peek() === '{') {
+                            state.glslBraceStart++;
+                            stream.next();
+                            return 'glsl-operator';
+                        }
+                        if (stream.peek() === '}') {
+                            state.glslBraceStart--;
+                            if (state.glslBraceStart === 0) {
+                                state.inGLSL = false;
+                                stream.next();
+                                return 'shader-glsl-marker';
+                            }
+                            stream.next();
+                            return 'glsl-operator';
+                        }
+
+                        // GLSL tokenization
+                        if (stream.eatSpace()) return null;
+                        if (stream.match(/^\/\/.*/)) return 'glsl-comment';
+                        if (stream.match(/^\/\*.*?\*\//)) return 'glsl-comment';
+                        if (stream.match(glslBuiltinRegex)) return 'glsl-builtin';
+                        if (stream.match(glslFunctionRegex)) return 'glsl-function';
+                        if (stream.match(glslKeywordRegex)) return 'glsl-keyword';
+                        if (stream.match(typeRegex)) return 'glsl-type';
+                        if (stream.match(/^-?\d+\.?\d*([eE][+-]?\d+)?[fF]?/)) return 'glsl-number';
+                        if (stream.match(/^"[^"]*"/)) return 'glsl-string';
+                        if (stream.match(/^[+\-*/%=<>!&|^~?:;,]/)) return 'glsl-operator';
+                        if (stream.match(/^[()[\]]/)) return 'glsl-operator';
+                        if (stream.match(/^[a-zA-Z_][a-zA-Z0-9_]*/)) return 'glsl-variable';
+                        stream.next();
+                        return null;
+                    }
+
+                    // Regular DSL tokenization
+                    if (stream.eatSpace()) return null;
+                    if (stream.match(/^\/\/.*/) || stream.match(/^#.*/)) return 'shader-comment';
+                    if (stream.match(/^[{}]/)) return 'shader-brace';
+                    if (stream.match(/^"[^"]*"/)) return 'shader-string';
+                    if (stream.match(/^-?\d+\.?\d*([eE][+-]?\d+)?/)) return 'shader-number';
+                    if (stream.match(/^\[[\d.,\s-]+\]/)) return 'shader-number';
+                    if (stream.match(blockRegex)) return 'shader-block';
+                    if (stream.match(typeRegex)) return 'shader-type';
+                    if (stream.match(propRegex)) return 'shader-property';
+                    if (stream.match(/^[\w_]+(?=\s*[=:])/)) return 'shader-property';
+                    if (stream.match(/^[=:]/)) return 'shader-keyword';
+                    if (stream.match(/^[\w_][\w_-]*/)) return null;
+                    stream.next();
+                    return null;
+                }
+            };
+        });
+
+        // Autocomplete
+        function shaderHint(cm) {
+            const cursor = cm.getCursor();
+            const line = cm.getLine(cursor.line);
+            const beforeCursor = line.substring(0, cursor.ch);
+            const wordMatch = beforeCursor.match(/[\w-]*$/);
+            const prefix = wordMatch ? wordMatch[0].toLowerCase() : '';
+            const start = cursor.ch - prefix.length;
+            const trimmedBefore = beforeCursor.substring(0, start).trim();
+
+            let suggestions = [];
+
+            // Check if we're in a GLSL block
+            const fullText = cm.getValue();
+            const cursorOffset = cm.indexFromPos(cursor);
+            const textBefore = fullText.substring(0, cursorOffset);
+            const glslStart = textBefore.lastIndexOf('type=glsl{') >= 0 || textBefore.lastIndexOf('type = glsl {') >= 0;
+            const glslEnd = textBefore.lastIndexOf('}');
+            const inGLSL = glslStart && (glslEnd < textBefore.lastIndexOf('type=glsl') || glslEnd < textBefore.lastIndexOf('type = glsl'));
+
+            if (inGLSL) {
+                // GLSL suggestions
+                suggestions = [
+                    ...getSuggestions(GRAMMAR.types, prefix, 'type'),
+                    ...GRAMMAR.glslKeywords.filter(k => k.startsWith(prefix)).slice(0, 10).map(k => ({ text: k, type: 'glsl', desc: 'GLSL keyword' })),
+                    ...GRAMMAR.glslFunctions.filter(k => k.startsWith(prefix)).slice(0, 10).map(k => ({ text: k + '(', type: 'glsl', desc: 'GLSL function' })),
+                    ...GRAMMAR.glslBuiltins.filter(k => k.startsWith(prefix)).slice(0, 10).map(k => ({ text: k, type: 'glsl', desc: 'GLSL builtin' }))
+                ];
+            } else if (trimmedBefore === '' || trimmedBefore.endsWith('{')) {
+                suggestions = [
+                    ...getSuggestions(GRAMMAR.blocks, prefix, 'block'),
+                    ...getSuggestions(GRAMMAR.properties, prefix, 'property')
+                ];
+            } else if (trimmedBefore.endsWith('=') || trimmedBefore.endsWith(':')) {
+                suggestions = getSuggestions(GRAMMAR.types, prefix, 'type');
+            } else {
+                suggestions = getSuggestions(GRAMMAR.properties, prefix, 'property');
+            }
+
+            if (!suggestions.length) return null;
+
+            return {
+                list: suggestions.map(s => ({
+                    text: s.text + (s.type === 'block' ? ' {\n    \n}' : (s.text.endsWith('(') ? ')' : ' ')),
+                    displayText: s.text,
+                    render: el => {
+                        el.innerHTML = `<span class="hint-keyword">${s.text}</span>
+                            <span class="hint-type ${s.type}">${s.type}</span>
+                            <span class="hint-desc">${s.desc}</span>`;
+                    }
+                })),
+                from: CodeMirror.Pos(cursor.line, start),
+                to: CodeMirror.Pos(cursor.line, cursor.ch)
+            };
+        }
+
+        function getSuggestions(obj, prefix, type) {
+            return Object.entries(obj)
+                .filter(([key]) => key.toLowerCase().startsWith(prefix))
+                .slice(0, 15)
+                .map(([key, desc]) => ({ text: key, type, desc: typeof desc === 'string' ? desc : String(desc) }));
+        }
+
+        // Parse DSL
+        function parseDSL(text) {
+            const lines = text.split('\n');
+            const root = { type: 'shader', name: 'Shader', children: [], properties: {}, glsl: {} };
+            const stack = [root];
+            const errors = [];
+            let lineNum = 0;
+            let inGLSL = false;
+            let glslBuffer = '';
+            let glslTarget = null;
+            let glslBraceCount = 0;
+
+            for (const line of lines) {
+                lineNum++;
+                const trimmed = line.trim();
+
+                // Handle GLSL blocks
+                if (inGLSL) {
+                    for (let i = 0; i < line.length; i++) {
+                        const ch = line[i];
+                        if (ch === '{') glslBraceCount++;
+                        else if (ch === '}') {
+                            glslBraceCount--;
+                            if (glslBraceCount === 0) {
+                                // End of GLSL block
+                                glslBuffer += line.substring(0, i);
+                                if (glslTarget) {
+                                    glslTarget.glslCode = glslBuffer.trim();
+                                }
+                                inGLSL = false;
+                                glslBuffer = '';
+                                glslTarget = null;
+                                break;
+                            }
+                        }
+                    }
+                    if (inGLSL) {
+                        glslBuffer += line + '\n';
+                    }
+                    continue;
+                }
+
+                if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('#')) continue;
+
+                // Check for type=glsl { start
+                const glslMatch = trimmed.match(/^type\s*=\s*glsl\s*\{/);
+                if (glslMatch) {
+                    inGLSL = true;
+                    glslBraceCount = 1;
+                    glslTarget = stack[stack.length - 1];
+                    glslBuffer = trimmed.substring(glslMatch[0].length) + '\n';
+                    continue;
+                }
+
+                if (trimmed === '}') {
+                    if (stack.length > 1) stack.pop();
+                    continue;
+                }
+
+                // Block: "blockname "name" {" or "blockname {"
+                const blockMatch = trimmed.match(/^(\w+)\s*(?:"([^"]*)")?\s*\{?\s*$/);
+                if (blockMatch && GRAMMAR.blocks[blockMatch[1]]) {
+                    const block = {
+                        type: blockMatch[1],
+                        name: blockMatch[2] || blockMatch[1],
+                        children: [],
+                        properties: {},
+                        line: lineNum
+                    };
+                    stack[stack.length - 1].children.push(block);
+                    if (trimmed.endsWith('{')) stack.push(block);
+                    continue;
+                }
+
+                // Property: "name = value" or "name: value"
+                const propMatch = trimmed.match(/^(\w+)\s*[=:]\s*(.+)$/);
+                if (propMatch) {
+                    const parent = stack[stack.length - 1];
+                    let value = propMatch[2].trim();
+                    // Parse value
+                    if (value.startsWith('"') && value.endsWith('"')) {
+                        value = value.slice(1, -1);
+                    } else if (value.startsWith('[') && value.endsWith(']')) {
+                        try { value = JSON.parse(value); } catch(e) {}
+                    } else if (value === 'true') {
+                        value = true;
+                    } else if (value === 'false') {
+                        value = false;
+                    } else if (!isNaN(parseFloat(value))) {
+                        value = parseFloat(value);
+                    }
+                    parent.properties[propMatch[1]] = value;
+                    continue;
+                }
+
+                // Uniform/attribute declaration: "type name" or "type name = default"
+                const varMatch = trimmed.match(/^([\w]+)\s+([\w]+)(?:\s*=\s*(.+))?$/);
+                if (varMatch && GRAMMAR.types[varMatch[1]]) {
+                    const parent = stack[stack.length - 1];
+                    const varNode = {
+                        type: 'variable',
+                        varType: varMatch[1],
+                        name: varMatch[2],
+                        children: [],
+                        properties: { type: varMatch[1] }
+                    };
+                    if (varMatch[3]) {
+                        varNode.properties.default = varMatch[3];
+                    }
+                    parent.children.push(varNode);
+                    continue;
+                }
+
+                if (trimmed && !trimmed.endsWith('{')) {
+                    // Could be a simple identifier or unknown syntax
+                }
+            }
+
+            return { ast: root, errors };
+        }
+
+        // Build tree
+        function buildTree(ast) {
+            const container = document.getElementById('treeContent');
+            container.innerHTML = '';
+
+            function createNode(item, depth = 0) {
+                const node = document.createElement('div');
+                node.className = 'tree-node';
+                const hasChildren = item.children && item.children.length > 0;
+
+                const header = document.createElement('div');
+                header.className = 'tree-node-header';
+                header.style.paddingLeft = (depth * 16 + 12) + 'px';
+
+                const toggle = document.createElement('span');
+                toggle.className = 'tree-toggle' + (hasChildren ? ' expanded' : ' hidden');
+                toggle.textContent = '\u25B6';
+                toggle.onclick = e => {
+                    e.stopPropagation();
+                    const ch = node.querySelector('.tree-children');
+                    if (ch) { ch.classList.toggle('expanded'); toggle.classList.toggle('expanded'); }
+                };
+
+                const icon = document.createElement('span');
+                icon.className = 'tree-icon ' + getIconClass(item.type);
+                icon.textContent = getIconLetter(item.type);
+
+                const label = document.createElement('span');
+                label.className = 'tree-label';
+                label.textContent = item.name || item.type;
+
+                header.appendChild(toggle);
+                header.appendChild(icon);
+                header.appendChild(label);
+
+                if (hasChildren) {
+                    const badge = document.createElement('span');
+                    badge.className = 'tree-badge';
+                    badge.textContent = item.children.length;
+                    header.appendChild(badge);
+                }
+
+                if (item.glslCode) {
+                    const glslBadge = document.createElement('span');
+                    glslBadge.className = 'tree-badge';
+                    glslBadge.style.background = '#f9e2af30';
+                    glslBadge.style.color = '#f9e2af';
+                    glslBadge.textContent = 'GLSL';
+                    header.appendChild(glslBadge);
+                }
+
+                header.onclick = () => selectNode(header, item);
+                node.appendChild(header);
+
+                if (hasChildren) {
+                    const children = document.createElement('div');
+                    children.className = 'tree-children expanded';
+                    item.children.forEach(c => children.appendChild(createNode(c, depth + 1)));
+                    node.appendChild(children);
+                }
+
+                return node;
+            }
+
+            function getIconClass(type) {
+                if (type === 'shader') return 'shader';
+                if (type === 'vertex') return 'vertex';
+                if (type === 'fragment') return 'fragment';
+                if (type === 'uniforms' || type === 'uniform') return 'uniform';
+                if (type === 'attributes' || type === 'attribute') return 'attribute';
+                if (type === 'varyings' || type === 'varying') return 'varying';
+                if (type === 'main' || type === 'functions') return 'glsl';
+                if (type === 'inputs') return 'input';
+                if (type === 'outputs') return 'output';
+                if (type === 'variable') return 'uniform';
+                return 'shader';
+            }
+
+            function getIconLetter(type) {
+                if (type === 'shader') return 'S';
+                if (type === 'vertex') return 'V';
+                if (type === 'fragment') return 'F';
+                if (type === 'compute') return 'C';
+                if (type === 'geometry') return 'G';
+                if (type === 'uniforms') return 'U';
+                if (type === 'attributes') return 'A';
+                if (type === 'varyings') return '~';
+                if (type === 'main') return 'M';
+                if (type === 'functions') return 'f';
+                if (type === 'variable') return '\u2022';
+                return type[0].toUpperCase();
+            }
+
+            container.appendChild(createNode(ast));
+            updateCounts(ast);
+        }
+
+        let selectedHeader = null;
+        function selectNode(header, item) {
+            if (selectedHeader) selectedHeader.classList.remove('selected');
+            header.classList.add('selected');
+            selectedHeader = header;
+            showProperties(item);
+        }
+
+        function showProperties(item) {
+            const container = document.getElementById('propertiesContent');
+            let html = `<div class="prop-section"><div class="prop-section-title">${item.type}</div>
+                <div class="prop-row"><span class="prop-label">Name</span><input class="prop-value" value="${item.name || ''}" readonly></div>
+                <div class="prop-row"><span class="prop-label">Type</span><input class="prop-value" value="${item.type}" readonly></div>`;
+
+            if (item.varType) {
+                html += `<div class="prop-row"><span class="prop-label">Data Type</span><input class="prop-value" value="${item.varType}" readonly></div>`;
+            }
+
+            html += `<div class="prop-row"><span class="prop-label">Children</span><input class="prop-value" value="${item.children?.length || 0}" readonly></div>
+            </div>`;
+
+            if (Object.keys(item.properties).length > 0) {
+                html += '<div class="prop-section"><div class="prop-section-title">Properties</div>';
+                for (const [k, v] of Object.entries(item.properties)) {
+                    const val = typeof v === 'object' ? JSON.stringify(v) : v;
+                    html += `<div class="prop-row"><span class="prop-label">${k}</span><input class="prop-value" value="${val}" readonly></div>`;
+                }
+                html += '</div>';
+            }
+
+            if (item.glslCode) {
+                html += `<div class="prop-section"><div class="prop-section-title">GLSL Code</div>
+                    <pre style="background:#1e1e2e; padding:8px; border-radius:4px; font-size:10px; color:#cdd6f4; max-height:150px; overflow:auto;">${escapeHtml(item.glslCode)}</pre>
+                </div>`;
+            }
+
+            if (item.properties.ref) {
+                html += `<div class="prop-section"><div class="prop-section-title">File Reference</div>
+                    <div style="background:#89b4fa20; padding:8px; border-radius:4px; font-size:11px; color:#89b4fa; display:flex; align-items:center; gap:8px;">
+                        <span style="font-size:14px;">&#128196;</span>
+                        <span>${item.properties.ref}</span>
+                    </div>
+                    <div style="color:#6c7086; font-size:10px; margin-top:6px;">External GLSL file will be loaded at runtime</div>
+                </div>`;
+            }
+
+            container.innerHTML = html;
+        }
+
+        function escapeHtml(text) {
+            return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        function updateCounts(ast) {
+            let uniformCount = 0;
+            function countUniforms(n) {
+                if (n.type === 'uniforms') uniformCount += n.children.length;
+                if (n.children) n.children.forEach(countUniforms);
+            }
+            countUniforms(ast);
+            document.getElementById('uniformCount').textContent = `Uniforms: ${uniformCount}`;
+        }
+
+        // Generate GLSL output
+        function generateGLSL() {
+            const { ast, errors } = parseDSL(editor.getValue());
+            if (errors.length > 0) { showErrors(errors); return; }
+
+            let vertexCode = '';
+            let fragmentCode = '';
+            let version = '300 es';
+            let precision = 'mediump';
+
+            function findBlock(node, type) {
+                if (node.type === type) return node;
+                for (const child of (node.children || [])) {
+                    const found = findBlock(child, type);
+                    if (found) return found;
+                }
+                return null;
+            }
+
+            function generateVariables(block, qualifier) {
+                let code = '';
+                for (const child of (block.children || [])) {
+                    if (child.type === 'variable') {
+                        code += `${qualifier} ${child.varType} ${child.name};\n`;
+                    }
+                }
+                return code;
+            }
+
+            // Get version/precision from shader properties
+            const shaderProps = ast.properties || {};
+            if (shaderProps.version) version = shaderProps.version;
+            if (shaderProps.precision) precision = shaderProps.precision;
+
+            // Generate vertex shader
+            const vertexBlock = findBlock(ast, 'vertex');
+            if (vertexBlock) {
+                vertexCode = `#version ${version}\nprecision ${precision} float;\n\n`;
+
+                const uniforms = findBlock(vertexBlock, 'uniforms');
+                const attributes = findBlock(vertexBlock, 'attributes');
+                const varyings = findBlock(vertexBlock, 'varyings');
+                const outputs = findBlock(vertexBlock, 'outputs');
+                const main = findBlock(vertexBlock, 'main');
+
+                if (uniforms) vertexCode += generateVariables(uniforms, 'uniform');
+                if (attributes) vertexCode += generateVariables(attributes, 'in');
+                if (varyings) vertexCode += generateVariables(varyings, 'out');
+                if (outputs) vertexCode += generateVariables(outputs, 'out');
+
+                if (main && main.glslCode) {
+                    vertexCode += `\nvoid main() {\n${main.glslCode}\n}\n`;
+                }
+            }
+
+            // Generate fragment shader
+            const fragmentBlock = findBlock(ast, 'fragment');
+            if (fragmentBlock) {
+                fragmentCode = `#version ${version}\nprecision ${precision} float;\n\n`;
+
+                const uniforms = findBlock(fragmentBlock, 'uniforms');
+                const inputs = findBlock(fragmentBlock, 'inputs');
+                const varyings = findBlock(fragmentBlock, 'varyings');
+                const outputs = findBlock(fragmentBlock, 'outputs');
+                const main = findBlock(fragmentBlock, 'main');
+
+                if (uniforms) fragmentCode += generateVariables(uniforms, 'uniform');
+                if (inputs) fragmentCode += generateVariables(inputs, 'in');
+                if (varyings) fragmentCode += generateVariables(varyings, 'in');
+                if (outputs) fragmentCode += generateVariables(outputs, 'out');
+
+                if (main && main.glslCode) {
+                    fragmentCode += `\nvoid main() {\n${main.glslCode}\n}\n`;
+                }
+            }
+
+            document.getElementById('outputVertex').textContent = vertexCode || '// No vertex shader defined';
+            document.getElementById('outputFragment').textContent = fragmentCode || '// No fragment shader defined';
+            switchOutput('vertex');
+        }
+
+        function generateJSON() {
+            const { ast, errors } = parseDSL(editor.getValue());
+            if (errors.length > 0) { showErrors(errors); return; }
+            document.getElementById('outputJson').textContent = JSON.stringify(ast, null, 2);
+            switchOutput('json');
+        }
+
+        function parseAndValidate() {
+            const { ast, errors } = parseDSL(editor.getValue());
+            const statusEl = document.getElementById('parseStatus');
+            if (errors.length === 0) {
+                statusEl.className = 'valid';
+                statusEl.textContent = '\u2713 Valid';
+                document.getElementById('outputErrors').innerHTML = '<span class="success">No errors</span>';
+            } else {
+                statusEl.className = 'errors';
+                statusEl.textContent = `\u2717 ${errors.length} error(s)`;
+                showErrors(errors);
+            }
+            buildTree(ast);
+            generateGLSL();
+            document.getElementById('lineCount').textContent = `Lines: ${editor.lineCount()}`;
+        }
+
+        function showErrors(errors) {
+            document.getElementById('outputErrors').innerHTML = errors.map(e => `<span class="error">Line ${e.line}: ${e.msg}</span>`).join('\n');
+            switchOutput('errors');
+        }
+
+        function switchOutput(tab) {
+            document.querySelectorAll('.output-tab').forEach(t => t.classList.remove('active'));
+            document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+            ['vertex', 'fragment', 'json', 'errors'].forEach(t => {
+                const el = document.getElementById('output' + t.charAt(0).toUpperCase() + t.slice(1));
+                if (el) el.style.display = t === tab ? 'block' : 'none';
+            });
+        }
+
+        function expandAll() {
+            document.querySelectorAll('.tree-children').forEach(el => el.classList.add('expanded'));
+            document.querySelectorAll('.tree-toggle').forEach(el => el.classList.add('expanded'));
+        }
+        function collapseAll() {
+            document.querySelectorAll('.tree-children').forEach(el => el.classList.remove('expanded'));
+            document.querySelectorAll('.tree-toggle').forEach(el => el.classList.remove('expanded'));
+        }
+
+        // Editor
+        const editor = CodeMirror.fromTextArea(document.getElementById('editor'), {
+            mode: 'shader-dsl',
+            lineNumbers: true,
+            matchBrackets: true,
+            indentUnit: 4,
+            tabSize: 4,
+            extraKeys: {
+                'Ctrl-Space': cm => cm.showHint({ hint: shaderHint, completeSingle: false }),
+                'Tab': cm => cm.replaceSelection('    ')
+            }
+        });
+
+        editor.on('inputRead', (cm, change) => {
+            if (change.text[0] && /[a-zA-Z]/.test(change.text[0])) {
+                cm.showHint({ hint: shaderHint, completeSingle: false });
+            }
+        });
+
+        editor.on('change', () => {
+            clearTimeout(editor.validateTimeout);
+            editor.validateTimeout = setTimeout(parseAndValidate, 600);
+        });
+
+        function loadExample(type) {
+            const examples = {
+                basic: `shader "BasicShader" {
+    version = "300 es"
+    precision = "mediump"
+
+    vertex {
+        uniforms {
+            mat4 u_ModelMatrix
+            mat4 u_ViewMatrix
+            mat4 u_ProjectionMatrix
+        }
+
+        attributes {
+            vec3 a_Position
+            vec3 a_Normal
+            vec2 a_TexCoord
+        }
+
+        outputs {
+            vec3 v_Normal
+            vec2 v_TexCoord
+        }
+
+        main {
+            type = glsl {
+    v_Normal = mat3(u_ModelMatrix) * a_Normal;
+    v_TexCoord = a_TexCoord;
+    gl_Position = u_ProjectionMatrix * u_ViewMatrix * u_ModelMatrix * vec4(a_Position, 1.0);
+            }
+        }
+    }
+
+    fragment {
+        uniforms {
+            sampler2D u_Texture
+            vec3 u_LightDir
+            vec3 u_LightColor
+            vec3 u_AmbientColor
+        }
+
+        inputs {
+            vec3 v_Normal
+            vec2 v_TexCoord
+        }
+
+        outputs {
+            vec4 fragColor
+        }
+
+        main {
+            type = glsl {
+    vec3 normal = normalize(v_Normal);
+    float diff = max(dot(normal, normalize(u_LightDir)), 0.0);
+    vec3 diffuse = diff * u_LightColor;
+    vec3 ambient = u_AmbientColor;
+    vec4 texColor = texture(u_Texture, v_TexCoord);
+    fragColor = vec4((ambient + diffuse) * texColor.rgb, texColor.a);
+            }
+        }
+    }
+}`,
+                pbr: `shader "PBRShader" {
+    version = "300 es"
+    precision = "highp"
+
+    vertex {
+        uniforms {
+            mat4 u_Model
+            mat4 u_View
+            mat4 u_Projection
+            mat3 u_NormalMatrix
+        }
+
+        attributes {
+            vec3 a_Position
+            vec3 a_Normal
+            vec2 a_TexCoord
+            vec4 a_Tangent
+        }
+
+        outputs {
+            vec3 v_WorldPos
+            vec3 v_Normal
+            vec2 v_TexCoord
+            mat3 v_TBN
+        }
+
+        main {
+            type = glsl {
+    vec4 worldPos = u_Model * vec4(a_Position, 1.0);
+    v_WorldPos = worldPos.xyz;
+    v_Normal = u_NormalMatrix * a_Normal;
+    v_TexCoord = a_TexCoord;
+
+    vec3 T = normalize(u_NormalMatrix * a_Tangent.xyz);
+    vec3 N = normalize(v_Normal);
+    vec3 B = cross(N, T) * a_Tangent.w;
+    v_TBN = mat3(T, B, N);
+
+    gl_Position = u_Projection * u_View * worldPos;
+            }
+        }
+    }
+
+    fragment {
+        uniforms {
+            vec3 u_CameraPos
+            vec3 u_LightPositions[4]
+            vec3 u_LightColors[4]
+
+            sampler2D u_AlbedoMap
+            sampler2D u_NormalMap
+            sampler2D u_MetallicRoughnessMap
+            sampler2D u_AOMap
+            sampler2D u_EmissiveMap
+        }
+
+        inputs {
+            vec3 v_WorldPos
+            vec3 v_Normal
+            vec2 v_TexCoord
+            mat3 v_TBN
+        }
+
+        outputs {
+            vec4 fragColor
+        }
+
+        main {
+            type = glsl {
+    // Sample textures
+    vec3 albedo = texture(u_AlbedoMap, v_TexCoord).rgb;
+    vec3 normal = texture(u_NormalMap, v_TexCoord).rgb * 2.0 - 1.0;
+    normal = normalize(v_TBN * normal);
+    vec2 mr = texture(u_MetallicRoughnessMap, v_TexCoord).bg;
+    float metallic = mr.x;
+    float roughness = mr.y;
+    float ao = texture(u_AOMap, v_TexCoord).r;
+    vec3 emissive = texture(u_EmissiveMap, v_TexCoord).rgb;
+
+    vec3 V = normalize(u_CameraPos - v_WorldPos);
+    vec3 F0 = mix(vec3(0.04), albedo, metallic);
+
+    vec3 Lo = vec3(0.0);
+    for (int i = 0; i < 4; i++) {
+        vec3 L = normalize(u_LightPositions[i] - v_WorldPos);
+        vec3 H = normalize(V + L);
+        float distance = length(u_LightPositions[i] - v_WorldPos);
+        float attenuation = 1.0 / (distance * distance);
+        vec3 radiance = u_LightColors[i] * attenuation;
+
+        // Cook-Torrance BRDF
+        float NDF = pow(max(dot(normal, H), 0.0), (1.0 - roughness) * 256.0);
+        float NdotL = max(dot(normal, L), 0.0);
+
+        Lo += (albedo / 3.14159 + F0 * NDF) * radiance * NdotL;
+    }
+
+    vec3 ambient = vec3(0.03) * albedo * ao;
+    vec3 color = ambient + Lo + emissive;
+
+    // HDR tonemapping
+    color = color / (color + vec3(1.0));
+    // Gamma correction
+    color = pow(color, vec3(1.0/2.2));
+
+    fragColor = vec4(color, 1.0);
+            }
+        }
+    }
+}`,
+                toon: `shader "ToonShader" {
+    version = "300 es"
+    precision = "mediump"
+
+    vertex {
+        uniforms {
+            mat4 u_MVP
+            mat4 u_Model
+            mat3 u_NormalMatrix
+        }
+
+        attributes {
+            vec3 a_Position
+            vec3 a_Normal
+        }
+
+        outputs {
+            vec3 v_Normal
+            vec3 v_WorldPos
+        }
+
+        main {
+            type = glsl {
+    v_Normal = u_NormalMatrix * a_Normal;
+    v_WorldPos = (u_Model * vec4(a_Position, 1.0)).xyz;
+    gl_Position = u_MVP * vec4(a_Position, 1.0);
+            }
+        }
+    }
+
+    fragment {
+        uniforms {
+            vec3 u_LightDir
+            vec3 u_BaseColor
+            vec3 u_ShadowColor
+            vec3 u_HighlightColor
+            vec3 u_RimColor
+            vec3 u_CameraPos
+            float u_RimPower
+            float u_Steps
+        }
+
+        inputs {
+            vec3 v_Normal
+            vec3 v_WorldPos
+        }
+
+        outputs {
+            vec4 fragColor
+        }
+
+        main {
+            type = glsl {
+    vec3 normal = normalize(v_Normal);
+    vec3 lightDir = normalize(u_LightDir);
+    vec3 viewDir = normalize(u_CameraPos - v_WorldPos);
+
+    // Cel shading - quantize lighting
+    float NdotL = dot(normal, lightDir);
+    float intensity = floor(NdotL * u_Steps) / u_Steps;
+    intensity = clamp(intensity, 0.0, 1.0);
+
+    // Color ramp
+    vec3 color = mix(u_ShadowColor, u_BaseColor, intensity);
+
+    // Highlight
+    vec3 halfVec = normalize(lightDir + viewDir);
+    float specular = pow(max(dot(normal, halfVec), 0.0), 32.0);
+    if (specular > 0.5) {
+        color = mix(color, u_HighlightColor, 0.5);
+    }
+
+    // Rim lighting
+    float rim = 1.0 - max(dot(viewDir, normal), 0.0);
+    rim = pow(rim, u_RimPower);
+    color += u_RimColor * rim;
+
+    fragColor = vec4(color, 1.0);
+            }
+        }
+    }
+}`,
+                // File reference example - uses external .glsl files instead of embedding
+                fileref: `shader "ExternalShader" {
+    version = "300 es"
+    precision = "mediump"
+    description = "Shader using external GLSL file references"
+
+    // Vertex shader references external file
+    vertex {
+        ref = "shaders/standard.vert.glsl"
+
+        // Uniforms still declared for documentation/validation
+        uniforms {
+            mat4 u_ModelViewProjection
+            mat4 u_Model
+            mat3 u_NormalMatrix
+        }
+
+        attributes {
+            vec3 a_Position
+            vec3 a_Normal
+            vec2 a_TexCoord
+        }
+
+        outputs {
+            vec3 v_Normal
+            vec2 v_TexCoord
+            vec3 v_WorldPos
+        }
+    }
+
+    // Fragment shader references external file
+    fragment {
+        ref = "shaders/standard.frag.glsl"
+
+        uniforms {
+            sampler2D u_DiffuseMap
+            sampler2D u_NormalMap
+            vec3 u_LightPosition
+            vec3 u_CameraPosition
+        }
+
+        inputs {
+            vec3 v_Normal
+            vec2 v_TexCoord
+            vec3 v_WorldPos
+        }
+
+        outputs {
+            vec4 fragColor
+        }
+    }
+}`,
+                postfx: `shader "PostProcessShader" {
+    version = "300 es"
+    precision = "mediump"
+
+    // Full-screen quad vertex shader
+    vertex {
+        attributes {
+            vec2 a_Position
+        }
+
+        outputs {
+            vec2 v_TexCoord
+        }
+
+        main {
+            type = glsl {
+    v_TexCoord = a_Position * 0.5 + 0.5;
+    gl_Position = vec4(a_Position, 0.0, 1.0);
+            }
+        }
+    }
+
+    fragment {
+        uniforms {
+            sampler2D u_SceneTexture
+            sampler2D u_DepthTexture
+            vec2 u_Resolution
+            float u_Time
+
+            // Bloom
+            float u_BloomThreshold
+            float u_BloomIntensity
+
+            // Vignette
+            float u_VignetteRadius
+            float u_VignetteSoftness
+
+            // Color grading
+            float u_Saturation
+            float u_Contrast
+            float u_Brightness
+            vec3 u_ColorTint
+        }
+
+        inputs {
+            vec2 v_TexCoord
+        }
+
+        outputs {
+            vec4 fragColor
+        }
+
+        main {
+            type = glsl {
+    vec4 color = texture(u_SceneTexture, v_TexCoord);
+
+    // Extract bright areas for bloom
+    float brightness = dot(color.rgb, vec3(0.2126, 0.7152, 0.0722));
+    vec3 bloom = vec3(0.0);
+    if (brightness > u_BloomThreshold) {
+        // Simple box blur for bloom (in production, use separable Gaussian)
+        vec2 texelSize = 1.0 / u_Resolution;
+        for (int x = -2; x <= 2; x++) {
+            for (int y = -2; y <= 2; y++) {
+                vec2 offset = vec2(float(x), float(y)) * texelSize * 2.0;
+                bloom += texture(u_SceneTexture, v_TexCoord + offset).rgb;
+            }
+        }
+        bloom /= 25.0;
+    }
+    color.rgb += bloom * u_BloomIntensity;
+
+    // Vignette
+    vec2 uv = v_TexCoord * 2.0 - 1.0;
+    float dist = length(uv);
+    float vignette = smoothstep(u_VignetteRadius, u_VignetteRadius - u_VignetteSoftness, dist);
+    color.rgb *= vignette;
+
+    // Saturation
+    float gray = dot(color.rgb, vec3(0.2126, 0.7152, 0.0722));
+    color.rgb = mix(vec3(gray), color.rgb, u_Saturation);
+
+    // Contrast
+    color.rgb = (color.rgb - 0.5) * u_Contrast + 0.5;
+
+    // Brightness
+    color.rgb += u_Brightness;
+
+    // Color tint
+    color.rgb *= u_ColorTint;
+
+    // Clamp output
+    color.rgb = clamp(color.rgb, 0.0, 1.0);
+
+    fragColor = color;
+            }
+        }
+    }
+}`
+            };
+            editor.setValue(examples[type] || '');
+            parseAndValidate();
+        }
+
+        loadExample('basic');
+    </script>
+</body>
+</html>

@@ -1,0 +1,1389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Synth Project Editor</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #1e1e2e;
+            color: #cdd6f4;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        header {
+            background: #181825;
+            padding: 10px 20px;
+            border-bottom: 1px solid #313244;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        header h1 { font-size: 15px; color: #cba6f7; font-weight: 500; }
+        header .subtitle { font-size: 11px; color: #6c7086; }
+
+        .toolbar {
+            background: #1e1e2e;
+            padding: 6px 16px;
+            border-bottom: 1px solid #313244;
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+        .toolbar button {
+            background: #313244;
+            border: none;
+            color: #cdd6f4;
+            padding: 5px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+        }
+        .toolbar button:hover { background: #cba6f7; color: #1e1e2e; }
+        .toolbar .sep { width: 1px; height: 18px; background: #313244; margin: 0 6px; }
+        .toolbar .hint { margin-left: auto; font-size: 10px; color: #6c7086; }
+        .toolbar .hint kbd { background: #313244; padding: 2px 5px; border-radius: 3px; }
+
+        .main { flex: 1; display: flex; overflow: hidden; }
+
+        /* File Tree */
+        .file-tree {
+            width: 220px;
+            background: #181825;
+            border-right: 1px solid #313244;
+            overflow-y: auto;
+            font-size: 12px;
+        }
+        .file-tree-header {
+            padding: 10px 12px;
+            font-size: 10px;
+            color: #6c7086;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 1px solid #313244;
+        }
+        .file-item {
+            padding: 6px 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-left: 2px solid transparent;
+        }
+        .file-item:hover { background: #313244; }
+        .file-item.active { background: #cba6f720; border-left-color: #cba6f7; }
+        .file-item .icon { font-size: 14px; }
+        .file-item.root { color: #cba6f7; font-weight: 500; }
+        .file-item.folder { color: #89b4fa; }
+        .file-item.synth { color: #a6e3a1; }
+        .file-item.gltf { color: #fab387; }
+        .file-item.glsl { color: #f9e2af; }
+        .file-item.png { color: #f38ba8; }
+        .file-item .badge {
+            margin-left: auto;
+            font-size: 9px;
+            color: #6c7086;
+            background: #313244;
+            padding: 1px 5px;
+            border-radius: 3px;
+        }
+        .folder-children {
+            padding-left: 16px;
+            display: none;
+        }
+        .folder-children.open { display: block; }
+
+        /* Editor */
+        .editor-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .editor-header {
+            background: #181825;
+            padding: 8px 16px;
+            font-size: 12px;
+            color: #cdd6f4;
+            border-bottom: 1px solid #313244;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .editor-header .file-icon { color: #a6e3a1; }
+        .editor-header .file-path { color: #6c7086; font-size: 10px; }
+
+        .context-bar {
+            background: linear-gradient(90deg, #313244, #1e1e2e);
+            padding: 6px 12px;
+            font-size: 11px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid #313244;
+        }
+        .context-bar .grammar {
+            font-family: 'Consolas', monospace;
+            display: flex;
+            gap: 3px;
+        }
+        .context-bar .grammar span {
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+        }
+        .grammar .domain { background: #89b4fa30; color: #89b4fa; }
+        .grammar .resource { background: #cba6f730; color: #cba6f7; }
+        .grammar .action { background: #a6e3a130; color: #a6e3a1; }
+        .grammar .subject { background: #f9e2af30; color: #f9e2af; }
+        .grammar .modifier { background: #f38ba830; color: #f38ba8; }
+        .grammar .arrow { color: #45475a; }
+
+        .CodeMirror {
+            flex: 1;
+            height: auto;
+            font-family: 'JetBrains Mono', 'Consolas', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            background: #1e1e2e;
+            color: #cdd6f4;
+        }
+        .CodeMirror-gutters { background: #181825; border-right: 1px solid #313244; }
+        .CodeMirror-linenumber { color: #45475a; }
+        .CodeMirror-cursor { border-left: 2px solid #cba6f7; }
+        .CodeMirror-selected { background: #45475a !important; }
+        .CodeMirror-activeline-background { background: #313244; }
+
+        /* XML Syntax */
+        .cm-tag { color: #cba6f7; }
+        .cm-attribute { color: #89b4fa; }
+        .cm-string { color: #a6e3a1; }
+        .cm-comment { color: #6c7086; font-style: italic; }
+
+        /* DSL Syntax within XML text */
+        .cm-synth-domain { color: #89b4fa; font-weight: bold; }
+        .cm-synth-resource { color: #cba6f7; }
+        .cm-synth-action { color: #a6e3a1; font-weight: bold; }
+        .cm-synth-subject { color: #f9e2af; }
+        .cm-synth-modifier { color: #f38ba8; }
+        .cm-synth-target { color: #fab387; }
+        .cm-synth-arg { color: #94e2d5; }
+        .cm-synth-chp { color: #f38ba8; text-decoration: underline; }
+
+        /* Autocomplete */
+        .CodeMirror-hints {
+            background: #181825;
+            border: 1px solid #313244;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            font-family: 'Consolas', monospace;
+            font-size: 12px;
+            max-height: 280px;
+            padding: 4px 0;
+        }
+        .CodeMirror-hint {
+            padding: 6px 12px;
+            color: #cdd6f4;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .CodeMirror-hint:hover { background: #313244; }
+        .CodeMirror-hint-active { background: #cba6f7 !important; color: #1e1e2e; }
+        .hint-keyword { font-weight: bold; min-width: 80px; }
+        .hint-type {
+            font-size: 8px;
+            padding: 2px 6px;
+            border-radius: 8px;
+            text-transform: uppercase;
+        }
+        .hint-type.domain { background: #89b4fa30; color: #89b4fa; }
+        .hint-type.resource { background: #cba6f730; color: #cba6f7; }
+        .hint-type.action { background: #a6e3a130; color: #a6e3a1; }
+        .hint-type.modifier { background: #f38ba830; color: #f38ba8; }
+        .hint-desc { color: #6c7086; font-size: 10px; flex: 1; }
+
+        .status-bar {
+            background: #181825;
+            padding: 5px 16px;
+            font-size: 10px;
+            color: #6c7086;
+            border-top: 1px solid #313244;
+            display: flex;
+            gap: 20px;
+        }
+        .status-bar .valid { color: #a6e3a1; }
+        .status-bar .error { color: #f38ba8; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Synth Project Editor</h1>
+        <span class="subtitle">XML + DSL with 5-Slot Grammar</span>
+    </header>
+    <div class="toolbar">
+        <button onclick="newFile()">New</button>
+        <button onclick="saveFile()">Save</button>
+        <div class="sep"></div>
+        <button onclick="validateAll()">Validate</button>
+        <button onclick="exportProject()">Export</button>
+        <span class="hint"><kbd>Ctrl</kbd>+<kbd>Space</kbd> autocomplete</span>
+    </div>
+    <div class="main">
+        <div class="file-tree">
+            <div class="file-tree-header">Project Files</div>
+            <div id="fileTree"></div>
+        </div>
+        <div class="editor-panel">
+            <div class="editor-header">
+                <span class="file-icon">&#9830;</span>
+                <span id="currentFileName">index.synth</span>
+                <span class="file-path" id="currentFilePath">chp://my_game/index.synth</span>
+            </div>
+            <div class="context-bar">
+                <div class="grammar">
+                    <span class="domain">domain</span>
+                    <span class="arrow">&#8250;</span>
+                    <span class="resource">[resource]</span>
+                    <span class="arrow">&#8250;</span>
+                    <span class="action">action</span>
+                    <span class="arrow">&#8250;</span>
+                    <span class="subject">subject</span>
+                    <span class="arrow">&#8250;</span>
+                    <span class="modifier">[modifier target]</span>
+                </div>
+            </div>
+            <textarea id="editor"></textarea>
+        </div>
+    </div>
+    <div class="status-bar">
+        <span id="parseStatus">Ready</span>
+        <span id="lineInfo">Ln 1, Col 1</span>
+        <span style="margin-left:auto;">Synth Protocol v1.0</span>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/xml/xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/xml-hint.min.js"></script>
+    <script>
+        // ===========================================
+        // 5-Slot Grammar Schema
+        // ===========================================
+        const GRAMMAR = {
+            domains: {
+                'project': 'Project management',
+                'scene': 'Scene management',
+                'cluster': 'Entity hierarchy (node, folder)',
+                'component': 'Component operations',
+                'asset': 'Asset management',
+                'shader': 'Shader definition',
+                'mcp': 'MCP server operations',
+                'agent': 'AI agent operations',
+                'event': 'Event handling',
+                'system': 'System operations',
+                'script': 'Script management (Lua)'
+            },
+            resources: {
+                'node': 'Scene graph node',
+                'folder': 'Folder/group',
+                'server': 'MCP server',
+                'tool': 'MCP tool',
+                'task': 'Agent task',
+                'setting': 'Configuration',
+                'uniform': 'Shader uniform',
+                'attribute': 'Shader attribute',
+                'file': 'File reference',
+                'module': 'Script module/file'
+            },
+            actions: {
+                'create': 'Create new',
+                'update': 'Modify existing',
+                'delete': 'Remove',
+                'load': 'Load resource',
+                'unload': 'Unload resource',
+                'preload': 'Preload resource',
+                'start': 'Start/activate',
+                'stop': 'Stop/deactivate',
+                'register': 'Register',
+                'invoke': 'Call/execute',
+                'compile': 'Compile shader',
+                'subscribe': 'Subscribe to event',
+                'emit': 'Emit event',
+                'pause': 'Pause',
+                'resume': 'Resume',
+                'set': 'Set value',
+                'add': 'Add item',
+                'assign': 'Assign task',
+                'require': 'Require/import module',
+                'reload': 'Hot-reload script'
+            },
+            modifiers: {
+                'in': 'container/parent',
+                'on': 'target/surface',
+                'from': 'source',
+                'to': 'destination',
+                'by': 'actor/agent',
+                'for': 'purpose',
+                'with': 'accompanying'
+            },
+            domainResources: {
+                'project': ['setting'],
+                'scene': ['setting'],
+                'cluster': ['node', 'folder'],
+                'component': [],
+                'asset': ['folder', 'file'],
+                'shader': ['uniform', 'attribute'],
+                'mcp': ['server', 'tool'],
+                'agent': ['task'],
+                'event': [],
+                'system': [],
+                'script': ['module']
+            },
+            // Script domains for Lua integration
+            scriptDomains: {
+                'script': 'Script management (Lua)'
+            },
+            scriptResources: {
+                'module': 'Script module/file'
+            },
+            scriptActions: {
+                'require': 'Require/import module',
+                'reload': 'Hot-reload script'
+            }
+        };
+
+        // ===========================================
+        // Project Files
+        // ===========================================
+        const projectFiles = {
+            'index.synth': {
+                type: 'synth',
+                path: 'chp://my_game/index.synth',
+                content: `<?xml version="1.0" encoding="UTF-8"?>
+<synth version="2.0">
+
+    <project>
+        project create my_game
+        project setting set name --value="My Game"
+        project setting set version --value="0.1.0"
+    </project>
+
+    <assets>
+        asset folder create scenes in my_game --pattern="*.synth"
+        asset folder create models in my_game --pattern="*.gltf"
+        asset folder create shaders in my_game --pattern="*.glsl"
+        asset folder create textures in my_game --pattern="*.png"
+    </assets>
+
+    <mcp>
+        mcp server register asset_server --transport=stdio --command="synth-assets"
+        mcp server start asset_server
+    </mcp>
+
+    <!-- Lua Scripts (Global Registration) -->
+    <scripts>
+        <lua id="player" src="chp://scripts/player.lua"/>
+        <lua id="enemies" src="chp://scripts/enemies.lua"/>
+        <lua id="inventory" src="chp://scripts/inventory.lua"/>
+        <lua id="ui" src="chp://scripts/ui.lua"/>
+        <lua id="game" src="chp://scripts/game.lua"/>
+    </scripts>
+
+</synth>`
+            },
+            'scenes/outdoor.synth': {
+                type: 'synth',
+                path: 'chp://my_game/scenes/outdoor.synth',
+                content: `<?xml version="1.0" encoding="UTF-8"?>
+<synth version="1.0">
+
+    <scene id="outdoor">
+        scene create outdoor --name="Outdoor Level"
+        scene setting set gravity --value=0,-9.81,0
+    </scene>
+
+    <player>
+        cluster folder create characters in outdoor
+        cluster node create player in characters --type=prefab
+
+        component create transform on player --position=0,0,0
+        component create mesh on player --ref="chp://models/player.gltf"
+        component create collider on player --type=capsule --height=1.8
+        component create physics on player --mass=80
+        component create controller on player --speed=5.0
+    </player>
+
+    <enemy>
+        cluster node create enemy_01 in characters
+
+        component create transform on enemy_01 --position=10,0,5
+        component create mesh on enemy_01 --ref="chp://models/enemy.gltf"
+        component create ai on enemy_01 --behavior=patrol --target=player
+    </enemy>
+
+    <camera>
+        cluster node create main_camera in outdoor
+
+        component create transform on main_camera --position=0,5,-10
+        component create camera on main_camera --fov=60 --near=0.1 --far=1000
+        component create follow on main_camera --target=player --offset=0,3,5
+    </camera>
+
+    <light>
+        cluster node create sun in outdoor
+
+        component create transform on sun --rotation=-45,30,0
+        component create light on sun --type=directional --color=1,0.95,0.9
+    </light>
+
+    <terrain>
+        cluster node create terrain in outdoor
+
+        component create transform on terrain --scale=500,1,500
+        component create mesh on terrain --primitive=plane
+        component create material on terrain
+            --shader="chp://shaders/terrain.glsl"
+            --albedo="chp://textures/grass.png"
+    </terrain>
+
+</synth>`
+            },
+            'scenes/indoor.synth': {
+                type: 'synth',
+                path: 'chp://my_game/scenes/indoor.synth',
+                content: `<?xml version="1.0" encoding="UTF-8"?>
+<synth version="2.0">
+
+    <scene id="indoor">
+        scene create indoor --name="Indoor Level - Shop"
+        scene setting set ambient --value=0.2,0.2,0.25
+    </scene>
+
+    <!-- ============================================ -->
+    <!-- STRUCTURE: Room Layout -->
+    <!-- ============================================ -->
+    <cluster>
+        cluster folder create structure in indoor
+        cluster folder create props in indoor
+
+        cluster node create floor in structure
+        cluster node create walls in structure
+        cluster node create ceiling in structure
+
+        cluster node create shop_counter in props
+        cluster node create display_shelf_01 in props
+        cluster node create display_shelf_02 in props
+        cluster node create ceiling_light in indoor
+    </cluster>
+
+    <component>
+        component create transform on floor --position=0,0,0
+        component create mesh on floor --primitive=plane --scale=10,1,10
+        component create material on floor --albedo="chp://textures/wood.png"
+
+        component create transform on shop_counter --position=0,0.5,3
+        component create mesh on shop_counter --ref="chp://models/counter.gltf"
+
+        component create transform on ceiling_light --position=0,3,0
+        component create light on ceiling_light --type=point --color=1,0.9,0.8 --intensity=2.0
+    </component>
+
+    <!-- ============================================ -->
+    <!-- HUD: Heads-Up Display -->
+    <!-- ============================================ -->
+    <ui>
+        <!-- HUD Container -->
+        ui panel create hud_main in indoor --layer=ui --anchor=fullscreen
+
+        <!-- Health Bar -->
+        ui widget create health_bar in hud_main --type=progress_bar
+            --position=20,20 --size=200,24
+            --bg-color=#1e1e2e --fill-color=#a6e3a1
+            --border-radius=4
+        ui widget set health_bar --bind=player.health --max=100
+
+        <!-- Mana Bar -->
+        ui widget create mana_bar in hud_main --type=progress_bar
+            --position=20,50 --size=200,24
+            --bg-color=#1e1e2e --fill-color=#89b4fa
+            --border-radius=4
+        ui widget set mana_bar --bind=player.mana --max=100
+
+        <!-- Gold Display -->
+        ui widget create gold_display in hud_main --type=text
+            --position=20,84 --size=150,28
+            --font-size=16 --color=#f9e2af
+            --icon="chp://ui/icons/gold.png"
+        ui widget set gold_display --bind=player.gold --format="{icon} {value}"
+
+        <!-- Minimap -->
+        ui widget create minimap in hud_main --type=minimap
+            --anchor=top-right --margin=20
+            --size=150,150 --border-radius=75
+            --bg-color=#0d1117aa
+        ui widget set minimap --zoom=2.0 --show-player=true --show-enemies=true
+
+        <!-- Action Bar -->
+        ui panel create action_bar in hud_main --anchor=bottom-center --margin-bottom=20
+        ui widget create slot_1 in action_bar --type=action_slot --key=1 --size=48,48
+        ui widget create slot_2 in action_bar --type=action_slot --key=2 --size=48,48
+        ui widget create slot_3 in action_bar --type=action_slot --key=3 --size=48,48
+        ui widget create slot_4 in action_bar --type=action_slot --key=4 --size=48,48
+
+        <!-- Interaction Prompt -->
+        ui widget create interact_prompt in hud_main --type=tooltip
+            --anchor=center --offset-y=100
+            --visible=false --text="Press E to interact"
+            --bg-color=#1e1e2ecc --padding=8,16
+    </ui>
+
+    <!-- ============================================ -->
+    <!-- SHOP: Item Selection System -->
+    <!-- ============================================ -->
+    <shop>
+        <!-- Shop Definition -->
+        shop create main_shop in indoor --name="General Store" --currency=gold
+
+        <!-- Categories -->
+        shop category create weapons in main_shop --icon="chp://ui/icons/sword.png"
+        shop category create armor in main_shop --icon="chp://ui/icons/shield.png"
+        shop category create potions in main_shop --icon="chp://ui/icons/potion.png"
+        shop category create materials in main_shop --icon="chp://ui/icons/gem.png"
+
+        <!-- Weapons -->
+        shop item create iron_sword in weapons
+            --name="Iron Sword"
+            --description="A basic iron sword for beginners."
+            --price=150
+            --icon="chp://ui/items/iron_sword.png"
+            --stats="damage:15,speed:1.2"
+            --rarity=common
+            --level-req=1
+
+        shop item create steel_sword in weapons
+            --name="Steel Sword"
+            --description="A well-crafted steel sword."
+            --price=350
+            --icon="chp://ui/items/steel_sword.png"
+            --stats="damage:25,speed:1.1"
+            --rarity=uncommon
+            --level-req=5
+
+        shop item create flame_blade in weapons
+            --name="Flame Blade"
+            --description="A sword imbued with fire magic."
+            --price=1200
+            --icon="chp://ui/items/flame_blade.png"
+            --stats="damage:40,speed:1.0,fire:10"
+            --rarity=rare
+            --level-req=15
+
+        <!-- Armor -->
+        shop item create leather_armor in armor
+            --name="Leather Armor"
+            --description="Basic leather protection."
+            --price=100
+            --icon="chp://ui/items/leather_armor.png"
+            --stats="defense:10,weight:5"
+            --rarity=common
+            --level-req=1
+
+        shop item create chainmail in armor
+            --name="Chainmail"
+            --description="Linked metal rings for better protection."
+            --price=400
+            --icon="chp://ui/items/chainmail.png"
+            --stats="defense:25,weight:15"
+            --rarity=uncommon
+            --level-req=8
+
+        <!-- Potions -->
+        shop item create health_potion in potions
+            --name="Health Potion"
+            --description="Restores 50 health points."
+            --price=25
+            --icon="chp://ui/items/health_potion.png"
+            --effect="heal:50"
+            --stackable=true --max-stack=99
+            --rarity=common
+
+        shop item create mana_potion in potions
+            --name="Mana Potion"
+            --description="Restores 30 mana points."
+            --price=30
+            --icon="chp://ui/items/mana_potion.png"
+            --effect="mana:30"
+            --stackable=true --max-stack=99
+            --rarity=common
+
+        shop item create elixir in potions
+            --name="Elixir"
+            --description="Fully restores health and mana."
+            --price=500
+            --icon="chp://ui/items/elixir.png"
+            --effect="heal:full,mana:full"
+            --stackable=true --max-stack=10
+            --rarity=rare
+
+        <!-- Materials -->
+        shop item create iron_ore in materials
+            --name="Iron Ore"
+            --description="Raw iron for crafting."
+            --price=10
+            --icon="chp://ui/items/iron_ore.png"
+            --stackable=true --max-stack=999
+            --rarity=common
+
+        shop item create magic_crystal in materials
+            --name="Magic Crystal"
+            --description="A crystal infused with magical energy."
+            --price=75
+            --icon="chp://ui/items/magic_crystal.png"
+            --stackable=true --max-stack=99
+            --rarity=uncommon
+    </shop>
+
+    <!-- ============================================ -->
+    <!-- SHOP UI: Visual Interface -->
+    <!-- ============================================ -->
+    <ui>
+        <!-- Shop Panel (hidden by default) -->
+        ui panel create shop_panel in indoor --layer=ui-overlay --visible=false
+            --anchor=center --size=800,600
+            --bg-color=#1e1e2ef0 --border-radius=12
+            --border=1px solid #313244
+
+        <!-- Shop Header -->
+        ui widget create shop_title in shop_panel --type=text
+            --position=24,16 --font-size=20 --color=#cba6f7 --font-weight=bold
+            --bind=main_shop.name
+
+        ui widget create shop_close in shop_panel --type=button
+            --anchor=top-right --margin=12
+            --size=32,32 --icon="chp://ui/icons/close.png"
+            --on-click="ui hide shop_panel"
+
+        <!-- Category Tabs -->
+        ui panel create category_tabs in shop_panel
+            --position=24,56 --size=752,40
+        ui widget create tab_weapons in category_tabs --type=tab
+            --text="Weapons" --icon="chp://ui/icons/sword.png"
+            --on-click="shop show weapons"
+        ui widget create tab_armor in category_tabs --type=tab
+            --text="Armor" --icon="chp://ui/icons/shield.png"
+            --on-click="shop show armor"
+        ui widget create tab_potions in category_tabs --type=tab
+            --text="Potions" --icon="chp://ui/icons/potion.png"
+            --on-click="shop show potions"
+        ui widget create tab_materials in category_tabs --type=tab
+            --text="Materials" --icon="chp://ui/icons/gem.png"
+            --on-click="shop show materials"
+
+        <!-- Item Grid -->
+        ui panel create item_grid in shop_panel
+            --position=24,108 --size=500,420
+            --layout=grid --columns=4 --gap=8
+            --overflow=scroll
+        ui widget set item_grid --bind=main_shop.current_category.items
+
+        <!-- Item Detail Panel -->
+        ui panel create item_detail in shop_panel
+            --position=536,108 --size=240,420
+            --bg-color=#313244 --border-radius=8
+
+        ui widget create item_icon in item_detail --type=image
+            --position=70,16 --size=100,100
+            --bind=main_shop.selected_item.icon
+
+        ui widget create item_name in item_detail --type=text
+            --position=16,124 --size=208,24
+            --font-size=16 --color=#cdd6f4 --text-align=center
+            --bind=main_shop.selected_item.name
+
+        ui widget create item_rarity in item_detail --type=badge
+            --anchor=top-center --margin-top=152
+            --bind=main_shop.selected_item.rarity
+
+        ui widget create item_desc in item_detail --type=text
+            --position=16,180 --size=208,60
+            --font-size=12 --color=#6c7086 --text-align=center
+            --bind=main_shop.selected_item.description
+
+        ui widget create item_stats in item_detail --type=stat_list
+            --position=16,248 --size=208,80
+            --bind=main_shop.selected_item.stats
+
+        ui widget create item_price in item_detail --type=text
+            --position=16,340 --size=208,24
+            --font-size=18 --color=#f9e2af --text-align=center
+            --format="{icon} {value}" --icon="chp://ui/icons/gold.png"
+            --bind=main_shop.selected_item.price
+
+        ui widget create buy_button in item_detail --type=button
+            --position=16,376 --size=208,36
+            --text="Buy" --bg-color=#a6e3a1 --color=#1e1e2e
+            --on-click="shop buy main_shop.selected_item"
+            --disabled-if="player.gold < main_shop.selected_item.price"
+
+        <!-- Player Gold Display -->
+        ui widget create player_gold in shop_panel
+            --anchor=bottom-left --margin=24
+            --font-size=16 --color=#f9e2af
+            --format="Your Gold: {icon} {value}" --icon="chp://ui/icons/gold.png"
+            --bind=player.gold
+    </ui>
+
+    <!-- ============================================ -->
+    <!-- EVENTS: Shop Interactions -->
+    <!-- ============================================ -->
+    <events>
+        <!-- Open shop when interacting with counter -->
+        event subscribe interact on shop_counter --handler=openShop
+        event subscribe shop_opened on main_shop --handler=onShopOpened
+        event subscribe item_purchased on main_shop --handler=onItemPurchased
+
+        <!-- Close shop -->
+        event subscribe key_press on input --key=Escape --handler=closeShop
+
+        <!-- Audio feedback -->
+        event subscribe item_purchased on main_shop --handler=playPurchaseSound
+        event subscribe gold_changed on player --handler=updateGoldUI
+    </events>
+
+    <!-- Event Handlers -->
+    <agent>
+        agent create shop_controller --type=reactive
+        agent task assign openShop to shop_controller
+        agent task assign closeShop to shop_controller
+        agent task assign onItemPurchased to shop_controller
+    </agent>
+
+</synth>`
+            },
+            'shaders/pbr.synth': {
+                type: 'synth',
+                path: 'chp://my_game/shaders/pbr.synth',
+                content: `<?xml version="1.0" encoding="UTF-8"?>
+<synth version="1.0">
+
+    <!-- PBR Shader Definition -->
+    <shader id="pbr_shader">
+        shader create pbr_shader --version="300 es"
+
+        shader uniform add u_MVP on pbr_shader --type=mat4
+        shader uniform add u_Model on pbr_shader --type=mat4
+        shader uniform add u_CameraPos on pbr_shader --type=vec3
+        shader uniform add u_Albedo on pbr_shader --type=sampler2D
+        shader uniform add u_Normal on pbr_shader --type=sampler2D
+        shader uniform add u_Metallic on pbr_shader --type=float --default=0.0
+        shader uniform add u_Roughness on pbr_shader --type=float --default=0.5
+
+        shader attribute add a_Position on pbr_shader --type=vec3 --location=0
+        shader attribute add a_Normal on pbr_shader --type=vec3 --location=1
+        shader attribute add a_TexCoord on pbr_shader --type=vec2 --location=2
+
+        shader compile pbr_shader
+    </shader>
+
+    <!-- Vertex Shader -->
+    <glsl stage="vertex">
+        #version 300 es
+        precision highp float;
+
+        in vec3 a_Position;
+        in vec3 a_Normal;
+        in vec2 a_TexCoord;
+
+        uniform mat4 u_MVP;
+        uniform mat4 u_Model;
+
+        out vec3 v_Normal;
+        out vec2 v_TexCoord;
+        out vec3 v_WorldPos;
+
+        void main() {
+            v_Normal = mat3(u_Model) * a_Normal;
+            v_TexCoord = a_TexCoord;
+            v_WorldPos = (u_Model * vec4(a_Position, 1.0)).xyz;
+            gl_Position = u_MVP * vec4(a_Position, 1.0);
+        }
+    </glsl>
+
+    <!-- Fragment Shader -->
+    <glsl stage="fragment">
+        #version 300 es
+        precision highp float;
+
+        in vec3 v_Normal;
+        in vec2 v_TexCoord;
+        in vec3 v_WorldPos;
+
+        uniform vec3 u_CameraPos;
+        uniform sampler2D u_Albedo;
+        uniform float u_Metallic;
+        uniform float u_Roughness;
+
+        out vec4 fragColor;
+
+        void main() {
+            vec3 albedo = texture(u_Albedo, v_TexCoord).rgb;
+            vec3 normal = normalize(v_Normal);
+            vec3 lightDir = normalize(vec3(1.0, 1.0, 1.0));
+            float diff = max(dot(normal, lightDir), 0.0);
+            fragColor = vec4(albedo * (0.3 + 0.7 * diff), 1.0);
+        }
+    </glsl>
+
+</synth>`
+            },
+            'models/player.gltf': {
+                type: 'gltf',
+                path: 'chp://my_game/models/player.gltf',
+                content: `// Binary GLTF file
+// Referenced by: chp://my_game/models/player.gltf
+//
+// This is a placeholder for actual GLTF binary data.
+// In a real project, this would be the mesh data for the player model.`
+            },
+            'models/enemy.gltf': {
+                type: 'gltf',
+                path: 'chp://my_game/models/enemy.gltf',
+                content: `// Binary GLTF file
+// Referenced by: chp://my_game/models/enemy.gltf`
+            },
+            'textures/grass.png': {
+                type: 'png',
+                path: 'chp://my_game/textures/grass.png',
+                content: `// Binary PNG file
+// Referenced by: chp://my_game/textures/grass.png`
+            },
+            'events/game-events.synth': {
+                type: 'synth',
+                path: 'chp://my_game/events/game-events.synth',
+                content: `<?xml version="1.0" encoding="UTF-8"?>
+<synth version="1.0">
+
+    <!-- Event Subscriptions -->
+    <events>
+        <!-- Player Events (handler format: script_id:function_name) -->
+        event subscribe collision on player --handler=player:onCollision
+        event subscribe health_changed on player --handler=player:onHealthChanged
+        event subscribe death on player --handler=player:onDeath
+        event subscribe respawn on player --handler=player:onRespawn
+
+        <!-- Enemy Events -->
+        event subscribe trigger_enter on enemy_01 --handler=enemies:onDetect
+        event subscribe attack on enemy_01 --handler=enemies:onAttack
+        event subscribe death on enemy_01 --handler=enemies:onDeath
+
+        <!-- Scene Events -->
+        event subscribe load on outdoor --handler=game:onSceneLoaded
+        event subscribe unload on outdoor --handler=game:onSceneUnloaded
+
+        <!-- System Events -->
+        event subscribe pause on system --handler=game:onPaused
+        event subscribe resume on system --handler=game:onResumed
+    </events>
+
+    <!-- Event Handlers (Agent Tasks) -->
+    <agent>
+        agent create game_controller --type=reactive
+
+        agent task assign onPlayerCollision to game_controller
+        agent task assign onHealthChanged to game_controller
+        agent task assign onEnemyDetect to game_controller
+    </agent>
+
+    <!-- Event History (for undo/redo) -->
+    <history>
+        event emit player_spawn by system --position=0,0,0 --timestamp=1733580000000
+        event emit enemy_spawn by system --id=enemy_01 --timestamp=1733580001000
+        event emit scene_loaded by system --scene=outdoor --timestamp=1733580002000
+        event emit player_moved by player --from=0,0,0 --to=5,0,3 --timestamp=1733580010000
+        event emit damage_dealt by enemy_01 --target=player --amount=10 --timestamp=1733580015000
+        event emit health_changed by system --entity=player --old=100 --new=90 --timestamp=1733580015001
+    </history>
+
+</synth>`
+            },
+            'events/input-bindings.synth': {
+                type: 'synth',
+                path: 'chp://my_game/events/input-bindings.synth',
+                content: `<?xml version="1.0" encoding="UTF-8"?>
+<synth version="1.0">
+
+    <!-- Input Event Bindings -->
+    <events>
+        <!-- Movement -->
+        event subscribe key_press on input --key=W --handler=onMoveForward
+        event subscribe key_press on input --key=S --handler=onMoveBackward
+        event subscribe key_press on input --key=A --handler=onMoveLeft
+        event subscribe key_press on input --key=D --handler=onMoveRight
+        event subscribe key_release on input --key=W,A,S,D --handler=onMoveStop
+
+        <!-- Actions -->
+        event subscribe key_press on input --key=Space --handler=onJump
+        event subscribe key_press on input --key=E --handler=onInteract
+        event subscribe mouse_click on input --button=left --handler=onAttack
+        event subscribe mouse_click on input --button=right --handler=onBlock
+
+        <!-- Camera -->
+        event subscribe mouse_move on input --handler=onCameraRotate
+        event subscribe scroll on input --handler=onCameraZoom
+
+        <!-- UI -->
+        event subscribe key_press on input --key=Escape --handler=onPauseMenu
+        event subscribe key_press on input --key=Tab --handler=onInventory
+        event subscribe key_press on input --key=M --handler=onMap
+    </events>
+
+    <!-- Input Handler Agent -->
+    <agent>
+        agent create input_controller --type=reactive
+
+        agent task assign onMoveForward to input_controller
+        agent task assign onMoveBackward to input_controller
+        agent task assign onMoveLeft to input_controller
+        agent task assign onMoveRight to input_controller
+        agent task assign onJump to input_controller
+        agent task assign onAttack to input_controller
+    </agent>
+
+</synth>`
+            }
+        };
+
+        let currentFile = 'index.synth';
+
+        // ===========================================
+        // File Tree Rendering
+        // ===========================================
+        function renderFileTree() {
+            const tree = document.getElementById('fileTree');
+            const structure = buildTreeStructure();
+            tree.innerHTML = renderTreeNode(structure, '');
+        }
+
+        function buildTreeStructure() {
+            const root = { name: 'my_game', type: 'root', children: {} };
+
+            for (const [path, file] of Object.entries(projectFiles)) {
+                const parts = path.split('/');
+                let current = root.children;
+
+                for (let i = 0; i < parts.length; i++) {
+                    const part = parts[i];
+                    const isFile = i === parts.length - 1;
+
+                    if (isFile) {
+                        current[part] = { name: part, type: file.type, path: path };
+                    } else {
+                        if (!current[part]) {
+                            current[part] = { name: part, type: 'folder', children: {} };
+                        }
+                        current = current[part].children;
+                    }
+                }
+            }
+
+            return root;
+        }
+
+        function renderTreeNode(node, path) {
+            let html = '';
+
+            if (node.type === 'root') {
+                html += `<div class="file-item root active" data-file="index.synth">
+                    <span class="icon">&#9830;</span> index.synth
+                    <span class="badge">ROOT</span>
+                </div>`;
+
+                // Render folders first, then files
+                const entries = Object.entries(node.children);
+                const folders = entries.filter(([,v]) => v.type === 'folder');
+
+                for (const [name, child] of folders) {
+                    html += renderFolder(name, child, name);
+                }
+            }
+
+            return html;
+        }
+
+        function renderFolder(name, folder, path) {
+            let html = `<div class="file-item folder" onclick="toggleFolder(this, event)">
+                <span class="icon">&#128193;</span> ${name}/
+            </div>`;
+            html += `<div class="folder-children">`;
+
+            const entries = Object.entries(folder.children);
+            const subfolders = entries.filter(([,v]) => v.type === 'folder');
+            const files = entries.filter(([,v]) => v.type !== 'folder');
+
+            for (const [childName, child] of subfolders) {
+                html += renderFolder(childName, child, path + '/' + childName);
+            }
+
+            for (const [fileName, file] of files) {
+                const filePath = path + '/' + fileName;
+                const icon = getFileIcon(file.type);
+                html += `<div class="file-item ${file.type}" data-file="${filePath}" onclick="openFile('${filePath}')">
+                    <span class="icon">${icon}</span> ${fileName}
+                </div>`;
+            }
+
+            html += `</div>`;
+            return html;
+        }
+
+        function getFileIcon(type) {
+            switch(type) {
+                case 'synth': return '&#9830;';
+                case 'gltf': return '&#9632;';
+                case 'glsl': return '&#9651;';
+                case 'png': return '&#128444;';
+                default: return '&#128196;';
+            }
+        }
+
+        function toggleFolder(el, event) {
+            event.stopPropagation();
+            const children = el.nextElementSibling;
+            if (children && children.classList.contains('folder-children')) {
+                children.classList.toggle('open');
+            }
+        }
+
+        function openFile(path) {
+            // Update active state
+            document.querySelectorAll('.file-item').forEach(el => el.classList.remove('active'));
+            document.querySelector(`[data-file="${path}"]`)?.classList.add('active');
+
+            // Load file content
+            const file = projectFiles[path];
+            if (file) {
+                currentFile = path;
+                editor.setValue(file.content);
+                document.getElementById('currentFileName').textContent = path.split('/').pop();
+                document.getElementById('currentFilePath').textContent = file.path;
+            }
+        }
+
+        // ===========================================
+        // CodeMirror Mode: Synth XML + DSL
+        // ===========================================
+        CodeMirror.defineMode('synth-xml-dsl', function(config, parserConfig) {
+            const xmlMode = CodeMirror.getMode(config, 'xml');
+
+            const domainRegex = new RegExp('^(' + Object.keys(GRAMMAR.domains).join('|') + ')\\b');
+            const resourceRegex = new RegExp('^(' + Object.keys(GRAMMAR.resources).join('|') + ')\\b');
+            const actionRegex = new RegExp('^(' + Object.keys(GRAMMAR.actions).join('|') + ')\\b');
+            const modifierRegex = new RegExp('^(' + Object.keys(GRAMMAR.modifiers).join('|') + ')\\b');
+
+            return {
+                startState: function() {
+                    return {
+                        xmlState: CodeMirror.startState(xmlMode),
+                        inDslContent: false,
+                        dslSlot: 0,
+                        foundAction: false
+                    };
+                },
+                copyState: function(state) {
+                    return {
+                        xmlState: CodeMirror.copyState(xmlMode, state.xmlState),
+                        inDslContent: state.inDslContent,
+                        dslSlot: state.dslSlot,
+                        foundAction: state.foundAction
+                    };
+                },
+                token: function(stream, state) {
+                    // Check if we're in XML tag content (between > and <)
+                    const xmlToken = xmlMode.token(stream, state.xmlState);
+
+                    // If XML mode returns null and we're not in a tag, check for DSL
+                    if (xmlToken === null) {
+                        // Reset DSL state at line start
+                        if (stream.sol()) {
+                            state.dslSlot = 0;
+                            state.foundAction = false;
+                        }
+
+                        if (stream.eatSpace()) return null;
+
+                        // DSL Comments
+                        if (stream.match(/^\/\/.*/)) return 'synth-comment';
+                        if (stream.match(/^#.*/)) return 'synth-comment';
+
+                        // chp:// protocol
+                        if (stream.match(/chp:\/\/[\w\/.-]+/)) return 'synth-chp';
+
+                        // Arguments --key=value or --key="value"
+                        if (stream.match(/--[\w-]+=("[^"]*"|[^\s<]*)/)) return 'synth-arg';
+
+                        // Strings
+                        if (stream.match(/"[^"]*"/)) return 'string';
+
+                        // Domain (start of DSL line)
+                        if (state.dslSlot === 0 && stream.match(domainRegex)) {
+                            state.dslSlot = 1;
+                            return 'synth-domain';
+                        }
+
+                        // Resource or Action after domain
+                        if (state.dslSlot === 1) {
+                            if (stream.match(resourceRegex)) {
+                                state.dslSlot = 2;
+                                return 'synth-resource';
+                            }
+                            if (stream.match(actionRegex)) {
+                                state.dslSlot = 3;
+                                state.foundAction = true;
+                                return 'synth-action';
+                            }
+                        }
+
+                        // Action after resource
+                        if (state.dslSlot === 2 && stream.match(actionRegex)) {
+                            state.dslSlot = 3;
+                            state.foundAction = true;
+                            return 'synth-action';
+                        }
+
+                        // Modifier
+                        if (state.foundAction && stream.match(modifierRegex)) {
+                            state.dslSlot = 5;
+                            return 'synth-modifier';
+                        }
+
+                        // Subject (after action)
+                        if (state.dslSlot === 3 && stream.match(/[\w_][\w_.-]*/)) {
+                            state.dslSlot = 4;
+                            return 'synth-subject';
+                        }
+
+                        // Target (after modifier)
+                        if (state.dslSlot === 5 && stream.match(/[\w_][\w_.-]*/)) {
+                            state.dslSlot = 6;
+                            return 'synth-target';
+                        }
+
+                        // Any other identifier
+                        if (stream.match(/[\w_][\w_.-]*/)) {
+                            return 'synth-subject';
+                        }
+
+                        stream.next();
+                        return null;
+                    }
+
+                    return xmlToken;
+                }
+            };
+        });
+
+        // ===========================================
+        // DSL Autocomplete
+        // ===========================================
+        function synthHint(cm) {
+            const cursor = cm.getCursor();
+            const line = cm.getLine(cursor.line);
+            const beforeCursor = line.substring(0, cursor.ch);
+
+            // Don't autocomplete inside XML tags
+            if (/<[^>]*$/.test(beforeCursor)) return null;
+
+            // Find current word
+            const wordMatch = beforeCursor.match(/[\w-]*$/);
+            const prefix = wordMatch ? wordMatch[0].toLowerCase() : '';
+            const start = cursor.ch - prefix.length;
+
+            // Get tokens before current word (excluding args)
+            const beforeWord = beforeCursor.substring(0, start).trim();
+            const tokens = beforeWord.split(/\s+/).filter(t => t && !t.startsWith('--') && !t.startsWith('<'));
+
+            let suggestions = [];
+
+            if (tokens.length === 0) {
+                // Slot 1: Domain
+                suggestions = getSuggestions(GRAMMAR.domains, prefix, 'domain');
+            } else if (tokens.length === 1) {
+                // After domain - could be Resource or Action
+                const domain = tokens[0].toLowerCase();
+                const resources = GRAMMAR.domainResources[domain] || [];
+
+                suggestions = [
+                    ...resources.filter(r => r.startsWith(prefix)).map(r => ({
+                        text: r, type: 'resource', desc: GRAMMAR.resources[r]
+                    })),
+                    ...getSuggestions(GRAMMAR.actions, prefix, 'action')
+                ];
+            } else if (tokens.length === 2) {
+                const secondWord = tokens[1].toLowerCase();
+                const isResource = Object.keys(GRAMMAR.resources).includes(secondWord);
+
+                if (isResource) {
+                    suggestions = getSuggestions(GRAMMAR.actions, prefix, 'action');
+                }
+            } else if (tokens.length >= 3) {
+                const secondWord = tokens[1].toLowerCase();
+                const isResource = Object.keys(GRAMMAR.resources).includes(secondWord);
+                const subjectIdx = isResource ? 3 : 2;
+
+                if (tokens.length === subjectIdx + 1) {
+                    suggestions = getSuggestions(GRAMMAR.modifiers, prefix, 'modifier');
+                }
+            }
+
+            if (suggestions.length === 0) return null;
+
+            return {
+                list: suggestions.map(s => ({
+                    text: s.text + ' ',
+                    displayText: s.text,
+                    render: function(el) {
+                        el.innerHTML = `
+                            <span class="hint-keyword">${s.text}</span>
+                            <span class="hint-type ${s.type}">${s.type}</span>
+                            <span class="hint-desc">${s.desc}</span>
+                        `;
+                    }
+                })),
+                from: CodeMirror.Pos(cursor.line, start),
+                to: CodeMirror.Pos(cursor.line, cursor.ch)
+            };
+        }
+
+        function getSuggestions(obj, prefix, type) {
+            return Object.entries(obj)
+                .filter(([key]) => key.toLowerCase().startsWith(prefix))
+                .map(([key, desc]) => ({ text: key, type, desc }));
+        }
+
+        // ===========================================
+        // Editor Setup
+        // ===========================================
+        const editor = CodeMirror.fromTextArea(document.getElementById('editor'), {
+            mode: 'synth-xml-dsl',
+            lineNumbers: true,
+            indentUnit: 4,
+            tabSize: 4,
+            styleActiveLine: true,
+            extraKeys: {
+                'Ctrl-Space': function(cm) {
+                    cm.showHint({ hint: synthHint, completeSingle: false });
+                },
+                'Ctrl-S': function(cm) {
+                    saveFile();
+                    return false;
+                }
+            }
+        });
+
+        editor.on('inputRead', function(cm, change) {
+            if (change.text[0] && /[a-zA-Z]/.test(change.text[0])) {
+                const cursor = cm.getCursor();
+                const line = cm.getLine(cursor.line);
+                // Only show hints outside of XML tags
+                if (!/<[^>]*$/.test(line.substring(0, cursor.ch))) {
+                    cm.showHint({ hint: synthHint, completeSingle: false });
+                }
+            }
+        });
+
+        editor.on('cursorActivity', function(cm) {
+            const cursor = cm.getCursor();
+            document.getElementById('lineInfo').textContent = `Ln ${cursor.line + 1}, Col ${cursor.ch + 1}`;
+        });
+
+        editor.on('change', function() {
+            // Save to memory
+            if (currentFile && projectFiles[currentFile]) {
+                projectFiles[currentFile].content = editor.getValue();
+            }
+        });
+
+        // ===========================================
+        // Actions
+        // ===========================================
+        function newFile() {
+            const name = prompt('Enter file name (e.g., scenes/new.synth):');
+            if (name) {
+                projectFiles[name] = {
+                    type: name.endsWith('.synth') ? 'synth' : 'other',
+                    path: 'chp://my_game/' + name,
+                    content: `<?xml version="1.0" encoding="UTF-8"?>
+<synth version="1.0">
+
+    <!-- New file -->
+
+</synth>`
+                };
+                renderFileTree();
+                openFile(name);
+            }
+        }
+
+        function saveFile() {
+            document.getElementById('parseStatus').textContent = 'Saved';
+            document.getElementById('parseStatus').className = 'valid';
+            setTimeout(() => {
+                document.getElementById('parseStatus').textContent = 'Ready';
+                document.getElementById('parseStatus').className = '';
+            }, 1500);
+        }
+
+        function validateAll() {
+            let errors = 0;
+            for (const [path, file] of Object.entries(projectFiles)) {
+                if (file.type === 'synth') {
+                    // Basic XML validation
+                    try {
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(file.content, 'text/xml');
+                        if (doc.querySelector('parsererror')) {
+                            errors++;
+                        }
+                    } catch (e) {
+                        errors++;
+                    }
+                }
+            }
+
+            const statusEl = document.getElementById('parseStatus');
+            if (errors === 0) {
+                statusEl.textContent = 'All files valid';
+                statusEl.className = 'valid';
+            } else {
+                statusEl.textContent = `${errors} file(s) with errors`;
+                statusEl.className = 'error';
+            }
+        }
+
+        function exportProject() {
+            const exportData = {
+                version: '1.0',
+                files: projectFiles
+            };
+            console.log('Export:', JSON.stringify(exportData, null, 2));
+            alert('Project exported to console (check DevTools)');
+        }
+
+        // ===========================================
+        // Initialize
+        // ===========================================
+        renderFileTree();
+        editor.setValue(projectFiles['index.synth'].content);
+
+        // Open all folders by default
+        document.querySelectorAll('.folder-children').forEach(el => el.classList.add('open'));
+    </script>
+</body>
+</html>

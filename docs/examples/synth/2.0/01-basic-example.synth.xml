@@ -1,0 +1,477 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SYNTH PROJECT FILE FORMAT (.synth)
+  Version 2.0 - DSL-Enhanced XML
+
+  This specification combines:
+  - Structured XML schema from synth-protocol
+  - 5-Slot Grammar DSL syntax inside content tags
+
+  DSL Format: domain [resource] action subject [modifier target] [--args]
+
+  Protocol Version: 2.0.0
+  Schema: synth-protocol/synth-core/*.proto
+-->
+<synthProject xmlns="https://chevp.github.io/synth-protocol/schema/synth/project/2.0"
+              xmlns:core="https://chevp.github.io/synth-protocol/schema/synth/core/2.0"
+              xmlns:mcp="https://chevp.github.io/synth-protocol/schema/synth/mcp/2.0"
+              xmlns:dsl="https://chevp.github.io/synth-protocol/schema/synth/dsl/2.0">
+
+    <!-- =================================================================== -->
+    <!-- FILE HEADER -->
+    <!-- =================================================================== -->
+    <header>
+        <magic>SYNTH</magic>
+        <formatVersion>2</formatVersion>
+        <schemaVersion>2.0.0</schemaVersion>
+        <createdAt>1733580000000</createdAt>
+        <modifiedAt>1733580000000</modifiedAt>
+    </header>
+
+    <!-- =================================================================== -->
+    <!-- PROJECT ROOT -->
+    <!-- Uses DSL for project configuration -->
+    <!-- =================================================================== -->
+    <project>
+        <core:entityId>
+            <uuid>proj_example_game</uuid>
+            <version>1</version>
+        </core:entityId>
+        <name>Example Game Project</name>
+        <description>A demonstration of synth-protocol 2.0 with DSL syntax</description>
+
+        <!-- DSL commands for project settings -->
+        <dsl:commands>
+            project setting set name --value="Example Game"
+            project setting set version --value="1.0.0"
+            project setting set defaultScene --value="scene_main"
+            project setting set autoSave --enabled=true --interval=300
+        </dsl:commands>
+    </project>
+
+    <!-- =================================================================== -->
+    <!-- MCP SERVERS -->
+    <!-- =================================================================== -->
+    <mcpServers>
+        <server id="mcp_playground">
+            <serverName>synth-playground</serverName>
+            <version>1.0.0</version>
+            <required>true</required>
+            <source>MARKETPLACE_SOURCE_LOCAL</source>
+
+            <!-- DSL for server configuration -->
+            <dsl:commands>
+                mcp server register synth-playground --transport=stdio --port=8080
+                mcp server setting set autoStart on synth-playground --value=true
+                mcp server setting set healthCheck on synth-playground --interval=30000
+            </dsl:commands>
+        </server>
+
+        <server id="mcp_vision">
+            <serverName>synth-vision</serverName>
+            <version>1.0.0</version>
+            <required>false</required>
+            <source>MARKETPLACE_SOURCE_DEV</source>
+
+            <dsl:commands>
+                mcp server register synth-vision --transport=websocket --url="ws://localhost:8081"
+                mcp server setting set autoStart on synth-vision --value=false
+            </dsl:commands>
+        </server>
+    </mcpServers>
+
+    <!-- =================================================================== -->
+    <!-- PLUGINS -->
+    <!-- =================================================================== -->
+    <plugins>
+        <plugin id="plugin_builtin">
+            <artifact>io.synth.playground:builtin-tools:1.0.0</artifact>
+            <type>PLUGIN_TYPE_JAR</type>
+            <mcpBridgeServerId>mcp_playground</mcpBridgeServerId>
+
+            <dsl:commands>
+                plugin register builtin-tools --type=jar --mcp=mcp_playground
+                plugin capability add document.edit on builtin-tools
+                plugin capability add document.delete on builtin-tools
+            </dsl:commands>
+        </plugin>
+    </plugins>
+
+    <!-- =================================================================== -->
+    <!-- TAGS -->
+    <!-- =================================================================== -->
+    <tags>
+        <dsl:commands>
+            tag create important --color=#FF5722 --category=priority
+            tag create draft --color=#9E9E9E --category=status
+            tag create approved --color=#4CAF50 --category=status
+            tag create review --color=#FFC107 --category=status
+        </dsl:commands>
+    </tags>
+
+    <!-- =================================================================== -->
+    <!-- CLUSTER NODES -->
+    <!-- Scene graph structure with DSL commands -->
+    <!-- =================================================================== -->
+    <clusterNodes>
+        <!-- Scene node -->
+        <node id="scene_main" type="CLUSTER_NODE_TYPE_SCENE">
+            <name>Main Scene</name>
+
+            <dsl:commands>
+                scene create main --name="Main Scene"
+                scene setting set gravity --value=0,-9.81,0
+                scene setting set ambient --value=0.1,0.1,0.15
+            </dsl:commands>
+
+            <childIds>
+                <id>folder_characters</id>
+                <id>folder_environment</id>
+                <id>node_camera</id>
+                <id>node_light</id>
+            </childIds>
+        </node>
+
+        <!-- Folder: Characters -->
+        <node id="folder_characters" type="CLUSTER_NODE_TYPE_FOLDER">
+            <name>Characters</name>
+            <parentId>scene_main</parentId>
+
+            <dsl:commands>
+                cluster folder create characters in scene_main
+            </dsl:commands>
+
+            <childIds>
+                <id>node_player</id>
+                <id>node_enemy_01</id>
+            </childIds>
+        </node>
+
+        <!-- Folder: Environment -->
+        <node id="folder_environment" type="CLUSTER_NODE_TYPE_FOLDER">
+            <name>Environment</name>
+            <parentId>scene_main</parentId>
+
+            <dsl:commands>
+                cluster folder create environment in scene_main
+            </dsl:commands>
+
+            <childIds>
+                <id>node_terrain</id>
+                <id>node_tree_01</id>
+            </childIds>
+        </node>
+
+        <!-- Node: Player -->
+        <node id="node_player" type="CLUSTER_NODE_TYPE_PREFAB">
+            <name>Player</name>
+            <parentId>folder_characters</parentId>
+            <tagIds>
+                <id>tag_important</id>
+            </tagIds>
+
+            <dsl:commands>
+                cluster node create player in characters --type=prefab
+            </dsl:commands>
+        </node>
+
+        <!-- Node: Enemy -->
+        <node id="node_enemy_01" type="CLUSTER_NODE_TYPE_ASSET">
+            <name>Enemy 01</name>
+            <parentId>folder_characters</parentId>
+
+            <dsl:commands>
+                cluster node create enemy_01 in characters
+            </dsl:commands>
+        </node>
+
+        <!-- Node: Terrain -->
+        <node id="node_terrain" type="CLUSTER_NODE_TYPE_ASSET">
+            <name>Terrain</name>
+            <parentId>folder_environment</parentId>
+
+            <dsl:commands>
+                cluster node create terrain in environment
+            </dsl:commands>
+        </node>
+
+        <!-- Node: Tree -->
+        <node id="node_tree_01" type="CLUSTER_NODE_TYPE_ASSET">
+            <name>Tree 01</name>
+            <parentId>folder_environment</parentId>
+
+            <dsl:commands>
+                cluster node create tree_01 in environment
+            </dsl:commands>
+        </node>
+
+        <!-- Node: Camera -->
+        <node id="node_camera" type="CLUSTER_NODE_TYPE_CAMERA">
+            <name>Main Camera</name>
+            <parentId>scene_main</parentId>
+
+            <dsl:commands>
+                cluster node create main_camera in scene_main --type=camera
+            </dsl:commands>
+        </node>
+
+        <!-- Node: Light -->
+        <node id="node_light" type="CLUSTER_NODE_TYPE_LIGHT">
+            <name>Sun Light</name>
+            <parentId>scene_main</parentId>
+
+            <dsl:commands>
+                cluster node create sun in scene_main --type=light
+            </dsl:commands>
+        </node>
+    </clusterNodes>
+
+    <!-- =================================================================== -->
+    <!-- COMPONENTS -->
+    <!-- ECS components with DSL for properties -->
+    <!-- =================================================================== -->
+    <components>
+        <!-- Player Components -->
+        <component id="comp_player_transform" type="transform">
+            <clusterNodeId>node_player</clusterNodeId>
+
+            <dsl:commands>
+                component create transform on player --position=0,0,0 --rotation=0,0,0,1 --scale=1,1,1
+            </dsl:commands>
+        </component>
+
+        <component id="comp_player_mesh" type="mesh">
+            <clusterNodeId>node_player</clusterNodeId>
+
+            <dsl:commands>
+                component create mesh on player --ref="chp://models/player.gltf"
+            </dsl:commands>
+        </component>
+
+        <component id="comp_player_collider" type="collider">
+            <clusterNodeId>node_player</clusterNodeId>
+
+            <dsl:commands>
+                component create collider on player --type=capsule --height=1.8 --radius=0.4
+            </dsl:commands>
+        </component>
+
+        <component id="comp_player_physics" type="physics">
+            <clusterNodeId>node_player</clusterNodeId>
+
+            <dsl:commands>
+                component create physics on player --mass=80 --drag=0.1
+            </dsl:commands>
+        </component>
+
+        <component id="comp_player_controller" type="controller">
+            <clusterNodeId>node_player</clusterNodeId>
+
+            <dsl:commands>
+                component create controller on player --type=character --speed=5.0 --jump=8.0
+            </dsl:commands>
+        </component>
+
+        <!-- Enemy Components -->
+        <component id="comp_enemy_transform" type="transform">
+            <clusterNodeId>node_enemy_01</clusterNodeId>
+
+            <dsl:commands>
+                component create transform on enemy_01 --position=10,0,5
+            </dsl:commands>
+        </component>
+
+        <component id="comp_enemy_mesh" type="mesh">
+            <clusterNodeId>node_enemy_01</clusterNodeId>
+
+            <dsl:commands>
+                component create mesh on enemy_01 --ref="chp://models/enemy.gltf"
+            </dsl:commands>
+        </component>
+
+        <component id="comp_enemy_ai" type="ai">
+            <clusterNodeId>node_enemy_01</clusterNodeId>
+
+            <dsl:commands>
+                component create ai on enemy_01 --behavior=patrol --target=player --range=20
+            </dsl:commands>
+        </component>
+
+        <!-- Terrain Components -->
+        <component id="comp_terrain_transform" type="transform">
+            <clusterNodeId>node_terrain</clusterNodeId>
+
+            <dsl:commands>
+                component create transform on terrain --position=0,0,0 --scale=500,1,500
+            </dsl:commands>
+        </component>
+
+        <component id="comp_terrain_mesh" type="mesh">
+            <clusterNodeId>node_terrain</clusterNodeId>
+
+            <dsl:commands>
+                component create mesh on terrain --primitive=plane
+            </dsl:commands>
+        </component>
+
+        <component id="comp_terrain_material" type="material">
+            <clusterNodeId>node_terrain</clusterNodeId>
+
+            <dsl:commands>
+                component create material on terrain --shader="chp://shaders/terrain.glsl" --albedo="chp://textures/grass.png"
+            </dsl:commands>
+        </component>
+
+        <!-- Camera Components -->
+        <component id="comp_camera_transform" type="transform">
+            <clusterNodeId>node_camera</clusterNodeId>
+
+            <dsl:commands>
+                component create transform on main_camera --position=0,5,-10
+            </dsl:commands>
+        </component>
+
+        <component id="comp_camera_camera" type="camera">
+            <clusterNodeId>node_camera</clusterNodeId>
+
+            <dsl:commands>
+                component create camera on main_camera --fov=60 --near=0.1 --far=1000
+            </dsl:commands>
+        </component>
+
+        <component id="comp_camera_follow" type="follow">
+            <clusterNodeId>node_camera</clusterNodeId>
+
+            <dsl:commands>
+                component create follow on main_camera --target=player --offset=0,3,5 --smooth=0.1
+            </dsl:commands>
+        </component>
+
+        <!-- Light Components -->
+        <component id="comp_light_transform" type="transform">
+            <clusterNodeId>node_light</clusterNodeId>
+
+            <dsl:commands>
+                component create transform on sun --rotation=-45,30,0
+            </dsl:commands>
+        </component>
+
+        <component id="comp_light_light" type="light">
+            <clusterNodeId>node_light</clusterNodeId>
+
+            <dsl:commands>
+                component create light on sun --type=directional --color=1,0.95,0.9 --intensity=1.5
+            </dsl:commands>
+        </component>
+    </components>
+
+    <!-- =================================================================== -->
+    <!-- ASSETS -->
+    <!-- =================================================================== -->
+    <assets>
+        <dsl:commands>
+            asset folder create models in proj_example_game --pattern="*.gltf"
+            asset folder create textures in proj_example_game --pattern="*.png"
+            asset folder create shaders in proj_example_game --pattern="*.glsl"
+            asset folder create scenes in proj_example_game --pattern="*.synth"
+
+            asset load player_model from chp://models/player.gltf
+            asset load enemy_model from chp://models/enemy.gltf
+            asset load terrain_shader from chp://shaders/terrain.glsl
+            asset load grass_texture from chp://textures/grass.png --format=compressed
+        </dsl:commands>
+
+        <asset id="asset_player_model">
+            <name>player.gltf</name>
+            <type>ASSET_TYPE_MODEL_3D</type>
+            <uri>chp://models/player.gltf</uri>
+            <sourcePath>./models/player.gltf</sourcePath>
+        </asset>
+
+        <asset id="asset_enemy_model">
+            <name>enemy.gltf</name>
+            <type>ASSET_TYPE_MODEL_3D</type>
+            <uri>chp://models/enemy.gltf</uri>
+            <sourcePath>./models/enemy.gltf</sourcePath>
+        </asset>
+
+        <asset id="asset_grass_texture">
+            <name>grass.png</name>
+            <type>ASSET_TYPE_TEXTURE</type>
+            <uri>chp://textures/grass.png</uri>
+            <sourcePath>./textures/grass.png</sourcePath>
+        </asset>
+    </assets>
+
+    <!-- =================================================================== -->
+    <!-- EVENT HISTORY -->
+    <!-- Recorded events for undo/redo and replay -->
+    <!-- =================================================================== -->
+    <history maxEvents="1000" enabled="true">
+        <event id="evt_001" ts="1733580000000">
+            cluster folder create characters in scene_main
+        </event>
+        <event id="evt_002" ts="1733580001000">
+            cluster folder create environment in scene_main
+        </event>
+        <event id="evt_003" ts="1733580002000">
+            cluster node create player in characters --type=prefab
+        </event>
+        <event id="evt_004" ts="1733580003000">
+            component create transform on player --position=0,0,0
+        </event>
+        <event id="evt_005" ts="1733580004000">
+            component create mesh on player --ref="chp://models/player.gltf"
+        </event>
+        <event id="evt_006" ts="1733580005000">
+            cluster node create enemy_01 in characters
+        </event>
+        <event id="evt_007" ts="1733580006000">
+            component create transform on enemy_01 --position=10,0,5
+        </event>
+        <event id="evt_008" ts="1733580010000">
+            component update transform on player --position=5,0,3
+        </event>
+    </history>
+
+    <!-- =================================================================== -->
+    <!-- EVENT SUBSCRIPTIONS -->
+    <!-- Runtime event handlers -->
+    <!-- =================================================================== -->
+    <events>
+        <dsl:commands>
+            event subscribe collision on player --handler=onPlayerCollision
+            event subscribe trigger_enter on enemy_01 --handler=onEnemyDetect
+            event subscribe health_changed on player --handler=onHealthChanged
+        </dsl:commands>
+
+        <subscription id="sub_collision">
+            <pattern>component update collider on player</pattern>
+            <handler>onPlayerCollision</handler>
+        </subscription>
+
+        <subscription id="sub_enemy_detect">
+            <pattern>cluster node enter * in enemy_01.detection_zone</pattern>
+            <handler>onEnemyDetect</handler>
+        </subscription>
+    </events>
+
+    <!-- =================================================================== -->
+    <!-- AGENTS -->
+    <!-- AI agent definitions -->
+    <!-- =================================================================== -->
+    <agents>
+        <agent id="agent_scene_analyzer">
+            <name>Scene Analyzer</name>
+            <type>AGENT_TYPE_REACTIVE</type>
+            <mcpServerId>mcp_vision</mcpServerId>
+
+            <dsl:commands>
+                agent create scene_analyzer --type=reactive --mcp=mcp_vision
+                agent capability add scene.analyze on scene_analyzer
+                agent capability add asset.optimize on scene_analyzer
+            </dsl:commands>
+        </agent>
+    </agents>
+
+</synthProject>
